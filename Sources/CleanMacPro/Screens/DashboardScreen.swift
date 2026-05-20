@@ -8,14 +8,29 @@ struct DashboardScreen: View {
     private var storageSlices: [SunburstSlice] {
         let cleanupSize = totalGB(of: .cleanup)
         let filesSize = totalGB(of: .files)
+        let free = max(diskTotal - diskUsed, 0)
         return [
-            SunburstSlice(label: "Système",        value: 32,            color: .cmpViolet),
-            SunburstSlice(label: "Applications",   value: 84,            color: .cmpInfo),
-            SunburstSlice(label: "Documents",      value: 42,            color: .cmpWarn),
-            SunburstSlice(label: "Photos",         value: 30.6,          color: Color(red: 255/255, green: 159/255, blue: 10/255)),
-            SunburstSlice(label: "À nettoyer",     value: max(cleanupSize + filesSize, 0.5), color: theme.accent.color),
-            SunburstSlice(label: "Libre",          value: 275,           color: Color(white: 0.88)),
+            .init(key: "system", label: "Système",      value: 32, color: .cmpViolet),
+            .init(key: "apps",   label: "Applications", value: 84, color: .cmpInfo),
+            .init(key: "docs",   label: "Documents",    value: 42, color: .cmpWarn),
+            .init(key: "photos", label: "Photos",       value: 30.6, color: Color(red: 255/255, green: 159/255, blue: 10/255)),
+            .init(key: "clean",  label: "À nettoyer",   value: max(cleanupSize + filesSize, 0.5), color: theme.accent.color),
+            .init(key: "free",   label: "Libre",        value: free, color: Color(white: 0.88)),
         ]
+    }
+
+    private var diskUsed: Double {
+        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
+              let total = attrs[.systemSize] as? NSNumber,
+              let free = attrs[.systemFreeSize] as? NSNumber
+        else { return 207 }
+        return (total.doubleValue - free.doubleValue) / 1_000_000_000
+    }
+    private var diskTotal: Double {
+        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
+              let total = attrs[.systemSize] as? NSNumber
+        else { return 482 }
+        return total.doubleValue / 1_000_000_000
     }
 
     private func totalGB(of module: ModuleID) -> Double {
@@ -52,12 +67,10 @@ struct DashboardScreen: View {
                     title: "Ton Mac va bien.",
                     subtitle: "Lance un Smart Scan pour voir ce qu'il y a à récupérer."
                 ) {
-                    HStack(spacing: 8) {
-                        Btn(kind: .secondary, icon: "sparkle", label: "Demander à l'IA") {}
-                        Btn(kind: .primary, size: .lg, icon: "scan", label: "Lancer Smart Scan") {
-                            appState.active = .smartScan
-                            appState.startScan(module: .smartScan)
-                        }
+                    Btn(kind: .primary, size: .lg, icon: "scan", label: "Lancer Smart Scan") {
+                        appState.active = .smartScan
+                        let modules: [ModuleID] = [.cleanup, .files, .security, .updates, .privacy]
+                        modules.forEach { appState.startScan(module: $0) }
                     }
                 }
 
@@ -72,8 +85,9 @@ struct DashboardScreen: View {
                                 .foregroundColor(.text3(theme.dark))
                             StorageSunburst(size: 200,
                                             slices: storageSlices,
-                                            centerTitle: "207 Go",
-                                            centerSubtitle: "utilisés sur 482 Go")
+                                            used: diskUsed,
+                                            total: diskTotal,
+                                            defaultKey: "clean")
                             SunburstLegend(slices: storageSlices).padding(.top, 4)
                         }
                         .frame(width: 240)
@@ -275,6 +289,7 @@ struct DashboardScreen: View {
     }
 
     private var aiInsight: some View {
+        // Real insight derived from local scanner state — no LLM needed.
         GlassPanel(radius: 12, padding: 14) {
             HStack(spacing: 12) {
                 ZStack {
@@ -283,10 +298,11 @@ struct DashboardScreen: View {
                 }
                 .frame(width: 36, height: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("INSIGHT IA").font(.system(size: 10, weight: .semibold))
+                    Text("INSIGHT").font(.system(size: 10, weight: .semibold))
                         .tracking(0.8).foregroundColor(.text3(theme.dark))
-                    Text("Lance un Smart Scan pour voir tes optimisations.")
+                    Text(insightMessage)
                         .font(.system(size: 13)).foregroundColor(.text1(theme.dark))
+                        .lineLimit(2)
                 }
                 Spacer()
             }
@@ -296,5 +312,18 @@ struct DashboardScreen: View {
                            startPoint: .topLeading, endPoint: .bottomTrailing)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         )
+    }
+
+    private var insightMessage: String {
+        let cleanup = totalGB(of: .cleanup)
+        let files = totalGB(of: .files)
+        let total = cleanup + files
+        if total > 1 {
+            return "Boom. Tu peux récupérer \(String(format: "%.1f", total)) Go en nettoyant les caches et les gros fichiers."
+        }
+        if appState.state(for: .cleanup).result == nil {
+            return "Lance un Smart Scan pour voir où récupérer de l'espace."
+        }
+        return "Ton Mac est propre. Bon point."
     }
 }

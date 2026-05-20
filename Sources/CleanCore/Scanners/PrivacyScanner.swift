@@ -1,63 +1,74 @@
 import Foundation
 
-/// Browsing data that browsers store locally — cookies, caches, history.
-/// Each browser entry is returned as one ScanItem so the UI can show them
-/// per-browser with a toggle.
+/// Per-browser browsing data — cookies, caches, history files. Each path
+/// becomes a real ScanItem with its actual URL, so the Cleaner can move it
+/// to the Trash.
 public struct PrivacyScanner: FileScanner {
     public let module: ModuleID = .privacy
 
     public init() {}
 
-    public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
-        let browsers: [(String, [String])] = [
-            ("Safari", [
-                "~/Library/Safari/History.db",
-                "~/Library/Safari/Downloads.plist",
-                "~/Library/Caches/com.apple.Safari",
-                "~/Library/Cookies/Cookies.binarycookies",
+    private struct PrivacyTarget {
+        let label: String      // "Cookies", "Cache", "Historique"
+        let path: String       // tilde-expandable path
+    }
+
+    private struct BrowserSpec {
+        let name: String
+        let targets: [PrivacyTarget]
+    }
+
+    private var browsers: [BrowserSpec] {
+        [
+            .init(name: "Safari", targets: [
+                .init(label: "Historique",            path: "~/Library/Safari/History.db"),
+                .init(label: "Téléchargements",       path: "~/Library/Safari/Downloads.plist"),
+                .init(label: "Cache",                 path: "~/Library/Caches/com.apple.Safari"),
+                .init(label: "Cookies",               path: "~/Library/Cookies/Cookies.binarycookies"),
             ]),
-            ("Chrome", [
-                "~/Library/Application Support/Google/Chrome/Default/Cookies",
-                "~/Library/Application Support/Google/Chrome/Default/History",
-                "~/Library/Application Support/Google/Chrome/Default/Cache",
-                "~/Library/Caches/Google/Chrome",
+            .init(name: "Chrome", targets: [
+                .init(label: "Cookies",               path: "~/Library/Application Support/Google/Chrome/Default/Cookies"),
+                .init(label: "Historique",            path: "~/Library/Application Support/Google/Chrome/Default/History"),
+                .init(label: "Cache profil",          path: "~/Library/Application Support/Google/Chrome/Default/Cache"),
+                .init(label: "Cache global",          path: "~/Library/Caches/Google/Chrome"),
             ]),
-            ("Firefox", [
-                "~/Library/Application Support/Firefox/Profiles",
-                "~/Library/Caches/Firefox",
+            .init(name: "Firefox", targets: [
+                .init(label: "Profils",               path: "~/Library/Application Support/Firefox/Profiles"),
+                .init(label: "Cache",                 path: "~/Library/Caches/Firefox"),
             ]),
-            ("Brave", [
-                "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies",
-                "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache",
+            .init(name: "Brave", targets: [
+                .init(label: "Cookies",               path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies"),
+                .init(label: "Cache",                 path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache"),
             ]),
-            ("Arc", [
-                "~/Library/Application Support/Arc",
-                "~/Library/Caches/Company.ThePersistantNonsenseUnknownInc.Arc",
+            .init(name: "Arc", targets: [
+                .init(label: "Données",               path: "~/Library/Application Support/Arc"),
+                .init(label: "Cache",                 path: "~/Library/Caches/Company.ThePersistantNonsenseUnknownInc.Arc"),
             ]),
         ]
+    }
+
+    public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         var items: [ScanItem] = []
         let total = Double(browsers.count)
 
-        for (idx, (name, paths)) in browsers.enumerated() {
-            progress(Double(idx) / total, "Analyse \(name)…")
-            var size: Int64 = 0
-            var present = false
-            for raw in paths {
-                let url = FS.expand(raw)
+        for (idx, browser) in browsers.enumerated() {
+            progress(Double(idx) / total, "Analyse \(browser.name)…")
+            for target in browser.targets {
+                let url = FS.expand(target.path)
                 guard FileManager.default.fileExists(atPath: url.path) else { continue }
-                present = true
                 var isDir: ObjCBool = false
                 FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-                size += isDir.boolValue ? FS.directorySize(url) : FS.size(of: url)
-            }
-            if present {
+                let size = isDir.boolValue ? FS.directorySize(url) : FS.size(of: url)
+                guard size > 0 else { continue }
+
                 items.append(ScanItem(
-                    url: URL(fileURLWithPath: "/Browsers/\(name)"),
+                    url: url,
                     size: size,
+                    modified: FS.modified(of: url),
                     kind: .privacyData,
-                    group: name,
-                    title: "Cookies, cache, historique",
-                    detail: paths.joined(separator: " · "),
+                    group: browser.name,
+                    title: target.label,
+                    detail: url.path,
                     severity: size > 200_000_000 ? .warn : .info
                 ))
             }

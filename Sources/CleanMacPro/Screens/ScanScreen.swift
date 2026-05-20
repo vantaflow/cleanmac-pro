@@ -17,6 +17,9 @@ struct ScanScreen: View {
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(title: module.title, subtitle: subtitle) {
                 HStack(spacing: 8) {
+                    if state.result != nil && !(state.result?.items.isEmpty ?? true) {
+                        SortMenu(module: module)
+                    }
                     if state.isScanning {
                         Btn(kind: .secondary, icon: "pause", label: "Annuler") {
                             appState.cancelScan(module: module)
@@ -125,10 +128,19 @@ private struct ResultsListing: View {
     let module: ModuleID
     let result: ScanResult
 
+    private func compare(_ a: ScanItem, _ b: ScanItem) -> Bool {
+        let s = appState.state(for: module)
+        let asc = !s.sortDescending
+        switch s.sortKey {
+        case .size:     return asc ? a.size < b.size : a.size > b.size
+        case .name:     return asc ? a.name < b.name : a.name > b.name
+        case .modified: return asc ? a.modified < b.modified : a.modified > b.modified
+        }
+    }
     private var grouped: [(String, [ScanItem])] {
         let dict = Dictionary(grouping: result.items, by: { $0.group ?? "Autres" })
         return dict
-            .map { ($0.key, $0.value.sorted { $0.size > $1.size }) }
+            .map { ($0.key, $0.value.sorted(by: compare)) }
             .sorted { $0.1.reduce(0) { $0 + $1.size } > $1.1.reduce(0) { $0 + $1.size } }
     }
 

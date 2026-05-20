@@ -32,7 +32,6 @@ struct AppToolbar: View {
             ToolbarChip(icon: "chip", active: appState.menubarOpen) {
                 appState.menubarOpen.toggle()
             }
-            ToolbarChip(icon: "sparkle", active: false) { /* AI overlay TODO */ }
         }
         .padding(.horizontal, 16)
         .frame(height: 44)

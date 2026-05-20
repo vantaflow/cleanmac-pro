@@ -6,26 +6,28 @@ struct RootView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: appState.theme.wallpaper.stops,
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
+        ZStack(alignment: .topTrailing) {
             HStack(spacing: 0) {
                 SidebarView()
                 MainPane()
             }
             .background(Color.windowBg(appState.theme.dark))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.black.opacity(0.3), lineWidth: 0.5)
-            )
-            .shadow(color: .black.opacity(0.45), radius: 40, y: 20)
-            .padding(24)
+            .ignoresSafeArea()
+
+            if appState.menubarOpen {
+                MenubarWidget()
+                    .padding(.top, 12)
+                    .padding(.trailing, 12)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if appState.showOnboarding {
+                OnboardingOverlay()
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: 0.22), value: appState.menubarOpen)
+        .animation(.easeOut(duration: 0.35), value: appState.showOnboarding)
     }
 }
 
@@ -79,8 +81,8 @@ private struct MainPane: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            if appState.active != .smartScan && appState.active != .result {
-                QuickCleanFAB(action: { appState.active = .result })
+            if appState.active != .smartScan && appState.active != .result && !appState.showOnboarding {
+                QuickCleanFAB(action: { appState.quickClean() })
                     .padding(28)
             }
         }

@@ -8,11 +8,38 @@ final class AppState: ObservableObject {
     @Published var active: ModuleID = .dashboard
     @Published var moduleStates: [ModuleID: ModuleState] = [:]
     @Published var menubarOpen = false
+    @Published var showOnboarding: Bool
 
     init() {
+        let seen = UserDefaults.standard.bool(forKey: "ai.turkeycode.cleanmacpro.onboarding.seen")
+        self.showOnboarding = !seen
         for m in ModuleID.allCases {
             moduleStates[m] = ModuleState()
         }
+    }
+
+    func dismissOnboarding() {
+        showOnboarding = false
+        UserDefaults.standard.set(true, forKey: "ai.turkeycode.cleanmacpro.onboarding.seen")
+    }
+
+    /// "Quick Clean" — cleans every module that has a scan result with safe defaults.
+    /// If nothing has been scanned, runs a Smart Scan first.
+    func quickClean() {
+        let cleanable: [ModuleID] = [.cleanup, .files, .privacy]
+        let alreadyScanned = cleanable.contains { moduleStates[$0]?.result != nil }
+
+        guard alreadyScanned else {
+            active = .smartScan
+            [.cleanup, .files, .security, .updates, .privacy].forEach { startScan(module: $0) }
+            return
+        }
+        for m in cleanable {
+            guard let result = moduleStates[m]?.result, !result.items.isEmpty else { continue }
+            update(m) { $0.selection = Set(result.items.map(\.id)) }
+            clean(module: m)
+        }
+        active = .result
     }
 
     func state(for module: ModuleID) -> ModuleState {
@@ -113,4 +140,25 @@ struct ModuleState {
     var selection: Set<UUID> = []
     var lastReport: CleanReport? = nil
     var currentTask: Task<Void, Never>? = nil
+    var sortKey: SortKey = .size
+    var sortDescending: Bool = true
+}
+
+enum SortKey: String, CaseIterable, Identifiable {
+    case size, name, modified
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .size: return "Taille"
+        case .name: return "Nom"
+        case .modified: return "Date"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .size: return "ram"
+        case .name: return "files"
+        case .modified: return "scan"
+        }
+    }
 }
