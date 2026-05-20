@@ -45,13 +45,13 @@ func runSmoke() async {
         let totalSize = files.reduce(Int64(0)) { $0 + FS.size(of: $1) }
         Smoke.check(totalSize >= 300, "FS.size sums to ≥300 (got \(totalSize))")
 
-        // SmartScanner with overrides
+        // CleanupScanner with overrides
         let cacheDir = root.appendingPathComponent("Caches")
         try Smoke.write(1_000, to: cacheDir.appendingPathComponent("c1"))
         try Smoke.write(2_000, to: cacheDir.appendingPathComponent("c2"))
-        let smart = SmartScanner(rootOverrides: [cacheDir])
+        let smart = CleanupScanner(rootOverrides: [cacheDir])
         let smartResult = try await smart.scan { _, _ in }
-        Smoke.check(smartResult.count == 2, "SmartScanner finds 2 items (got \(smartResult.count))")
+        Smoke.check(smartResult.count == 2, "CleanupScanner finds 2 items (got \(smartResult.count))")
 
         // LargeFilesScanner
         let dl = root.appendingPathComponent("Downloads")

@@ -6,9 +6,11 @@ struct CleanMacProApp: App {
 
     var body: some Scene {
         WindowGroup("CleanMac Pro") {
-            DashboardView()
+            RootView()
                 .environmentObject(appState)
-                .frame(minWidth: 980, minHeight: 640)
+                .environment(\.theme, appState.theme)
+                .preferredColorScheme(appState.theme.dark ? .dark : .light)
+                .frame(minWidth: 1100, minHeight: 720)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

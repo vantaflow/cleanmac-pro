@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 
 public struct DuplicatesScanner: FileScanner {
-    public let module: ModuleID = .duplicates
+    public let module: ModuleID = .files
     public let roots: [URL]
     public let minSize: Int64
 
@@ -61,7 +61,7 @@ public struct DuplicatesScanner: FileScanner {
         }
 
         progress(1.0, "Done")
-        return ScanResult(module: .duplicates, items: items)
+        return ScanResult(module: .files, items: items)
     }
 
     private func hash(url: URL) -> String? {

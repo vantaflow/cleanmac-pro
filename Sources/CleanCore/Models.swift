@@ -7,6 +7,9 @@ public struct ScanItem: Identifiable, Hashable {
     public let modified: Date
     public let kind: ItemKind
     public let group: String?
+    public let title: String?        // overrides url.lastPathComponent when set
+    public let detail: String?       // secondary description
+    public let severity: Severity    // for findings / updates
 
     public init(
         id: UUID = UUID(),
@@ -14,7 +17,10 @@ public struct ScanItem: Identifiable, Hashable {
         size: Int64,
         modified: Date = Date(),
         kind: ItemKind,
-        group: String? = nil
+        group: String? = nil,
+        title: String? = nil,
+        detail: String? = nil,
+        severity: Severity = .info
     ) {
         self.id = id
         self.url = url
@@ -22,16 +28,30 @@ public struct ScanItem: Identifiable, Hashable {
         self.modified = modified
         self.kind = kind
         self.group = group
+        self.title = title
+        self.detail = detail
+        self.severity = severity
     }
 
-    public var name: String { url.lastPathComponent }
+    public var name: String { title ?? url.lastPathComponent }
 }
 
-public enum ItemKind: String, Hashable {
+public enum Severity: String, Hashable, Sendable {
+    case info, good, warn, bad
+}
+
+public enum ItemKind: String, Hashable, Sendable {
     case cache, log, trash, tempFile
     case largeFile, oldFile
     case app, appResidue
     case duplicate
+    // New domains
+    case securityFinding
+    case updateAvailable
+    case launchAgent, loginItem, processSnapshot
+    case privacyData
+    case maintenanceTask
+    case spaceFolder
 }
 
 public struct ScanResult {
@@ -49,33 +69,61 @@ public struct ScanResult {
 }
 
 public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
-    case smartScan, largeFiles, uninstaller, duplicates
+    case dashboard, smartScan, cleanup, uninstaller, files, spaceLens
+    case security, privacy
+    case updates, performance, maintenance
+    case result
+
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
-        case .smartScan: return "Smart Scan"
-        case .largeFiles: return "Large & Old Files"
-        case .uninstaller: return "Uninstaller"
-        case .duplicates: return "Duplicates"
+        case .dashboard:   return "Vue d'ensemble"
+        case .smartScan:   return "Smart Scan"
+        case .cleanup:     return "Fichiers inutiles"
+        case .uninstaller: return "Désinstalleur"
+        case .files:       return "Volumineux & doublons"
+        case .spaceLens:   return "Space Lens"
+        case .security:    return "Sécurité"
+        case .privacy:     return "Confidentialité"
+        case .updates:     return "Mises à jour"
+        case .performance: return "Performance"
+        case .maintenance: return "Maintenance"
+        case .result:      return "Nettoyage terminé"
         }
     }
 
     public var subtitle: String {
         switch self {
-        case .smartScan: return "Caches, logs, trash"
-        case .largeFiles: return "Free disk space fast"
-        case .uninstaller: return "Remove apps cleanly"
-        case .duplicates: return "Find redundant files"
+        case .dashboard:   return "Santé du Mac"
+        case .smartScan:   return "Scan complet"
+        case .cleanup:     return "Caches, logs, corbeilles"
+        case .uninstaller: return "Apps + résidus"
+        case .files:       return "Gros fichiers & doublons"
+        case .spaceLens:   return "Carte interactive du disque"
+        case .security:    return "Anti-malware, FileVault"
+        case .privacy:     return "Cookies, traceurs"
+        case .updates:     return "Apps obsolètes"
+        case .performance: return "Démarrage, agents"
+        case .maintenance: return "Reindex, scripts"
+        case .result:      return "Récap après nettoyage"
         }
     }
 
     public var symbol: String {
         switch self {
-        case .smartScan: return "sparkles"
-        case .largeFiles: return "doc.zipper"
-        case .uninstaller: return "trash.square"
-        case .duplicates: return "doc.on.doc"
+        case .dashboard:   return "dashboard"
+        case .smartScan:   return "scan"
+        case .cleanup:     return "broom"
+        case .uninstaller: return "app"
+        case .files:       return "files"
+        case .spaceLens:   return "disk"
+        case .security:    return "shield"
+        case .privacy:     return "eye"
+        case .updates:     return "arrow"
+        case .performance: return "bolt"
+        case .maintenance: return "wrench"
+        case .result:      return "sparkle"
         }
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 public struct LargeFilesScanner: FileScanner {
-    public let module: ModuleID = .largeFiles
+    public let module: ModuleID = .files
     public let roots: [URL]
     public let minSize: Int64
     public let oldAge: TimeInterval
@@ -51,6 +51,6 @@ public struct LargeFilesScanner: FileScanner {
         }
         progress(1.0, "Done")
         items.sort { $0.size > $1.size }
-        return ScanResult(module: .largeFiles, items: items)
+        return ScanResult(module: .files, items: items)
     }
 }

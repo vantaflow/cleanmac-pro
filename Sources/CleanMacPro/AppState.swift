@@ -4,8 +4,10 @@ import CleanCore
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var selectedModule: ModuleID? = .smartScan
+    @Published var theme = Theme()
+    @Published var active: ModuleID = .dashboard
     @Published var moduleStates: [ModuleID: ModuleState] = [:]
+    @Published var menubarOpen = false
 
     init() {
         for m in ModuleID.allCases {
@@ -23,25 +25,31 @@ final class AppState: ObservableObject {
         moduleStates[module] = s
     }
 
-    func scanner(for module: ModuleID) -> any FileScanner {
+    func scanner(for module: ModuleID) -> (any FileScanner)? {
         switch module {
-        case .smartScan:   return SmartScanner()
-        case .largeFiles:  return LargeFilesScanner()
+        case .cleanup:     return CleanupScanner()
+        case .files:       return LargeFilesScanner()
         case .uninstaller: return AppUninstaller()
-        case .duplicates:  return DuplicatesScanner()
+        case .security:    return SecurityScanner()
+        case .privacy:     return PrivacyScanner()
+        case .updates:     return UpdatesScanner()
+        case .performance: return PerformanceScanner()
+        case .maintenance: return MaintenanceScanner()
+        case .spaceLens:   return SpaceLensScanner()
+        case .smartScan:   return CleanupScanner()  // Smart scan re-runs cleanup
+        case .dashboard, .result: return nil
         }
     }
 
     func startScan(module: ModuleID) {
+        guard let scanner = scanner(for: module) else { return }
         update(module) { s in
             s.isScanning = true
             s.progress = 0
-            s.status = "Starting…"
+            s.status = "Démarrage…"
             s.result = nil
             s.selection.removeAll()
         }
-
-        let scanner = scanner(for: module)
         let task = Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 let result = try await scanner.scan(progress: { p, msg in
@@ -56,14 +64,14 @@ final class AppState: ObservableObject {
                     self?.update(module) { s in
                         s.isScanning = false
                         s.result = result
-                        s.status = "Found \(result.count) items · \(ByteFormatter.string(result.totalSize))"
+                        s.status = "\(result.count) éléments · \(ByteFormatter.string(result.totalSize))"
                     }
                 }
             } catch {
                 await MainActor.run { [weak self] in
                     self?.update(module) { s in
                         s.isScanning = false
-                        s.status = "Scan cancelled"
+                        s.status = "Annulé"
                     }
                 }
             }
@@ -75,7 +83,7 @@ final class AppState: ObservableObject {
         moduleStates[module]?.currentTask?.cancel()
         update(module) { s in
             s.isScanning = false
-            s.status = "Cancelled"
+            s.status = "Annulé"
         }
     }
 
@@ -83,12 +91,16 @@ final class AppState: ObservableObject {
         let state = self.state(for: module)
         guard let result = state.result, !state.selection.isEmpty else { return }
         let toClean = result.items.filter { state.selection.contains($0.id) }
+            .filter { ![.securityFinding, .updateAvailable, .loginItem, .launchAgent,
+                        .processSnapshot, .maintenanceTask, .spaceFolder].contains($0.kind) }
         let report = Cleaner.clean(items: toClean)
         update(module) { s in
             s.lastReport = report
-            s.result?.items.removeAll { report.failedItems.contains($0.url) == false && state.selection.contains($0.id) }
+            s.result?.items.removeAll { item in
+                state.selection.contains(item.id) && !report.failedItems.contains(item.url)
+            }
             s.selection.removeAll()
-            s.status = "Freed \(ByteFormatter.string(report.freedBytes))"
+            s.status = "Libéré \(ByteFormatter.string(report.freedBytes))"
         }
     }
 }
@@ -96,7 +108,7 @@ final class AppState: ObservableObject {
 struct ModuleState {
     var isScanning: Bool = false
     var progress: Double = 0
-    var status: String = "Ready"
+    var status: String = "Prêt"
     var result: ScanResult? = nil
     var selection: Set<UUID> = []
     var lastReport: CleanReport? = nil

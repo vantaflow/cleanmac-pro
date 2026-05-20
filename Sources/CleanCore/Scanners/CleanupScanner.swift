@@ -1,7 +1,7 @@
 import Foundation
 
-public struct SmartScanner: FileScanner {
-    public let module: ModuleID = .smartScan
+public struct CleanupScanner: FileScanner {
+    public let module: ModuleID = .cleanup
     public var rootOverrides: [URL]?  // for tests
 
     public init(rootOverrides: [URL]? = nil) {
@@ -50,6 +50,6 @@ public struct SmartScanner: FileScanner {
             }
         }
         progress(1.0, "Done")
-        return ScanResult(module: .smartScan, items: items)
+        return ScanResult(module: .cleanup, items: items)
     }
 }
