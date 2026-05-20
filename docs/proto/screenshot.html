@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>CleanMac Pro</title>
+<meta name="viewport" content="width=1440" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<style>
+  :root{
+    --bg-desktop: radial-gradient(ellipse at 30% 10%, #2b3a5f 0%, #14182b 45%, #06080f 100%);
+    --accent: #00D9A3;
+    --accent-rgb: 0,217,163;
+    --window-bg: rgba(246,246,248,0.78);
+    --window-bg-solid: #f6f6f8;
+    --sidebar-bg: rgba(232,235,242,0.55);
+    --panel: rgba(255,255,255,0.78);
+    --panel-solid: #ffffff;
+    --text-1: #1d1d1f;
+    --text-2: rgba(29,29,31,0.62);
+    --text-3: rgba(29,29,31,0.42);
+    --hairline: rgba(0,0,0,0.08);
+    --hairline-soft: rgba(0,0,0,0.05);
+    --good: #34C759;
+    --warn: #FFB020;
+    --bad:  #FF453A;
+    --row-h: 44px;
+  }
+  html.dark{
+    --bg-desktop: radial-gradient(ellipse at 30% 10%, #1a2540 0%, #0a0c14 50%, #03040a 100%);
+    --window-bg: rgba(28,28,32,0.78);
+    --window-bg-solid: #1c1c20;
+    --sidebar-bg: rgba(22,24,32,0.6);
+    --panel: rgba(255,255,255,0.05);
+    --panel-solid: #232328;
+    --text-1: #f5f5f7;
+    --text-2: rgba(245,245,247,0.6);
+    --text-3: rgba(245,245,247,0.4);
+    --hairline: rgba(255,255,255,0.08);
+    --hairline-soft: rgba(255,255,255,0.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg-desktop);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;color:var(--text-1);-webkit-font-smoothing:antialiased}
+  body{overflow:hidden}
+  /* Mac desktop with subtle wallpaper grain */
+  .desktop{position:fixed;inset:0;background:var(--bg-desktop)}
+  .desktop::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(circle at 80% 80%, rgba(0,217,163,0.10), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(120, 80, 220, 0.10), transparent 35%);
+    pointer-events:none;
+  }
+  .desktop::after{content:"";position:absolute;inset:0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity:.4;mix-blend-mode:overlay;pointer-events:none;
+  }
+
+  /* macOS menu bar */
+  .menubar{
+    position:fixed; top:0; left:0; right:0; height:28px; z-index:50;
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    background: rgba(255,255,255,0.18);
+    border-bottom: 0.5px solid rgba(255,255,255,0.15);
+    display:flex; align-items:center; padding: 0 14px; gap:18px;
+    font-size:13px; color:#fff;
+  }
+  .menubar .apple{font-size:14px}
+  .menubar .menu-app{font-weight:600}
+  .menubar .menu-item{opacity:.92}
+  .menubar .spacer{flex:1}
+  .menubar .tray{display:flex; gap:14px; align-items:center; opacity:.92}
+  .menubar .clock{font-variant-numeric: tabular-nums; font-weight:500}
+
+  /* Stage that holds the window centered */
+  .stage{position:fixed; inset:28px 0 0; display:grid; place-items:center; padding:24px}
+</style>
+<script type="application/json" id="speaker-notes">[]</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class="desktop"></div>
+
+  <div class="menubar">
+    <span class="apple"></span>
+    <span class="menu-app">CleanMac Pro</span>
+    <span class="menu-item">Fichier</span>
+    <span class="menu-item">Édition</span>
+    <span class="menu-item">Affichage</span>
+    <span class="menu-item">Fenêtre</span>
+    <span class="menu-item">Aide</span>
+    <span class="spacer"></span>
+    <span id="cmp-menu-icon" style="cursor:default"></span>
+    <span class="tray">
+      <span></span>
+      <span>🔋</span>
+      <span>📶</span>
+      <span class="clock" id="mac-clock">mar. 20 mai 18:42</span>
+    </span>
+  </div>
+
+  <div id="root" class="stage"></div>
+
+  <script>
+    // tiny clock
+    (function(){
+      const el = document.getElementById('mac-clock');
+      const fmt = () => {
+        const d = new Date();
+        const days = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+        const months = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${hh}:${mm}`;
+      };
+      el.textContent = fmt();
+      setInterval(()=>{el.textContent=fmt()}, 30000);
+    })();
+  </script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="logo.jsx"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="menubar-widget.jsx"></script>
+  <script type="text/babel" src="extras.jsx"></script>
+  <script type="text/babel" src="more-screens.jsx"></script>
+  <script type="text/babel" src="main.jsx"></script>
+
+<script>
+  window.addEventListener('load', () => {
+    const url = new URL(location.href);
+    const target = url.searchParams.get('screen');
+    if (!target) return;
+    // Wait for React to mount, then walk DOM and find sidebar button matching id
+    const tryClick = () => {
+      const buttons = document.querySelectorAll('aside button');
+      for (const b of buttons) {
+        const t = b.innerText.toLowerCase();
+        // crude mapping
+        const map = {
+          dashboard: "vue d'ensemble", scan: 'smart scan',
+          cleanup: 'fichiers inutiles', uninstaller: 'désinstalleur',
+          files: 'volumineux', spacelens: 'space lens',
+          security: 'sécurité', privacy: 'confidentialité',
+          updates: 'mises à jour', optimize: 'performance',
+          maintenance: 'maintenance', result: ''
+        };
+        const needle = map[target];
+        if (needle && t.includes(needle)) { b.click(); return true; }
+      }
+      return false;
+    };
+    if (target === 'result') {
+      // Trigger ⌘⇧K binding by dispatching a key event
+      const tryResult = () => {
+        const evt = new KeyboardEvent('keydown', { key: 'K', metaKey: true, shiftKey: true, bubbles: true });
+        window.dispatchEvent(evt);
+      };
+      setTimeout(tryResult, 800);
+    } else {
+      let tries = 0;
+      const interval = setInterval(() => {
+        if (tryClick() || ++tries > 20) clearInterval(interval);
+      }, 200);
+    }
+  });
+</script>
+</body>
+</html>

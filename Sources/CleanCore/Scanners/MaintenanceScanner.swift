@@ -1,7 +1,8 @@
 import Foundation
 
-/// Surfaces maintenance actions that can be run via system tools.
-/// Each item carries a command in `detail` and metadata in `group`.
+/// Surfaces real maintenance commands. Each item carries a `command` and a
+/// `needsAdmin` flag so the UI can execute it (with a native admin prompt
+/// when required).
 public struct MaintenanceScanner: FileScanner {
     public let module: ModuleID = .maintenance
 
@@ -9,31 +10,31 @@ public struct MaintenanceScanner: FileScanner {
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         progress(0.5, "Inventaire des tâches…")
-        let tasks: [(String, String, String, Severity)] = [
+        let tasks: [(title: String, detail: String, command: String, admin: Bool)] = [
             ("Vider le cache DNS",
-             "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder",
              "Résout les soucis de résolution de noms",
-             .info),
+             "dscacheutil -flushcache && killall -HUP mDNSResponder",
+             true),
             ("Reconstruire l'index Spotlight",
-             "sudo mdutil -E /",
              "Réindexe le disque — Spotlight redevient rapide",
-             .info),
-            ("Réparer les permissions du dossier utilisateur",
-             "diskutil resetUserPermissions / $(id -u)",
+             "mdutil -E /",
+             true),
+            ("Réparer les permissions utilisateur",
              "Corrige des erreurs d'accès aux fichiers personnels",
-             .info),
-            ("Forcer un check Time Machine",
-             "tmutil startbackup --auto",
+             "diskutil resetUserPermissions / $(id -u)",
+             false),
+            ("Forcer une sauvegarde Time Machine",
              "Lance une sauvegarde immédiate",
-             .info),
+             "tmutil startbackup --auto",
+             false),
             ("Purger la mémoire vive inactive",
-             "sudo purge",
-             "Libère la RAM mise en cache",
-             .info),
-            ("Nettoyer les receipts d'installations",
-             "rm -rf ~/Library/Application\\ Support/com.apple.installer.signing*",
-             "Supprime des fichiers temporaires d'installation",
-             .info),
+             "Libère la RAM mise en cache (peut prendre 30 s)",
+             "purge",
+             true),
+            ("Vider la corbeille",
+             "Demande confirmation au Finder",
+             "osascript -e 'tell application \"Finder\" to empty the trash'",
+             false),
         ]
 
         let items = tasks.enumerated().map { (idx, t) in
@@ -42,12 +43,32 @@ public struct MaintenanceScanner: FileScanner {
                 size: 0,
                 kind: .maintenanceTask,
                 group: "Tâches",
-                title: t.0,
-                detail: t.2,
-                severity: t.3
+                title: t.title,
+                detail: t.detail,
+                severity: .info,
+                command: t.command,
+                needsAdmin: t.admin
             )
         }
         progress(1.0, "Done")
         return ScanResult(module: .maintenance, items: items)
+    }
+
+    /// Execute a maintenance task. For admin tasks, uses osascript's
+    /// "with administrator privileges" which produces a native macOS prompt.
+    public static func execute(_ item: ScanItem) -> (status: Int32, output: String) {
+        guard let cmd = item.command else { return (-1, "no command") }
+        if item.needsAdmin {
+            // Use osascript so macOS pops the standard authorization dialog.
+            let escaped = cmd
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            let script = "do shell script \"\(escaped)\" with administrator privileges"
+            let (status, out, err) = Shell.run("/usr/bin/osascript", ["-e", script], timeout: 120)
+            return (status, out.isEmpty ? err : out)
+        } else {
+            let (status, out, err) = Shell.run("/bin/sh", ["-c", cmd], timeout: 120)
+            return (status, out.isEmpty ? err : out)
+        }
     }
 }

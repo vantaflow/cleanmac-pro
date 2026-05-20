@@ -56,14 +56,18 @@ public struct PerformanceScanner: FileScanner {
             )]
         }
         return names.map { name in
-            ScanItem(
+            // Escape quotes in the name for the osascript command.
+            let escaped = name.replacingOccurrences(of: "\"", with: "\\\"")
+            return ScanItem(
                 url: URL(fileURLWithPath: "/LoginItems/\(name)"),
                 size: 0,
                 kind: .loginItem,
                 group: "Éléments de connexion",
                 title: name,
-                detail: "S'ouvre à chaque démarrage",
-                severity: .info
+                detail: "S'ouvre à chaque démarrage — clique pour désactiver",
+                severity: .info,
+                command: "osascript -e 'tell application \"System Events\" to delete login item \"\(escaped)\"'",
+                needsAdmin: false
             )
         }
     }
@@ -80,14 +84,21 @@ public struct PerformanceScanner: FileScanner {
             ) else { continue }
             for entry in entries where entry.pathExtension == "plist" {
                 let name = entry.deletingPathExtension().lastPathComponent
+                // User launch agents → can disable without sudo. System ones → admin required.
+                let needsAdmin = root.path.hasPrefix("/Library/")
+                let domain = needsAdmin ? "system" : "gui/$(id -u)"
+                // `bootout` is the modern equivalent of `unload`. Works on macOS 11+.
+                let unloadCommand = "launchctl bootout \(domain) \"\(entry.path)\" 2>&1 || launchctl unload \"\(entry.path)\""
                 out.append(ScanItem(
                     url: entry,
                     size: FS.size(of: entry),
                     kind: .launchAgent,
                     group: "Launch agents — \(label)",
                     title: name,
-                    detail: entry.path,
-                    severity: .info
+                    detail: "\(entry.path) — clique pour décharger",
+                    severity: .info,
+                    command: unloadCommand,
+                    needsAdmin: needsAdmin
                 ))
             }
         }

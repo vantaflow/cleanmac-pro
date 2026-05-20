@@ -23,6 +23,22 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(true, forKey: "ai.turkeycode.cleanmacpro.onboarding.seen")
     }
 
+    /// Runs an executable maintenance task; surfaces status via the module status string.
+    func runMaintenance(item: ScanItem) {
+        guard item.command != nil else { return }
+        update(.maintenance) { $0.status = "Exécution de « \(item.title ?? "tâche") »…" }
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let (status, output) = MaintenanceScanner.execute(item)
+            await MainActor.run { [weak self] in
+                self?.update(.maintenance) { s in
+                    s.status = status == 0
+                        ? "✓ « \(item.title ?? "tâche") » terminée"
+                        : "⚠ Échec — \(output.prefix(120))"
+                }
+            }
+        }
+    }
+
     /// "Quick Clean" — cleans every module that has a scan result with safe defaults.
     /// If nothing has been scanned, runs a Smart Scan first.
     func quickClean() {

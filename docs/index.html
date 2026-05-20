@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CleanMac Pro — Mieux que CleanMyMac, natif Swift</title>
+<meta name="description" content="Cleaner macOS natif et open source. SwiftUI, ~4 Mo, zéro télémétrie, code MIT."/>
+<meta property="og:title" content="CleanMac Pro"/>
+<meta property="og:description" content="Cleaner macOS natif, transparent, ~4 Mo. Open source MIT."/>
+<meta property="og:image" content="screenshots/01-dashboard.png"/>
+<link rel="icon" type="image/svg+xml" href="proto/icon.svg"/>
+<style>
+  :root{
+    --accent:#00D9A3; --accent-2:#00A07A;
+    --bg-1:#0c1f1a; --bg-2:#0a3329; --bg-deep:#06080f;
+    --text-1:#f6f6f8; --text-2:rgba(246,246,248,0.7); --text-3:rgba(246,246,248,0.45);
+    --panel:rgba(255,255,255,0.05); --hairline:rgba(255,255,255,0.1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:
+    radial-gradient(ellipse at 30% 0%, var(--bg-1) 0%, var(--bg-deep) 50%, #000 100%);
+    color:var(--text-1); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",
+    "Inter","Helvetica Neue",sans-serif; -webkit-font-smoothing:antialiased;
+    min-height:100vh; line-height:1.5;}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  header{padding:24px 32px; display:flex; align-items:center; gap:14px; max-width:1180px; margin:0 auto}
+  header img{width:30px; height:30px}
+  header .brand{font-weight:700; font-size:16px; letter-spacing:-0.01em}
+  header .pro{font-size:10px; font-weight:700; color:var(--text-3); letter-spacing:0.1em; text-transform:uppercase; margin-left:2px}
+  header nav{margin-left:auto; display:flex; gap:18px}
+  header nav a{color:var(--text-2); font-size:13px}
+  .hero{max-width:1180px; margin:0 auto; padding:48px 32px 32px; text-align:center}
+  .kicker{font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); margin-bottom:14px}
+  h1{font-size:64px; font-weight:800; letter-spacing:-0.035em; margin:0 0 18px; line-height:1.05}
+  h1 .grad{background:linear-gradient(135deg, var(--accent), #5BD7B3 60%, #fff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text}
+  .lede{font-size:20px; color:var(--text-2); margin:0 auto 28px; max-width:680px}
+  .cta-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:48px}
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:14px 22px; border-radius:12px; font-weight:600; font-size:14px; letter-spacing:-0.005em; transition:transform .12s, box-shadow .12s}
+  .btn.primary{background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#062018; box-shadow:0 12px 32px rgba(0,217,163,0.35)}
+  .btn.primary:hover{transform:translateY(-2px); text-decoration:none}
+  .btn.secondary{background:var(--panel); color:var(--text-1); border:0.5px solid var(--hairline)}
+  .btn.secondary:hover{background:rgba(255,255,255,0.08); text-decoration:none}
+  .badges{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:32px}
+  .badge{font-size:11px; padding:5px 10px; border-radius:999px; background:var(--panel); color:var(--text-2); border:0.5px solid var(--hairline)}
+  .hero-shot{max-width:1100px; margin:0 auto; border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)}
+  .hero-shot img{width:100%; display:block}
+
+  section{max-width:1100px; margin:0 auto; padding:80px 32px}
+  section h2{font-size:36px; font-weight:700; letter-spacing:-0.02em; margin:0 0 16px}
+  section .section-sub{font-size:16px; color:var(--text-2); margin-bottom:36px; max-width:640px}
+
+  .feature-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:14px}
+  .feature{padding:18px 20px; background:var(--panel); border:0.5px solid var(--hairline); border-radius:14px}
+  .feature .ico{width:32px; height:32px; border-radius:8px; background:rgba(0,217,163,0.16); display:grid; place-items:center; margin-bottom:10px; color:var(--accent); font-size:18px}
+  .feature h3{margin:0 0 6px; font-size:15px; font-weight:700; letter-spacing:-0.01em}
+  .feature p{margin:0; color:var(--text-2); font-size:13px; line-height:1.5}
+
+  .gallery{display:grid; grid-template-columns:repeat(2, 1fr); gap:14px}
+  .gallery img{width:100%; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.4); border:0.5px solid var(--hairline)}
+  .gallery figure{margin:0}
+  .gallery figcaption{margin-top:8px; font-size:12px; color:var(--text-3)}
+
+  .install{background:var(--panel); border:0.5px solid var(--hairline); padding:28px 32px; border-radius:18px; margin-top:14px}
+  .install pre{margin:0; padding:16px 18px; background:rgba(0,0,0,0.4); border-radius:10px; color:#cbd5e1; font-size:13px; overflow-x:auto; font-family:"SF Mono","JetBrains Mono",ui-monospace,monospace}
+  .install pre + pre{margin-top:8px}
+
+  .features-row{display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-top:24px}
+  .stat{padding:18px; background:var(--panel); border-radius:12px; border:0.5px solid var(--hairline); text-align:center}
+  .stat .num{font-size:32px; font-weight:800; letter-spacing:-0.03em; color:var(--accent)}
+  .stat .lbl{font-size:12px; color:var(--text-2); margin-top:4px}
+
+  footer{padding:48px 32px; text-align:center; color:var(--text-3); font-size:13px; border-top:0.5px solid var(--hairline); margin-top:60px}
+  footer a{color:var(--text-2)}
+
+  @media (max-width: 760px){
+    h1{font-size:42px}
+    .feature-grid, .gallery, .features-row{grid-template-columns:1fr 1fr}
+    .gallery{grid-template-columns:1fr}
+    section{padding:56px 20px}
+    .hero{padding:24px 20px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="proto/icon.svg" alt=""/>
+  <div><span class="brand">CleanMac</span><span class="pro">Pro</span></div>
+  <nav>
+    <a href="#features">Fonctions</a>
+    <a href="#screenshots">Captures</a>
+    <a href="#install">Installer</a>
+    <a href="https://github.com/khalilbenaz/cleanmac-pro">GitHub</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="kicker">Native Swift · Open source MIT</div>
+  <h1>Mieux que CleanMyMac.<br/><span class="grad">Sans pop-ups, sans bullshit.</span></h1>
+  <p class="lede">
+    Cleaner macOS natif, ~4 Mo de binaire, zéro télémétrie. Tu vois chaque
+    fichier, sa taille, son chemin, avant qu'il bouge. La Corbeille fait le reste.
+  </p>
+  <div class="cta-row">
+    <a href="https://github.com/khalilbenaz/cleanmac-pro/releases/latest" class="btn primary">↓ Télécharger v2.x</a>
+    <a href="https://github.com/khalilbenaz/cleanmac-pro" class="btn secondary">⌘ Voir sur GitHub</a>
+  </div>
+  <div class="badges">
+    <span class="badge">Swift 6</span>
+    <span class="badge">SwiftUI</span>
+    <span class="badge">macOS 14+</span>
+    <span class="badge">MIT</span>
+    <span class="badge">0 byte de télémétrie</span>
+  </div>
+  <div class="hero-shot">
+    <img src="screenshots/01-dashboard.png" alt="Dashboard CleanMac Pro"/>
+  </div>
+</div>
+
+<section id="features">
+  <h2>11 modules. Tout réel. Rien de simulé.</h2>
+  <p class="section-sub">
+    Pas de "Coming soon", pas de mock. Chaque écran appelle de vrais outils
+    macOS (fdesetup, spctl, launchctl, brew, softwareupdate, iTunes Search API)
+    et te montre les résultats bruts.
+  </p>
+  <div class="feature-grid">
+    <div class="feature"><div class="ico">⚡</div><h3>Smart Scan</h3><p>Cleanup + files + security + updates + privacy en parallèle, ring agrégé.</p></div>
+    <div class="feature"><div class="ico">🧹</div><h3>Fichiers inutiles</h3><p>Caches, logs, corbeilles, temp. Tri par taille / nom / date.</p></div>
+    <div class="feature"><div class="ico">📱</div><h3>Désinstalleur</h3><p>Apps + résidus dans Application Support, Caches, Containers, Préférences.</p></div>
+    <div class="feature"><div class="ico">📄</div><h3>Volumineux & doublons</h3><p>≥ 50 Mo, > 180 j, dédoublonnage par hash SHA-256.</p></div>
+    <div class="feature"><div class="ico">🗺️</div><h3>Space Lens</h3><p>Treemap squarified du disque, drill-down, breadcrumb.</p></div>
+    <div class="feature"><div class="ico">🛡️</div><h3>Sécurité</h3><p>FileVault, Gatekeeper, SIP, Firewall, XProtect, paths d'adware connus.</p></div>
+    <div class="feature"><div class="ico">👁️</div><h3>Confidentialité</h3><p>Safari / Chrome / Firefox / Brave / Arc — cookies, cache, historique.</p></div>
+    <div class="feature"><div class="ico">⬆️</div><h3>Mises à jour</h3><p>App Store via iTunes Search API, Homebrew formulae + casks, macOS.</p></div>
+    <div class="feature"><div class="ico">🏎️</div><h3>Performance</h3><p>Login items, LaunchAgents, top processus — désactive depuis la ligne.</p></div>
+  </div>
+</section>
+
+<section id="screenshots">
+  <h2>L'interface, en captures.</h2>
+  <p class="section-sub">Design natif macOS. 4 couleurs d'accent au choix, mode sombre, 3 densités.</p>
+  <div class="gallery">
+    <figure><img src="screenshots/01-dashboard.png" alt="Dashboard"/><figcaption>Dashboard — Health Ring · Storage Sunburst · Mini-stats · Weekly trend · 9 modules</figcaption></figure>
+    <figure><img src="screenshots/02-smart-scan.png" alt="Smart Scan"/><figcaption>Smart Scan — 5 scanners en parallèle</figcaption></figure>
+    <figure><img src="screenshots/03-cleanup.png" alt="Cleanup"/><figcaption>Fichiers inutiles — caches, logs, trash</figcaption></figure>
+    <figure><img src="screenshots/06-space-lens.png" alt="Space Lens"/><figcaption>Space Lens — treemap drill-down</figcaption></figure>
+    <figure><img src="screenshots/07-security.png" alt="Security"/><figcaption>Sécurité — état réel du système</figcaption></figure>
+    <figure><img src="screenshots/12-result.png" alt="Result"/><figcaption>Result — confetti, breakdown, mega-number</figcaption></figure>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Installer en 3 commandes.</h2>
+  <p class="section-sub">Prérequis : Xcode 15 ou macOS Command Line Tools (Swift 5.9+).</p>
+  <div class="install">
+    <pre><code>git clone https://github.com/khalilbenaz/cleanmac-pro.git
+cd cleanmac-pro
+swift build -c release</code></pre>
+    <pre><code># Optionnel : génère le bundle .app signé ad-hoc et l'installe
+./Tools/build-app.sh
+cp -R "build/CleanMac Pro.app" /Applications/</code></pre>
+  </div>
+
+  <div class="features-row">
+    <div class="stat"><div class="num">~4 Mo</div><div class="lbl">Taille du binaire</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Octets de télémétrie</div></div>
+    <div class="stat"><div class="num">11</div><div class="lbl">Modules</div></div>
+    <div class="stat"><div class="num">MIT</div><div class="lbl">Licence open source</div></div>
+  </div>
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/khalilbenaz/cleanmac-pro">Code source</a> ·
+    <a href="https://github.com/khalilbenaz/cleanmac-pro/issues">Issues</a> ·
+    <a href="https://github.com/khalilbenaz/cleanmac-pro/releases">Releases</a>
+  </p>
+  <p>Construit avec Claude Code · MIT © 2026 Khalil Benazzouz</p>
+</footer>
+
+</body>
+</html>

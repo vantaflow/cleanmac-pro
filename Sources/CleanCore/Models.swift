@@ -10,6 +10,8 @@ public struct ScanItem: Identifiable, Hashable {
     public let title: String?        // overrides url.lastPathComponent when set
     public let detail: String?       // secondary description
     public let severity: Severity    // for findings / updates
+    public let command: String?      // shell command for executable items
+    public let needsAdmin: Bool      // whether command requires root
 
     public init(
         id: UUID = UUID(),
@@ -20,7 +22,9 @@ public struct ScanItem: Identifiable, Hashable {
         group: String? = nil,
         title: String? = nil,
         detail: String? = nil,
-        severity: Severity = .info
+        severity: Severity = .info,
+        command: String? = nil,
+        needsAdmin: Bool = false
     ) {
         self.id = id
         self.url = url
@@ -31,6 +35,8 @@ public struct ScanItem: Identifiable, Hashable {
         self.title = title
         self.detail = detail
         self.severity = severity
+        self.command = command
+        self.needsAdmin = needsAdmin
     }
 
     public var name: String { title ?? url.lastPathComponent }

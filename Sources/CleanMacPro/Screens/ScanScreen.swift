@@ -17,7 +17,7 @@ struct ScanScreen: View {
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(title: module.title, subtitle: subtitle) {
                 HStack(spacing: 8) {
-                    if state.result != nil && !(state.result?.items.isEmpty ?? true) {
+                    if let result = state.result, !result.items.isEmpty {
                         SortMenu(module: module)
                     }
                     if state.isScanning {
@@ -36,11 +36,9 @@ struct ScanScreen: View {
                                 appState.clean(module: module)
                             }
                         }
-                    } else {
-                        Btn(kind: .primary, size: .lg, icon: "scan", label: "Lancer un scan") {
-                            appState.startScan(module: module)
-                        }
                     }
+                    // No "Scan" button in header when there are no results — the
+                    // big empty state below provides the single, obvious CTA.
                 }
             }
             .padding(.horizontal, 28).padding(.top, 20)
@@ -186,7 +184,20 @@ private struct ItemRow: View {
 
     private var selectable: Bool {
         ![.securityFinding, .maintenanceTask, .updateAvailable,
-          .processSnapshot, .spaceFolder].contains(item.kind)
+          .processSnapshot, .spaceFolder, .loginItem, .launchAgent].contains(item.kind)
+    }
+    private var isRunnable: Bool {
+        item.command != nil &&
+        [.maintenanceTask, .loginItem, .launchAgent, .updateAvailable].contains(item.kind)
+    }
+    private var runLabel: String {
+        switch item.kind {
+        case .loginItem:        return item.needsAdmin ? "Désactiver (admin)" : "Désactiver"
+        case .launchAgent:      return item.needsAdmin ? "Décharger (admin)" : "Décharger"
+        case .updateAvailable:  return "Mettre à jour"
+        case .maintenanceTask:  return item.needsAdmin ? "Exécuter (admin)" : "Exécuter"
+        default:                return "Exécuter"
+        }
     }
     private var checked: Bool { appState.state(for: module).selection.contains(item.id) }
     private var color: Color {
@@ -199,15 +210,32 @@ private struct ItemRow: View {
     }
 
     var body: some View {
-        Button {
-            if selectable {
-                appState.update(module) { s in
-                    if s.selection.contains(item.id) { s.selection.remove(item.id) }
-                    else { s.selection.insert(item.id) }
+        HStack(spacing: 12) {
+            // Inner row contents
+            rowContent
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if selectable {
+                        appState.update(module) { s in
+                            if s.selection.contains(item.id) { s.selection.remove(item.id) }
+                            else { s.selection.insert(item.id) }
+                        }
+                    }
                 }
+            if isRunnable {
+                Btn(kind: .secondary, size: .sm,
+                    icon: item.needsAdmin ? "lock" : "play",
+                    label: runLabel) {
+                    appState.runMaintenance(item: item)
+                }
+                .padding(.trailing, 8)
             }
-        } label: {
-            HStack(spacing: 12) {
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
                 if selectable {
                     ZStack {
                         RoundedRectangle(cornerRadius: 5)
@@ -256,10 +284,8 @@ private struct ItemRow: View {
                 } else {
                     severityLabel
                 }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 12).padding(.vertical, 8)
     }
 
     private var iconForKind: String {
