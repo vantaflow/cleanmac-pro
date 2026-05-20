@@ -20,3 +20,5 @@ Package.resolved
 *.cer
 *.provisionprofile
 ExportOptions.plist
+build/
+Tools/AppIcon.iconset/
