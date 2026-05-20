@@ -1,119 +1,98 @@
-// Renders the design prototype's 12 screens to PNG via Chrome headless.
-// Spawns Chrome via the macOS app, points it at a local file:// URL, injects
-// JavaScript that flips the React app's `setActive` for each screen, then
-// captures a screenshot.
+// Renders the design prototype's 12 screens to PNG via Puppeteer.
+// Waits for React to mount (sidebar present), then dispatches clicks on the
+// matching sidebar entry per screen.
 
-import { mkdir, rm } from 'node:fs/promises';
+import puppeteer from 'puppeteer';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createServer } from 'node:http';
+import { readFileSync, statSync } from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PROTO = path.join(ROOT, 'docs', 'proto');
 const OUT = path.join(ROOT, 'docs', 'screenshots');
 
-// macOS-localized first run dialog can interfere. Use a temp profile dir.
-const PROFILE = path.join(ROOT, '.build', 'chrome-profile');
-
 const SCREENS = [
-  { id: 'dashboard',   label: '01-dashboard' },
-  { id: 'scan',        label: '02-smart-scan' },
-  { id: 'cleanup',     label: '03-cleanup' },
-  { id: 'uninstaller', label: '04-uninstaller' },
-  { id: 'files',       label: '05-files-duplicates' },
-  { id: 'spacelens',   label: '06-space-lens' },
-  { id: 'security',    label: '07-security' },
-  { id: 'privacy',     label: '08-privacy' },
-  { id: 'updates',     label: '09-updates' },
-  { id: 'optimize',    label: '10-performance' },
-  { id: 'maintenance', label: '11-maintenance' },
-  { id: 'result',      label: '12-result' },
+  { id: 'dashboard',   label: '01-dashboard',         needle: "vue d'ensemble" },
+  { id: 'scan',        label: '02-smart-scan',        needle: 'smart scan' },
+  { id: 'cleanup',     label: '03-cleanup',           needle: 'fichiers inutiles' },
+  { id: 'uninstaller', label: '04-uninstaller',       needle: 'désinstalleur' },
+  { id: 'files',       label: '05-files-duplicates',  needle: 'volumineux' },
+  { id: 'spacelens',   label: '06-space-lens',        needle: 'space lens' },
+  { id: 'security',    label: '07-security',          needle: 'sécurité' },
+  { id: 'privacy',     label: '08-privacy',           needle: 'confidentialité' },
+  { id: 'updates',     label: '09-updates',           needle: 'mises à jour' },
+  { id: 'optimize',    label: '10-performance',       needle: 'performance' },
+  { id: 'maintenance', label: '11-maintenance',       needle: 'maintenance' },
+  { id: 'result',      label: '12-result',            needle: null /* via keyboard */ },
 ];
 
-async function run() {
-  await rm(OUT, { recursive: true, force: true });
-  await mkdir(OUT, { recursive: true });
-  await mkdir(PROFILE, { recursive: true });
-
-  // Patch the HTML to accept a `?screen=` query and pre-set the active screen
-  // after React mounts. We do this by appending a small script tag.
-  const htmlSrc = path.join(PROTO, 'CleanMac Pro.html');
-  const htmlPatched = path.join(PROTO, 'screenshot.html');
-  const fs = await import('node:fs/promises');
-  const raw = await fs.readFile(htmlSrc, 'utf8');
-  const inject = `
-<script>
-  window.addEventListener('load', () => {
-    const url = new URL(location.href);
-    const target = url.searchParams.get('screen');
-    if (!target) return;
-    // Wait for React to mount, then walk DOM and find sidebar button matching id
-    const tryClick = () => {
-      const buttons = document.querySelectorAll('aside button');
-      for (const b of buttons) {
-        const t = b.innerText.toLowerCase();
-        // crude mapping
-        const map = {
-          dashboard: "vue d'ensemble", scan: 'smart scan',
-          cleanup: 'fichiers inutiles', uninstaller: 'désinstalleur',
-          files: 'volumineux', spacelens: 'space lens',
-          security: 'sécurité', privacy: 'confidentialité',
-          updates: 'mises à jour', optimize: 'performance',
-          maintenance: 'maintenance', result: ''
-        };
-        const needle = map[target];
-        if (needle && t.includes(needle)) { b.click(); return true; }
-      }
-      return false;
-    };
-    if (target === 'result') {
-      // Trigger ⌘⇧K binding by dispatching a key event
-      const tryResult = () => {
-        const evt = new KeyboardEvent('keydown', { key: 'K', metaKey: true, shiftKey: true, bubbles: true });
-        window.dispatchEvent(evt);
-      };
-      setTimeout(tryResult, 800);
-    } else {
-      let tries = 0;
-      const interval = setInterval(() => {
-        if (tryClick() || ++tries > 20) clearInterval(interval);
-      }, 200);
+// Tiny static server so React/Babel can load relative scripts properly.
+const mime = { '.html':'text/html', '.jsx':'application/javascript', '.svg':'image/svg+xml', '.js':'application/javascript' };
+const server = createServer((req, res) => {
+  let p = decodeURIComponent(req.url.split('?')[0]);
+  if (p === '/') p = '/CleanMac Pro.html';
+  const file = path.join(PROTO, p);
+  try {
+    const st = statSync(file);
+    if (st.isFile()) {
+      res.setHeader('Content-Type', mime[path.extname(file)] || 'text/plain');
+      res.end(readFileSync(file));
+      return;
     }
+  } catch {}
+  res.statusCode = 404;
+  res.end();
+});
+
+await new Promise(r => server.listen(0, r));
+const port = server.address().port;
+const baseURL = `http://127.0.0.1:${port}/CleanMac%20Pro.html`;
+console.log('Serving', baseURL);
+
+await rm(OUT, { recursive: true, force: true });
+await mkdir(OUT, { recursive: true });
+
+const browser = await puppeteer.launch({
+  headless: 'new',
+  args: ['--no-sandbox'],
+  defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 2 },
+});
+const page = await browser.newPage();
+
+for (const screen of SCREENS) {
+  console.log(`→ ${screen.label}`);
+  await page.goto(baseURL, { waitUntil: 'networkidle0', timeout: 20_000 });
+  // Wait until React mounts the sidebar (presence of any aside)
+  await page.waitForFunction(
+    () => document.querySelectorAll('aside button').length > 0,
+    { timeout: 15_000 }
+  );
+
+  if (screen.needle) {
+    await page.evaluate((needle) => {
+      const buttons = [...document.querySelectorAll('aside button')];
+      const btn = buttons.find(b => b.innerText.toLowerCase().includes(needle));
+      if (btn) btn.click();
+    }, screen.needle);
+  } else if (screen.id === 'result') {
+    // Trigger ⌘⇧K binding → Result screen
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'K', metaKey: true, shiftKey: true, bubbles: true }));
+    });
+  }
+
+  // Let animations finish (sunburst rise, AnimatedNumber tween…)
+  await new Promise(r => setTimeout(r, 1200));
+  await page.screenshot({
+    path: path.join(OUT, `${screen.label}.png`),
+    fullPage: false,
   });
-</script>
-</body>`;
-  await fs.writeFile(htmlPatched, raw.replace('</body>', inject));
-
-  // Spawn one Chrome instance per screen (simpler than driving via remote-debugging)
-  const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  if (!existsSync(chrome)) {
-    console.error('Chrome not found at', chrome);
-    process.exit(1);
-  }
-
-  for (const screen of SCREENS) {
-    const fileURL = `file://${htmlPatched}?screen=${screen.id}`;
-    const outPng = path.join(OUT, `${screen.label}.png`);
-    console.log(`→ ${screen.label}`);
-    await new Promise((resolve, reject) => {
-      const args = [
-        '--headless=new',
-        '--disable-gpu',
-        '--hide-scrollbars',
-        '--window-size=1440,900',
-        `--screenshot=${outPng}`,
-        '--virtual-time-budget=4000',  // give React + interval enough time
-        `--user-data-dir=${PROFILE}`,
-        fileURL,
-      ];
-      const c = spawn(chrome, args, { stdio: 'inherit' });
-      const t = setTimeout(() => { c.kill(); reject(new Error('timeout')); }, 25_000);
-      c.on('exit', (code) => { clearTimeout(t); code === 0 ? resolve() : reject(new Error('chrome exit ' + code)); });
-    }).catch(e => console.error('  failed:', e.message));
-  }
-  console.log('Done →', OUT);
 }
 
-run();
+await browser.close();
+server.close();
+console.log('Done →', OUT);

@@ -2,7 +2,7 @@ import Foundation
 
 /// Lists software updates from three sources:
 /// 1. Installed .app bundles — versions checked against iTunes Search API
-///    for App Store apps (real "update available" detection à la CleanMyMac)
+///    for App Store apps (real "update available" detection)
 /// 2. Homebrew + Homebrew Cask outdated
 /// 3. macOS softwareupdate -l
 public struct UpdatesScanner: FileScanner {
@@ -26,7 +26,7 @@ public struct UpdatesScanner: FileScanner {
         return ScanResult(module: .updates, items: items)
     }
 
-    // MARK: – Installed apps with real update-available check (CleanMyMac-style)
+    // MARK: – Installed apps with real update-available check
 
     private struct AppInfo {
         let url: URL

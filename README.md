@@ -1,6 +1,6 @@
 # CleanMac Pro
 
-> A leaner, faster, more transparent alternative to CleanMyMac — native Swift + SwiftUI.
+> A lean, fast, transparent disk cleaner for macOS — native Swift + SwiftUI.
 
 [![Built with Swift](https://img.shields.io/badge/swift-6.0+-orange?logo=swift)](https://swift.org)
 [![macOS 14+](https://img.shields.io/badge/macOS-14+-black?logo=apple)](#)

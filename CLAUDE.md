@@ -1,7 +1,7 @@
 # CleanMac Pro — Notes for Claude
 
 ## What this is
-Native macOS app (Swift + SwiftUI) for disk cleaning. Goal: simpler and more transparent than CleanMyMac.
+Native macOS app (Swift + SwiftUI) for disk cleaning. Goal: simple, transparent, fast.
 
 ## Layout
 - `Sources/CleanCore/` — pure library, no UI. All scanners go here.

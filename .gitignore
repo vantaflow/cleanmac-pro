@@ -22,3 +22,5 @@ Package.resolved
 ExportOptions.plist
 build/
 Tools/AppIcon.iconset/
+node_modules/
+package-lock.json
