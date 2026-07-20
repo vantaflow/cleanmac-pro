@@ -71,7 +71,7 @@ final class AppState: ObservableObject {
     func scanner(for module: ModuleID) -> (any FileScanner)? {
         switch module {
         case .cleanup:     return CleanupScanner()
-        case .files:       return LargeFilesScanner()
+        case .files:       return FilesScanner()
         case .uninstaller: return AppUninstaller()
         case .security:    return SecurityScanner()
         case .privacy:     return PrivacyScanner()
@@ -79,7 +79,7 @@ final class AppState: ObservableObject {
         case .performance: return PerformanceScanner()
         case .maintenance: return MaintenanceScanner()
         case .spaceLens:   return SpaceLensScanner()
-        case .smartScan:   return CleanupScanner()  // Smart scan re-runs cleanup
+        case .smartScan:   return SmartScanner()     // cleanup + files + privacy + posture, in parallel
         case .dashboard, .result: return nil
         }
     }

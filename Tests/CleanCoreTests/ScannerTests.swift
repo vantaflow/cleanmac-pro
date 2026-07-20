@@ -25,8 +25,14 @@ final class ScannerTests: XCTestCase {
     }
 
     func testByteFormatterReadable() {
-        XCTAssertTrue(ByteFormatter.string(0).contains("0"))
+        // 0 renders as a localized "zero bytes" phrase (no literal "0" in
+        // every locale), so just assert it produces non-empty, sane output.
+        XCTAssertFalse(ByteFormatter.string(0).isEmpty)
         XCTAssertFalse(ByteFormatter.string(1_500_000).isEmpty)
+        // Unit label is locale-dependent ("MB" / "Mo"), so assert on the digits.
+        XCTAssertTrue(ByteFormatter.string(1_500_000).contains("1"))
+        // Negative byte counts are clamped to 0, never rendered as "-".
+        XCTAssertFalse(ByteFormatter.string(-42).contains("-"))
     }
 
     func testFSEnumerateFindsFiles() throws {
@@ -80,6 +86,46 @@ final class ScannerTests: XCTestCase {
         XCTAssertEqual(result.count, 2, "Should detect 2 files in the duplicate group")
         let groups = Set(result.items.compactMap { $0.group?.split(separator: " ").first.map(String.init) })
         XCTAssertEqual(groups.count, 1, "Both items should share the same hash prefix group")
+    }
+
+    func testFilesScannerMergesLargeAndDuplicates() async throws {
+        let dir = tempRoot.appendingPathComponent("Merge")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // One large, unique file
+        _ = try createFile(name: "huge.dat", bytes: 60 * 1024 * 1024, in: dir)
+        // Two identical small files → a duplicate group
+        let content = Data(repeating: 0x7E, count: 2 * 1024 * 1024)
+        try content.write(to: dir.appendingPathComponent("dupA.bin"))
+        try content.write(to: dir.appendingPathComponent("dupB.bin"))
+
+        let scanner = FilesScanner(
+            large: LargeFilesScanner(roots: [dir], minSize: 50 * 1024 * 1024, oldAge: .infinity),
+            duplicates: DuplicatesScanner(roots: [dir], minSize: 1024 * 1024)
+        )
+        let result = try await scanner.scan { _, _ in }
+        XCTAssertEqual(result.module, .files)
+        // 1 large file + 2 duplicate members = 3, with no URL listed twice.
+        XCTAssertEqual(result.count, 3)
+        XCTAssertEqual(Set(result.items.map(\.url)).count, 3, "URLs must be unique after merge")
+        XCTAssertTrue(result.items.contains { $0.kind == .largeFile })
+        XCTAssertEqual(result.items.filter { $0.kind == .duplicate }.count, 2)
+    }
+
+    func testShellCapturesLargeOutputWithoutDeadlock() {
+        // Emit ~1 MB — far past the ~64 KB pipe buffer. The old busy-wait +
+        // read-after-exit implementation would deadlock/truncate here.
+        let (status, out, _) = Shell.run(
+            "/bin/sh",
+            ["-c", "for i in $(seq 1 20000); do echo 0123456789012345678901234567890123456789012345678; done"],
+            timeout: 30
+        )
+        XCTAssertEqual(status, 0)
+        XCTAssertGreaterThan(out.utf8.count, 900_000)
+    }
+
+    func testShellTimeoutIsReported() {
+        let (status, _, _) = Shell.run("/bin/sh", ["-c", "sleep 5"], timeout: 0.5)
+        XCTAssertEqual(status, Shell.timedOut)
     }
 
     func testCleanerDryRun() {
