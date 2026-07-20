@@ -135,14 +135,50 @@ private struct ResultsListing: View {
         case .modified: return asc ? a.modified < b.modified : a.modified > b.modified
         }
     }
+    // Order groups by the same key/direction as the rows, so changing the sort
+    // is actually visible (previously groups were always size-descending).
+    private func compareGroups(_ a: (String, [ScanItem]), _ b: (String, [ScanItem])) -> Bool {
+        let s = appState.state(for: module)
+        let asc = !s.sortDescending
+        switch s.sortKey {
+        case .size:
+            let sa = a.1.reduce(0) { $0 + $1.size }, sb = b.1.reduce(0) { $0 + $1.size }
+            return asc ? sa < sb : sa > sb
+        case .name:
+            return asc ? a.0 < b.0 : a.0 > b.0
+        case .modified:
+            let ma = a.1.map(\.modified).max() ?? .distantPast
+            let mb = b.1.map(\.modified).max() ?? .distantPast
+            return asc ? ma < mb : ma > mb
+        }
+    }
+    private var visibleItems: [ScanItem] { appState.filter(result.items) }
     private var grouped: [(String, [ScanItem])] {
-        let dict = Dictionary(grouping: result.items, by: { $0.group ?? "Autres" })
-        return dict
+        Dictionary(grouping: visibleItems, by: { $0.group ?? "Autres" })
             .map { ($0.key, $0.value.sorted(by: compare)) }
-            .sorted { $0.1.reduce(0) { $0 + $1.size } > $1.1.reduce(0) { $0 + $1.size } }
+            .sorted(by: compareGroups)
     }
 
     var body: some View {
+        if visibleItems.isEmpty {
+            noMatchView
+        } else {
+            listing
+        }
+    }
+
+    private var noMatchView: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            CmpIcon(name: "search", size: 40, color: .text3(theme.dark))
+            Text("Aucun résultat pour « \(appState.searchText) »")
+                .font(.system(size: 14)).foregroundColor(.text2(theme.dark))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var listing: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(grouped, id: \.0) { group, items in
