@@ -5,10 +5,32 @@ import CleanCore
 @MainActor
 final class AppState: ObservableObject {
     @Published var theme = Theme()
-    @Published var active: ModuleID = .dashboard
+    @Published var active: ModuleID = .dashboard {
+        didSet { if oldValue != active { searchText = "" } }
+    }
     @Published var moduleStates: [ModuleID: ModuleState] = [:]
     @Published var menubarOpen = false
     @Published var showOnboarding: Bool
+    /// Live filter applied to the active module's results listing.
+    @Published var searchText: String = ""
+
+    /// Modules that render a filterable results list (so the toolbar search
+    /// applies). Dashboard / Smart Scan / Space Lens / Result don't.
+    func isSearchable(_ module: ModuleID) -> Bool {
+        ![.dashboard, .smartScan, .spaceLens, .result].contains(module)
+    }
+
+    /// Case-insensitive filter over name, detail, path and group.
+    func filter(_ items: [ScanItem]) -> [ScanItem] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return items }
+        return items.filter { item in
+            item.name.lowercased().contains(q)
+            || (item.detail?.lowercased().contains(q) ?? false)
+            || item.url.path.lowercased().contains(q)
+            || (item.group?.lowercased().contains(q) ?? false)
+        }
+    }
 
     init() {
         let seen = UserDefaults.standard.bool(forKey: "ai.turkeycode.cleanmacpro.onboarding.seen")
