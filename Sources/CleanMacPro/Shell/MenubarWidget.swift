@@ -7,13 +7,7 @@ struct MenubarWidget: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        MenuPanelContent(
-            onDismiss: { appState.menubarOpen = false },
-            onOpenMain: {
-                appState.menubarOpen = false
-                MainWindow.activate()
-            }
-        )
-        .shadow(color: .black.opacity(0.4), radius: 24, y: 12)
+        MenuPanelContent(onDismiss: { appState.menubarOpen = false })
+            .shadow(color: .black.opacity(0.4), radius: 24, y: 12)
     }
 }

@@ -3,16 +3,25 @@ import AppKit
 import CleanCore
 
 /// Shared content for both the in-window widget and the real `MenuBarExtra`
-/// popover. `onDismiss` shows an X (in-window only); `onOpenMain` brings the
-/// main window forward.
+/// popover. `onDismiss` shows an X (in-window only). Opening the main window
+/// is handled internally via `openWindow` so it works even after the window
+/// has been closed and the app is resident in the menu bar.
 struct MenuPanelContent: View {
     @Environment(\.theme) private var theme
+    @Environment(\.openWindow) private var openWindow
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var stats: HostStats
     @EnvironmentObject var agent: BackgroundAgent
 
     var onDismiss: (() -> Void)? = nil
-    var onOpenMain: () -> Void
+
+    /// Reopen / focus the single main window, recreating it if it was closed.
+    private func openMain() {
+        onDismiss?()
+        NSApp.setActivationPolicy(.regular)
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
     private var recoverableLabel: String {
         // Prefer a fresh in-session scan, else the last remembered total.
@@ -67,7 +76,7 @@ struct MenuPanelContent: View {
             VStack(spacing: 2) {
                 MenuQuickAction(icon: "scan", label: "Lancer Smart Scan",
                                 sub: "Tout vérifier", accent: true) {
-                    onOpenMain()
+                    openMain()
                     appState.active = .smartScan
                     [.cleanup, .files, .security, .updates, .privacy].forEach { appState.startScan(module: $0) }
                 }
@@ -96,7 +105,7 @@ struct MenuPanelContent: View {
 
             HStack {
                 Button {
-                    onOpenMain()
+                    openMain()
                     appState.active = .dashboard
                 } label: {
                     Text("Ouvrir CleanMac Pro →")
@@ -105,6 +114,12 @@ struct MenuPanelContent: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
+                Button { NSApp.terminate(nil) } label: {
+                    Text("Quitter")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
                 Text("v 2.0.0").font(.system(size: 10.5)).opacity(0.4)
             }
             .padding(.top, 4)
@@ -123,17 +138,6 @@ struct MenuPanelContent: View {
         .preferredColorScheme(.dark)
         .onAppear { stats.start() }
         .onDisappear { stats.stop() }
-    }
-}
-
-/// Brings the single main window to the front without spawning a duplicate.
-enum MainWindow {
-    static func activate() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        if let w = NSApp.windows.first(where: { $0.canBecomeMain }) {
-            w.makeKeyAndOrderFront(nil)
-        }
     }
 }
 
