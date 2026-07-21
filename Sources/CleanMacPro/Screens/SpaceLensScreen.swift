@@ -9,6 +9,16 @@ struct SpaceLensScreen: View {
 
     @State private var pathStack: [URL] = []  // empty = current scan root
     @State private var hoveredID: UUID? = nil
+    @State private var levelCache: [String: [ScanItem]] = [:]  // key = url.path
+    @State private var loadingLevel = false
+
+    /// Items for the level currently shown (root result, or drilled children).
+    private var currentItems: [ScanItem] {
+        guard let here = pathStack.last else {
+            return appState.state(for: .spaceLens).result?.items ?? []
+        }
+        return levelCache[here.path] ?? []
+    }
 
     var body: some View {
         let state = appState.state(for: .spaceLens)
@@ -16,7 +26,7 @@ struct SpaceLensScreen: View {
             ScreenHeader(
                 kicker: "Space Lens",
                 title: "Où vont tes Go.",
-                subtitle: "Carte du disque en taille réelle. Survol → détail. Clic → ouvre dans le Finder."
+                subtitle: "Carte du disque en taille réelle. Survol → détail. Clic → explore le dossier."
             ) {
                 if state.isScanning {
                     Btn(kind: .secondary, icon: "pause", label: "Annuler") {
@@ -44,7 +54,7 @@ struct SpaceLensScreen: View {
                 }
                 .padding(.horizontal, 28)
             } else if let result = state.result, !result.items.isEmpty {
-                content(items: result.items)
+                content(items: currentItems.isEmpty && pathStack.isEmpty ? result.items : currentItems)
             } else {
                 emptyState
             }
@@ -90,7 +100,19 @@ struct SpaceLensScreen: View {
             HStack(alignment: .top, spacing: 12) {
                 GlassPanel(radius: 12, padding: 6) {
                     GeometryReader { geo in
-                        Treemap(items: items, hovered: $hoveredID, geo: geo.size)
+                        ZStack {
+                            Treemap(items: items, hovered: $hoveredID, geo: geo.size,
+                                    onDrill: { drill(into: $0) },
+                                    onReveal: { NSWorkspace.shared.activateFileViewerSelecting([$0.url]) })
+                            if loadingLevel {
+                                ProgressView().controlSize(.large)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .background(.ultraThinMaterial)
+                            } else if items.isEmpty {
+                                Text("Dossier vide ou illisible")
+                                    .font(.system(size: 13)).foregroundColor(.text3(theme.dark))
+                            }
+                        }
                     }
                     .frame(height: 420)
                 }
@@ -111,7 +133,8 @@ struct SpaceLensScreen: View {
                                         onHover: { isOn in
                                             hoveredID = isOn ? item.id : nil
                                         },
-                                        onDrill: { drill(into: item) }
+                                        onDrill: { drill(into: item) },
+                                        onReveal: { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
                                     )
                                 }
                             }
@@ -135,8 +158,24 @@ struct SpaceLensScreen: View {
     }
 
     private func drill(into item: ScanItem) {
-        // For now: open Finder. True drill-down would re-scan with that URL as root.
-        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+        // Descend into directories only (files aren't explorable). Stay in-app.
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: item.url.path, isDirectory: &isDir),
+              isDir.boolValue else { return }
+        let url = item.url
+        pathStack.append(url)
+        hoveredID = nil
+        if levelCache[url.path] != nil { return }   // already loaded
+        loadingLevel = true
+        Task {
+            let kids = await Task.detached(priority: .utility) {
+                SpaceLensScanner.scanChildren(of: url)
+            }.value
+            await MainActor.run {
+                levelCache[url.path] = kids
+                loadingLevel = false
+            }
+        }
     }
 }
 
@@ -158,6 +197,8 @@ private struct Treemap: View {
     let items: [ScanItem]
     @Binding var hovered: UUID?
     let geo: CGSize
+    var onDrill: (ScanItem) -> Void
+    var onReveal: (ScanItem) -> Void
 
     var body: some View {
         let total = items.reduce(0) { $0 + $1.size }
@@ -173,6 +214,11 @@ private struct Treemap: View {
                     let isHovered = hovered == item.id
                     Tile(item: item, rect: r, color: color, hovered: isHovered)
                         .onHover { hovered = $0 ? item.id : nil }
+                        .onTapGesture { onDrill(item) }
+                        .contextMenu {
+                            Button("Explorer") { onDrill(item) }
+                            Button("Révéler dans le Finder") { onReveal(item) }
+                        }
                 }
             }
         }
@@ -229,6 +275,7 @@ private struct LegendRow: View {
     let hovered: Bool
     var onHover: (Bool) -> Void
     var onDrill: () -> Void
+    var onReveal: () -> Void
 
     var body: some View {
         let pct = Double(item.size) / Double(max(total, 1)) * 100
@@ -253,6 +300,10 @@ private struct LegendRow: View {
         }
         .buttonStyle(.plain)
         .onHover(perform: onHover)
+        .contextMenu {
+            Button("Explorer") { onDrill() }
+            Button("Révéler dans le Finder") { onReveal() }
+        }
     }
 }
 

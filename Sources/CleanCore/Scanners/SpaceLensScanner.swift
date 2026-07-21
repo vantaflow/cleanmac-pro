@@ -93,6 +93,41 @@ public struct SpaceLensScanner: FileScanner {
         return kb * 1024
     }
 
+    /// One level of drill-down: the immediate children (folders and files) of
+    /// `parent`, each sized with a single `du -sk parent/*` pass, sorted
+    /// largest-first. Used by the Space Lens treemap to explore in-app.
+    public static func scanChildren(of parent: URL) -> [ScanItem] {
+        let fm = FileManager.default
+        // Single du invocation over the glob — fast, one process for all children.
+        let script = "du -sk \"\(parent.path)\"/* 2>/dev/null"
+        let (_, out, _) = Shell.run("/bin/sh", ["-c", script], timeout: 120)
+
+        var items: [ScanItem] = []
+        for line in out.split(separator: "\n") {
+            let parts = line.split(separator: "\t", maxSplits: 1).map(String.init)
+            guard parts.count == 2,
+                  let kb = Int64(parts[0].trimmingCharacters(in: .whitespaces)) else { continue }
+            let path = parts[1]
+            let url = URL(fileURLWithPath: path)
+            var isDir: ObjCBool = false
+            fm.fileExists(atPath: path, isDirectory: &isDir)
+            let size = kb * 1024
+            guard size > 0 else { continue }
+            items.append(ScanItem(
+                url: url,
+                size: size,
+                modified: FS.modified(of: url),
+                kind: .spaceFolder,
+                group: isDir.boolValue ? "Dossier" : "Fichier",
+                title: url.lastPathComponent,
+                detail: path,
+                severity: .info
+            ))
+        }
+        items.sort { $0.size > $1.size }
+        return items
+    }
+
     private func friendlyName(_ url: URL) -> String {
         let p = url.path
         if p == "/Applications" { return "/Applications" }

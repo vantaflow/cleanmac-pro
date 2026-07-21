@@ -60,6 +60,18 @@ final class ScannerTests: XCTestCase {
         XCTAssertGreaterThan(result.totalSize, 0)
     }
 
+    func testSpaceLensScanChildren() throws {
+        let parent = tempRoot.appendingPathComponent("Parent")
+        _ = try createFile(name: "big.bin", bytes: 300_000, in: parent.appendingPathComponent("Big"))
+        _ = try createFile(name: "small.bin", bytes: 10_000, in: parent.appendingPathComponent("Small"))
+
+        let kids = SpaceLensScanner.scanChildren(of: parent)
+        XCTAssertEqual(kids.count, 2)
+        // Sorted largest-first.
+        XCTAssertEqual(kids.first?.url.lastPathComponent, "Big")
+        XCTAssertGreaterThan(kids[0].size, kids[1].size)
+    }
+
     func testScanCacheFreshnessAndInvalidation() async throws {
         let cache = ScanCache()
         let dir = tempRoot.appendingPathComponent("Cacheable")
