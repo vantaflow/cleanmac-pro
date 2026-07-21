@@ -32,5 +32,17 @@
     <string>public.app-category.utilities</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 TurkeyCode. MIT licensed.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>CleanMac Pro analyse le Bureau pour trouver les gros fichiers récupérables.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>CleanMac Pro analyse Documents pour trouver les gros fichiers récupérables.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>CleanMac Pro analyse Téléchargements pour trouver les gros fichiers récupérables.</string>
+    <key>NSRemovableVolumesUsageDescription</key>
+    <string>CleanMac Pro peut analyser les volumes amovibles montés.</string>
+    <key>NSNetworkVolumesUsageDescription</key>
+    <string>CleanMac Pro peut analyser les volumes réseau montés.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>CleanMac Pro pilote le Finder pour vider la corbeille à ta demande.</string>
 </dict>
 </plist>
