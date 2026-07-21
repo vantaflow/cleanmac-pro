@@ -164,14 +164,36 @@ final class AppState: ObservableObject {
         let toClean = result.items.filter { state.selection.contains($0.id) }
             .filter { ![.securityFinding, .updateAvailable, .loginItem, .launchAgent,
                         .processSnapshot, .maintenanceTask, .spaceFolder].contains($0.kind) }
+
         let report = Cleaner.clean(items: toClean)
+        applyClean(module: module, report: report)
+
+        // Items that couldn't be trashed are usually root-owned (App Store apps
+        // like Xcode). Retry those with an admin prompt, off the main thread so
+        // the UI doesn't freeze during authentication.
+        let needAdmin = toClean.filter { report.failedItems.contains($0.url) }
+        guard !needAdmin.isEmpty else { return }
+        update(module) { $0.status = "Authentification requise pour \(needAdmin.count) élément(s)…" }
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let adminReport = Cleaner.trashWithAdmin(items: needAdmin)
+            await MainActor.run { [weak self] in
+                self?.applyClean(module: module, report: adminReport, appendFreed: report.freedBytes)
+            }
+        }
+    }
+
+    /// Removes successfully-cleaned items from the module result and reports.
+    private func applyClean(module: ModuleID, report: CleanReport, appendFreed: Int64 = 0) {
         update(module) { s in
             s.lastReport = report
-            s.result?.items.removeAll { item in
-                state.selection.contains(item.id) && !report.failedItems.contains(item.url)
+            s.result?.items.removeAll { !report.failedItems.contains($0.url) && s.selection.contains($0.id) }
+            let freed = report.freedBytes + appendFreed
+            if report.failedItems.isEmpty {
+                s.selection.removeAll()
+                s.status = "Libéré \(ByteFormatter.string(freed))"
+            } else {
+                s.status = "Libéré \(ByteFormatter.string(freed)) · \(report.failedItems.count) échec(s)"
             }
-            s.selection.removeAll()
-            s.status = "Libéré \(ByteFormatter.string(report.freedBytes))"
         }
     }
 }
