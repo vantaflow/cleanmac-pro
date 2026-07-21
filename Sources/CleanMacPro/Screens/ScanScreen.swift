@@ -11,6 +11,9 @@ struct ScanScreen: View {
     var subtitle: String
     var primaryActionLabel: String = "Nettoyer la sélection"
     var supportsClean: Bool = true
+    /// Uninstaller: remove permanently (no Trash) so nothing lingers for other
+    /// cleaners to detect.
+    var permanentDelete: Bool = false
 
     var body: some View {
         let state = appState.state(for: module)
@@ -33,7 +36,7 @@ struct ScanScreen: View {
                                     s.selection = Set(result.items.map(\.id))
                                 }
                             } else {
-                                appState.clean(module: module)
+                                appState.clean(module: module, permanent: permanentDelete)
                             }
                         }
                     }

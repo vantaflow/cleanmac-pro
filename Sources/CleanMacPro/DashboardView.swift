@@ -50,7 +50,8 @@ private struct MainPane: View {
                                    subtitle: "Caches, logs, corbeilles. Sans risque, restaurable depuis la Corbeille.")
                     case .uninstaller:
                         ScanScreen(module: .uninstaller,
-                                   subtitle: "Désinstalle les apps et leurs résidus dans Library.")
+                                   subtitle: "Désinstalle les apps et leurs résidus. Suppression définitive (pas la corbeille) — indétectable par les autres nettoyeurs.",
+                                   permanentDelete: true)
                     case .files:
                         ScanScreen(module: .files,
                                    subtitle: "Gros fichiers et fichiers anciens dans Téléchargements, Documents, Bureau, Films.")

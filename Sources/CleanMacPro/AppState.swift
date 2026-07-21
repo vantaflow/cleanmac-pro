@@ -158,24 +158,29 @@ final class AppState: ObservableObject {
         }
     }
 
-    func clean(module: ModuleID) {
+    /// - Parameter permanent: when true (Uninstaller), removes items outright
+    ///   instead of trashing, so a removed .app never lingers in the Trash
+    ///   where other cleaners detect it and nag.
+    func clean(module: ModuleID, permanent: Bool = false) {
         let state = self.state(for: module)
         guard let result = state.result, !state.selection.isEmpty else { return }
         let toClean = result.items.filter { state.selection.contains($0.id) }
             .filter { ![.securityFinding, .updateAvailable, .loginItem, .launchAgent,
                         .processSnapshot, .maintenanceTask, .spaceFolder].contains($0.kind) }
 
-        let report = Cleaner.clean(items: toClean)
+        let report = permanent ? Cleaner.delete(items: toClean) : Cleaner.clean(items: toClean)
         applyClean(module: module, report: report)
 
-        // Items that couldn't be trashed are usually root-owned (App Store apps
-        // like Xcode). Retry those with an admin prompt, off the main thread so
-        // the UI doesn't freeze during authentication.
+        // Items that failed are usually root-owned (App Store apps like Xcode).
+        // Retry with an admin prompt, off the main thread so the UI doesn't
+        // freeze during authentication.
         let needAdmin = toClean.filter { report.failedItems.contains($0.url) }
         guard !needAdmin.isEmpty else { return }
         update(module) { $0.status = "Authentification requise pour \(needAdmin.count) élément(s)…" }
         Task.detached(priority: .userInitiated) { [weak self] in
-            let adminReport = Cleaner.trashWithAdmin(items: needAdmin)
+            let adminReport = permanent
+                ? Cleaner.deleteWithAdmin(items: needAdmin)
+                : Cleaner.trashWithAdmin(items: needAdmin)
             await MainActor.run { [weak self] in
                 self?.applyClean(module: module, report: adminReport, appendFreed: report.freedBytes)
             }

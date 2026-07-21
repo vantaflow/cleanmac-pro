@@ -24,7 +24,7 @@ The UI auto-renders every module via `ModuleID.allCases` — no view changes nee
 
 ## Conventions
 - Scanners are pure: they accept a `progress` closure and return a `ScanResult`. No side effects.
-- All deletion goes through `Cleaner.clean(items:)`, which uses `trashItem`. Never `removeItem`.
+- Cache/file cleaning goes through `Cleaner.clean(items:)`, which uses `trashItem` (reversible). The Uninstaller is the one exception: it calls `Cleaner.delete(items:)` (permanent `removeItem`) so a removed `.app` never lingers in the Trash where other cleaners detect it. Root-owned items fall back to `deleteWithAdmin`/`trashWithAdmin` (one admin prompt).
 - Bytes are `Int64`. Always format for display with `ByteFormatter.string(_:)`.
 - Don't add a new way to enumerate the filesystem — use `FS.enumerate(_:)`.
 

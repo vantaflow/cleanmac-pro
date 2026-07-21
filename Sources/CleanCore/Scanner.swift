@@ -37,6 +37,42 @@ public enum Cleaner {
         return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed)
     }
 
+    /// Permanent removal (no Trash). Used by the Uninstaller so a removed .app
+    /// never lingers in the Trash where other cleaners (e.g. CleanMyMac) detect
+    /// it and nag. Deliberate and irreversible — only the Uninstaller uses it.
+    public static func delete(items: [ScanItem]) -> CleanReport {
+        var freed: Int64 = 0
+        var removed = 0
+        var failed: [URL] = []
+        let fm = FileManager.default
+        for item in items {
+            do {
+                try fm.removeItem(at: item.url)
+                freed += item.size
+                removed += 1
+            } catch {
+                failed.append(item.url)
+            }
+        }
+        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed)
+    }
+
+    /// Admin fallback for permanent removal of root-owned items (`rm -rf` via a
+    /// single native password prompt).
+    public static func deleteWithAdmin(items: [ScanItem]) -> CleanReport {
+        guard !items.isEmpty else { return CleanReport(removedCount: 0, freedBytes: 0, failedItems: []) }
+        let cmds = items.map { "/bin/rm -rf \(singleQuoted($0.url.path))" }
+        runAdmin(cmds.joined(separator: "; "))
+
+        let fm = FileManager.default
+        var freed: Int64 = 0, removed = 0, failed: [URL] = []
+        for item in items {
+            if fm.fileExists(atPath: item.url.path) { failed.append(item.url) }
+            else { freed += item.size; removed += 1 }
+        }
+        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed)
+    }
+
     /// Fallback for items `trashItem` can't move (root-owned bundles like App
     /// Store apps): move them into ~/.Trash with a single admin-authenticated
     /// shell call (one native password prompt for the whole batch). Still safe
@@ -50,13 +86,7 @@ public enum Cleaner {
             let dest = trashDir + "/" + item.url.lastPathComponent
             return "/bin/mv -f \(singleQuoted(item.url.path)) \(singleQuoted(dest))"
         }
-        let shell = cmds.joined(separator: "; ")
-        // Embed into an AppleScript string literal (escape backslash then quote).
-        let esc = shell
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "do shell script \"\(esc)\" with administrator privileges"
-        _ = Shell.run("/usr/bin/osascript", ["-e", script], timeout: 300)
+        runAdmin(cmds.joined(separator: "; "))
 
         // Whatever no longer exists at its source was moved successfully.
         var freed: Int64 = 0
@@ -76,5 +106,14 @@ public enum Cleaner {
     /// POSIX single-quote a path, escaping embedded single quotes.
     private static func singleQuoted(_ s: String) -> String {
         "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Run a shell command as admin via one native password prompt.
+    private static func runAdmin(_ shell: String) {
+        let esc = shell
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let script = "do shell script \"\(esc)\" with administrator privileges"
+        _ = Shell.run("/usr/bin/osascript", ["-e", script], timeout: 300)
     }
 }
