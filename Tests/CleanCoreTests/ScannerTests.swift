@@ -60,6 +60,29 @@ final class ScannerTests: XCTestCase {
         XCTAssertGreaterThan(result.totalSize, 0)
     }
 
+    func testScanCacheFreshnessAndInvalidation() async throws {
+        let cache = ScanCache()
+        let dir = tempRoot.appendingPathComponent("Cacheable")
+        _ = try createFile(name: "a.dat", bytes: 100, in: dir)
+        let items = [ScanItem(url: dir, size: 100, kind: .cache, group: "x")]
+
+        let t0 = Date()
+        await cache.save(.smartScan, roots: [dir], items: items, now: t0)
+
+        // Fresh + unchanged roots → hit.
+        let hit = await cache.cached(.smartScan, roots: [dir], maxAge: 600, now: t0.addingTimeInterval(60))
+        XCTAssertEqual(hit?.count, 1)
+
+        // Past maxAge → miss.
+        let stale = await cache.cached(.smartScan, roots: [dir], maxAge: 600, now: t0.addingTimeInterval(601))
+        XCTAssertNil(stale)
+
+        // Root mtime changed → miss even when fresh.
+        _ = try createFile(name: "b.dat", bytes: 100, in: dir)
+        let changed = await cache.cached(.smartScan, roots: [dir], maxAge: 600, now: t0.addingTimeInterval(60))
+        XCTAssertNil(changed)
+    }
+
     func testLargeFilesScanner() async throws {
         let dir = tempRoot.appendingPathComponent("Downloads")
         _ = try createFile(name: "small.dat", bytes: 100, in: dir)

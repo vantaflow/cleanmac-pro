@@ -14,6 +14,12 @@ final class AppState: ObservableObject {
     /// Live filter applied to the active module's results listing.
     @Published var searchText: String = ""
 
+    /// Shared live host metrics for the menu-bar popover / in-window widget.
+    let hostStats = HostStats()
+
+    /// Scheduled background scans, notifications, menu-bar-only mode.
+    let background = BackgroundAgent()
+
     /// Modules that render a filterable results list (so the toolbar search
     /// applies). Dashboard / Smart Scan / Space Lens / Result don't.
     func isSearchable(_ module: ModuleID) -> Bool {
@@ -49,7 +55,7 @@ final class AppState: ObservableObject {
     func runMaintenance(item: ScanItem) {
         guard item.command != nil else { return }
         update(.maintenance) { $0.status = "Exécution de « \(item.title ?? "tâche") »…" }
-        Task.detached(priority: .userInitiated) { [weak self] in
+        Task.detached(priority: .utility) { [weak self] in
             let (status, output) = MaintenanceScanner.execute(item)
             await MainActor.run { [weak self] in
                 self?.update(.maintenance) { s in
@@ -115,7 +121,7 @@ final class AppState: ObservableObject {
             s.result = nil
             s.selection.removeAll()
         }
-        let task = Task.detached(priority: .userInitiated) { [weak self] in
+        let task = Task.detached(priority: .utility) { [weak self] in
             do {
                 let result = try await scanner.scan(progress: { p, msg in
                     Task { @MainActor [weak self] in

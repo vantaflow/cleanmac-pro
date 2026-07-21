@@ -13,6 +13,8 @@ public struct SmartScanner: FileScanner {
     public let module: ModuleID = .smartScan
     public let rootOverrides: [URL]?
     private let includePosture: Bool
+    private let useCache: Bool
+    private let maxCacheAge: TimeInterval
 
     /// - Parameters:
     ///   - rootOverrides: when set, scans exactly these directories (cleanup
@@ -20,15 +22,41 @@ public struct SmartScanner: FileScanner {
     ///   - includePosture: include read-only posture checks (security,
     ///     updates) in addition to the reclaimable modules. Defaults to `true`
     ///     for a full scan; ignored when `rootOverrides` is set.
-    public init(rootOverrides: [URL]? = nil, includePosture: Bool = true) {
+    ///   - useCache: reuse a recent, still-valid scan via `ScanCache` instead
+    ///     of re-walking the tree (the background agent uses this).
+    public init(rootOverrides: [URL]? = nil, includePosture: Bool = true,
+                useCache: Bool = false, maxCacheAge: TimeInterval = 600) {
         self.rootOverrides = rootOverrides
         self.includePosture = includePosture
+        self.useCache = useCache
+        self.maxCacheAge = maxCacheAge
+    }
+
+    /// Directories whose mtime invalidates the cache.
+    private var fingerprintRoots: [URL] {
+        if let overrides = rootOverrides { return overrides }
+        let home = FS.home
+        return [
+            home.appendingPathComponent("Library/Caches"),
+            home.appendingPathComponent("Downloads"),
+            home.appendingPathComponent("Documents"),
+            home.appendingPathComponent("Desktop"),
+            home.appendingPathComponent("Movies"),
+        ]
     }
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
+        let roots = fingerprintRoots
+
+        if useCache, let cached = await ScanCache.shared.cached(.smartScan, roots: roots, maxAge: maxCacheAge) {
+            progress(1.0, "À jour (cache)")
+            return ScanResult(module: .smartScan, items: cached)
+        }
+
         if let overrides = rootOverrides {
             let result = try await CleanupScanner(rootOverrides: overrides)
                 .scan(progress: progress)
+            if useCache { await ScanCache.shared.save(.smartScan, roots: roots, items: result.items) }
             return ScanResult(module: .smartScan, items: result.items)
         }
 
@@ -61,6 +89,7 @@ public struct SmartScanner: FileScanner {
             }
         }
 
+        if useCache { await ScanCache.shared.save(.smartScan, roots: roots, items: merged) }
         progress(1.0, "Done")
         return ScanResult(module: .smartScan, items: merged)
     }
