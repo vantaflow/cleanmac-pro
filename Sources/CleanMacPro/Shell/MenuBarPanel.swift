@@ -16,11 +16,18 @@ struct MenuPanelContent: View {
     var onDismiss: (() -> Void)? = nil
 
     /// Reopen / focus the single main window, recreating it if it was closed.
+    /// Prefer the AppKit bridge (works from the status-item popover, where the
+    /// SwiftUI `openWindow` action isn't wired), falling back to the environment
+    /// action for the in-window widget.
     private func openMain() {
         onDismiss?()
-        NSApp.setActivationPolicy(.regular)
-        openWindow(id: "main")
-        NSApp.activate(ignoringOtherApps: true)
+        if let open = WindowOpener.shared.open {
+            open()
+        } else {
+            NSApp.setActivationPolicy(.regular)
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     private var recoverableLabel: String {

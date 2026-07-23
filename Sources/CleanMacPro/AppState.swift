@@ -4,6 +4,10 @@ import CleanCore
 
 @MainActor
 final class AppState: ObservableObject {
+    /// Shared instance so the AppKit AppDelegate (status item, popover) and the
+    /// SwiftUI scenes operate on the same state.
+    static let shared = AppState()
+
     @Published var theme = Theme()
     @Published var active: ModuleID = .smartScan {
         didSet { if oldValue != active { searchText = "" } }
