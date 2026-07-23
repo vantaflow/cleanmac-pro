@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import UserNotifications
+import ServiceManagement
 import CleanCore
 
 /// Runs Smart Scans on a schedule in the background, remembers the last known
@@ -21,6 +22,11 @@ final class BackgroundAgent: ObservableObject {
             UserDefaults.standard.set(menuBarOnly, forKey: Keys.menuOnly)
             applyActivationPolicy()
         }
+    }
+    /// Launch the app (its menu-bar item) automatically at login, so the icon is
+    /// there even after a reboot — like CleanMyMac's resident menu.
+    @Published var launchAtLogin: Bool {
+        didSet { applyLoginItem() }
     }
 
     // Last scan memory (survives relaunch)
@@ -48,6 +54,21 @@ final class BackgroundAgent: ObservableObject {
         lastRecoverableBytes = Int64(d.integer(forKey: Keys.lastBytes))
         let ts = d.double(forKey: Keys.lastDate)
         lastScanDate = ts > 0 ? Date(timeIntervalSince1970: ts) : nil
+        launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+
+    // MARK: — Launch at login
+
+    private func applyLoginItem() {
+        do {
+            if launchAtLogin {
+                if SMAppService.mainApp.status != .enabled { try SMAppService.mainApp.register() }
+            } else {
+                if SMAppService.mainApp.status == .enabled { try SMAppService.mainApp.unregister() }
+            }
+        } catch {
+            // Best-effort: ignore (e.g. unsigned build without a registered bundle).
+        }
     }
 
     /// Call at launch, after the scene is up. Idempotent.

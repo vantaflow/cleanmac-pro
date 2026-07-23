@@ -107,6 +107,10 @@ struct MenuPanelContent: View {
                 MenuToggle(icon: "menubar.rectangle", label: "Barre seule",
                            isOn: $agent.menuBarOnly, accent: theme.accent.color)
             }
+            HStack(spacing: 8) {
+                MenuToggle(icon: "power", label: "Démarrage",
+                           isOn: $agent.launchAtLogin, accent: theme.accent.color)
+            }
 
             Divider().background(Color.white.opacity(0.1))
 
@@ -121,7 +125,7 @@ struct MenuPanelContent: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
-                Button { NSApp.terminate(nil) } label: {
+                Button { AppLifecycle.shared.quit() } label: {
                     Text("Quitter")
                         .font(.system(size: 11.5))
                         .foregroundColor(.white.opacity(0.5))

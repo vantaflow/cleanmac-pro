@@ -9,6 +9,15 @@ final class WindowOpener {
     var open: (() -> Void)?
 }
 
+/// Distinguishes a real quit (from the menu-bar "Quitter" button) from a plain
+/// window/⌘Q close, which only hides the app to the menu bar.
+@MainActor
+final class AppLifecycle {
+    static let shared = AppLifecycle()
+    var reallyQuit = false
+    func quit() { reallyQuit = true; NSApp.terminate(nil) }
+}
+
 /// Owns the menu-bar status item directly (an `NSStatusItem`, not SwiftUI's
 /// flaky `MenuBarExtra`) so the icon is guaranteed to stay for the whole
 /// lifetime of the process — it never vanishes when the window closes.
@@ -25,6 +34,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Closing the window must NOT quit the app — it stays alive in the menu bar.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    // ⌘Q / Quit doesn't terminate — it hides the app to the menu bar so the
+    // status item stays active even when "closed" (like CleanMyMac's menu).
+    // The only real quit is the popover's "Quitter" button (AppLifecycle.quit()).
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if AppLifecycle.shared.reallyQuit { return .terminateNow }
+        NSApp.setActivationPolicy(.accessory)
+        for window in NSApp.windows where window.isVisible { window.close() }
+        return .terminateCancel
+    }
 
     // Clicking the Dock icon (or relaunching) reopens the main window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
