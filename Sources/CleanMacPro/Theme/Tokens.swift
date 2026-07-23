@@ -25,11 +25,18 @@ enum Accent: String, CaseIterable, Identifiable {
 }
 
 enum Wallpaper: String, CaseIterable, Identifiable {
-    case aurora, graphite, sunset, forest
+    case macpaw, aurora, graphite, sunset, forest
     var id: String { rawValue }
 
     var stops: [Color] {
         switch self {
+        case .macpaw:
+            // CleanMyMac 5 immersive violet → blue.
+            return [
+                Color(red: 108/255, green: 92/255,  blue: 231/255),
+                Color(red: 74/255,  green: 63/255,  blue: 176/255),
+                Color(red: 45/255,  green: 79/255,  blue: 200/255)
+            ]
         case .aurora:
             return [
                 Color(red: 43/255, green: 58/255, blue: 95/255),
@@ -71,10 +78,46 @@ enum Density: String, CaseIterable, Identifiable {
 }
 
 struct Theme {
-    var accent: Accent = .mint
-    var dark: Bool = false
+    var accent: Accent = .violet
+    var dark: Bool = true
     var density: Density = .regular
-    var wallpaper: Wallpaper = .aurora
+    var wallpaper: Wallpaper = .macpaw
+}
+
+// MARK: — Immersive (CleanMyMac 5) styling
+
+extension Wallpaper {
+    /// Full-bleed diagonal gradient used behind the immersive shell.
+    var immersiveGradient: LinearGradient {
+        LinearGradient(
+            colors: stops,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+extension View {
+    /// Frosted translucent card, à la CleanMyMac 5 content surfaces.
+    func immersiveCard(radius: CGFloat = 28) -> some View {
+        self
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: radius)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: radius)
+                        .fill(Color.white.opacity(0.06))
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: radius)
+                    .stroke(
+                        LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.05)],
+                                       startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: radius))
+    }
 }
 
 // MARK: — Semantic colors

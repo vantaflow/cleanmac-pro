@@ -1,8 +1,9 @@
 import SwiftUI
 import CleanCore
 
-/// Big animated scan screen — runs Cleanup, Files, Security in parallel and
-/// shows per-category progress with a hero ring.
+/// Smart Care — the CleanMyMac 5 home. One glossy hero glyph, a headline, and a
+/// single Scan action that fans out to Cleanup / Files / Protection / Updates /
+/// Privacy in parallel with live per-category progress.
 struct SmartScanScreen: View {
     @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
@@ -10,82 +11,125 @@ struct SmartScanScreen: View {
     private let categories: [ModuleID] = [.cleanup, .files, .security, .updates, .privacy]
 
     private var aggregatedProgress: Double {
-        let values = categories.map { appState.state(for: $0).progress }
-        return values.reduce(0, +) / Double(max(values.count, 1))
+        let v = categories.map { appState.state(for: $0).progress }
+        return v.reduce(0, +) / Double(max(v.count, 1))
     }
-    private var anyScanning: Bool {
-        categories.contains { appState.state(for: $0).isScanning }
+    private var anyScanning: Bool { categories.contains { appState.state(for: $0).isScanning } }
+    private var scanned: Bool { categories.allSatisfy { appState.state(for: $0).result != nil } }
+    private var reclaimable: Int64 {
+        categories.reduce(0) { $0 + (appState.state(for: $1).result?.totalSize ?? 0) }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ScreenHeader(
-                title: "Smart Scan",
-                subtitle: "Analyse complète — caches, gros fichiers, sécurité, mises à jour, vie privée."
-            ) {
-                Btn(kind: .primary, size: .lg, icon: anyScanning ? "pause" : "scan",
-                    label: anyScanning ? "Annuler" : "Tout scanner") {
-                    if anyScanning {
-                        categories.forEach { appState.cancelScan(module: $0) }
-                    } else {
-                        categories.forEach { appState.startScan(module: $0) }
-                    }
+        VStack(spacing: 0) {
+            Spacer(minLength: 12)
+
+            // Hero glyph with progress ring while scanning.
+            ZStack {
+                if anyScanning {
+                    Circle()
+                        .trim(from: 0, to: aggregatedProgress)
+                        .stroke(Color.white.opacity(0.9),
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 240, height: 240)
+                        .animation(.easeOut(duration: 0.4), value: aggregatedProgress)
+                }
+                ModuleGlyph(symbol: "scan", size: 190, tint: ModuleID.smartScan.glyphTint)
+            }
+            .padding(.bottom, 20)
+
+            Text(headline)
+                .font(.system(size: 34, weight: .bold))
+                .tracking(-0.4)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+
+            Text(subline)
+                .font(.system(size: 15))
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.top, 6)
+                .frame(maxWidth: 460)
+
+            // Category chips.
+            HStack(spacing: 10) {
+                ForEach(categories, id: \.self) { m in
+                    categoryChip(m)
                 }
             }
+            .padding(.top, 26)
 
-            GlassPanel(radius: 16, padding: 24) {
-                HStack(spacing: 32) {
-                    Ring(size: 220, stroke: 14, value: aggregatedProgress * 100,
-                         color: theme.accent.color) {
-                        VStack(spacing: 0) {
-                            Text("\(Int(aggregatedProgress * 100)) %")
-                                .font(.system(size: 48, weight: .bold))
-                                .tracking(-2)
-                                .foregroundColor(.text1(theme.dark))
-                            Text(anyScanning ? "en cours" : "prêt")
-                                .font(.system(size: 12))
-                                .foregroundColor(.text3(theme.dark))
-                        }
-                    }
+            Spacer()
 
-                    VStack(spacing: 10) {
-                        ForEach(categories, id: \.self) { module in
-                            categoryRow(module: module)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
+            // Primary action.
+            Button(action: primaryAction) {
+                HStack(spacing: 9) {
+                    CmpIcon(name: anyScanning ? "pause" : "scan", size: 15, color: Color(red: 0.14, green: 0.16, blue: 0.36))
+                    Text(actionLabel)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(red: 0.14, green: 0.16, blue: 0.36))
                 }
+                .padding(.horizontal, 30).padding(.vertical, 14)
+                .background(Capsule().fill(Color.white))
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
             }
-
-            Spacer(minLength: 0)
+            .buttonStyle(.plain)
+            .padding(.bottom, 40)
         }
-        .padding(.top, 20)
-        .padding(.horizontal, 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
     }
 
-    private func categoryRow(module: ModuleID) -> some View {
-        let state = appState.state(for: module)
-        let count = state.result?.count ?? 0
-        let label = state.isScanning ? state.status
-                                     : (state.result == nil ? "En attente" : "\(count) éléments")
-        return HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8).fill(theme.accent.color.opacity(0.15))
-                CmpIcon(name: module.symbol, size: 16, color: theme.accent.color)
-            }
-            .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack {
-                    Text(module.title).font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.text1(theme.dark))
-                    Spacer()
-                    Text("\(Int(state.progress * 100)) %")
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.text3(theme.dark))
-                }
-                ProgressView(value: state.progress).tint(theme.accent.color)
-                Text(label).font(.system(size: 11)).foregroundColor(.text3(theme.dark))
-            }
+    private var headline: String {
+        if anyScanning { return "Analyse en cours…" }
+        if scanned { return reclaimable > 0 ? "\(ByteFormatter.string(reclaimable)) à récupérer" : "Ton Mac est impeccable." }
+        return "Ton Mac va bien."
+    }
+    private var subline: String {
+        if anyScanning { return "Nettoyage, fichiers, protection, mises à jour et confidentialité." }
+        if scanned { return reclaimable > 0 ? "Passe en revue et lance le nettoyage en un clic." : "Rien à nettoyer pour le moment. Reviens plus tard." }
+        return "Lance Smart Care pour voir ce qu'il y a à récupérer et à protéger."
+    }
+    private var actionLabel: String {
+        if anyScanning { return "Arrêter" }
+        if scanned && reclaimable > 0 { return "Nettoyer" }
+        return "Analyser"
+    }
+
+    private func primaryAction() {
+        if anyScanning {
+            categories.forEach { appState.cancelScan(module: $0) }
+        } else if scanned && reclaimable > 0 {
+            appState.quickClean()
+        } else {
+            categories.forEach { appState.startScan(module: $0) }
         }
+    }
+
+    private func categoryChip(_ m: ModuleID) -> some View {
+        let s = appState.state(for: m)
+        let done = s.result != nil && !s.isScanning
+        return VStack(spacing: 7) {
+            ZStack {
+                ModuleGlyph(symbol: m.symbol, size: 40, tint: m.glyphTint)
+                if s.isScanning {
+                    Circle().trim(from: 0, to: s.progress)
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 46, height: 46)
+                } else if done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .background(Circle().fill(m.glyphTint[1]).frame(width: 15, height: 15))
+                        .offset(x: 16, y: -16)
+                }
+            }
+            Text(m.railTitle)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.75))
+        }
+        .frame(width: 78)
     }
 }

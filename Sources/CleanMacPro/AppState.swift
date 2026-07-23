@@ -5,7 +5,7 @@ import CleanCore
 @MainActor
 final class AppState: ObservableObject {
     @Published var theme = Theme()
-    @Published var active: ModuleID = .dashboard {
+    @Published var active: ModuleID = .smartScan {
         didSet { if oldValue != active { searchText = "" } }
     }
     @Published var moduleStates: [ModuleID: ModuleState] = [:]

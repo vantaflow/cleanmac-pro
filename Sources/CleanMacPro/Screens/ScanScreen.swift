@@ -17,6 +17,16 @@ struct ScanScreen: View {
 
     var body: some View {
         let state = appState.state(for: module)
+        // Idle (no scan yet): full-bleed CleanMyMac 5 hero — glossy glyph + CTA.
+        if !state.isScanning && state.result == nil {
+            return AnyView(EmptyScanView(module: module, subtitle: subtitle) {
+                appState.startScan(module: module)
+            })
+        }
+        return AnyView(scanBody(state: state))
+    }
+
+    private func scanBody(state: ModuleState) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(title: module.title, subtitle: subtitle) {
                 HStack(spacing: 8) {
@@ -56,7 +66,7 @@ struct ScanScreen: View {
                     ResultsListing(module: module, result: result)
                 }
             } else {
-                EmptyScanView(module: module) {
+                EmptyScanView(module: module, subtitle: subtitle) {
                     appState.startScan(module: module)
                 }
             }
@@ -90,22 +100,42 @@ private struct ScanningView: View {
 }
 
 private struct EmptyScanView: View {
-    @Environment(\.theme) private var theme
     let module: ModuleID
+    var subtitle: String
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 0) {
             Spacer()
-            CmpIcon(name: module.symbol, size: 56, color: .text3(theme.dark))
-            Text(module.title).font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.text1(theme.dark))
-            Text(module.subtitle).foregroundColor(.text2(theme.dark))
-            Btn(kind: .primary, size: .lg, icon: "play", label: "Lancer", action: action)
-                .padding(.top, 6)
+            ModuleGlyph(symbol: module.symbol, size: 168, tint: module.glyphTint)
+                .padding(.bottom, 22)
+            Text(module.railTitle)
+                .font(.system(size: 32, weight: .bold))
+                .tracking(-0.4)
+                .foregroundColor(.white)
+            Text(subtitle)
+                .font(.system(size: 15))
+                .foregroundColor(.white.opacity(0.72))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 480)
+                .padding(.top, 8)
             Spacer()
+            Button(action: action) {
+                HStack(spacing: 9) {
+                    CmpIcon(name: "scan", size: 15, color: Color(red: 0.14, green: 0.16, blue: 0.36))
+                    Text("Analyser")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(red: 0.14, green: 0.16, blue: 0.36))
+                }
+                .padding(.horizontal, 30).padding(.vertical, 14)
+                .background(Capsule().fill(Color.white))
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 40)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
     }
 }
 
