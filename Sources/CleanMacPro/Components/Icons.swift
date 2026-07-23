@@ -43,7 +43,9 @@ struct CmpIcon: View {
         case "cookie":    return "fork.knife"
         case "folder":    return "folder"
         case "lock":      return "lock.shield"
-        default:          return "questionmark.circle"
+        case "desktopcomputer": return "desktopcomputer"
+        // Any unmapped name is treated as a raw SF Symbol name.
+        default:          return name
         }
     }
 }
