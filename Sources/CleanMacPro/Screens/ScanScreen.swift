@@ -107,32 +107,23 @@ private struct EmptyScanView: View {
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-            ModuleGlyph(symbol: module.symbol, size: 168, tint: module.glyphTint)
-                .padding(.bottom, 22)
+            ModuleGlyph(symbol: module.symbol, size: 200, tint: module.glyphTint)
+                .padding(.bottom, 12)
             Text(module.railTitle)
-                .font(.system(size: 32, weight: .bold))
-                .tracking(-0.4)
+                .font(.system(size: 44, weight: .regular))
+                .tracking(-0.5)
                 .foregroundColor(.white)
+                .multilineTextAlignment(.center)
             Text(subtitle)
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .foregroundColor(.white.opacity(0.72))
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 480)
-                .padding(.top, 8)
+                .lineSpacing(2)
+                .frame(maxWidth: 560)
+                .padding(.top, 12)
             Spacer()
-            Button(action: action) {
-                HStack(spacing: 9) {
-                    CmpIcon(name: "scan", size: 15, color: Color(red: 0.14, green: 0.16, blue: 0.36))
-                    Text("Analyser")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(red: 0.14, green: 0.16, blue: 0.36))
-                }
-                .padding(.horizontal, 30).padding(.vertical, 14)
-                .background(Capsule().fill(Color.white))
-                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 40)
+            RoundScanButton(label: "Analyser", accent: module.theme.accent, action: action)
+                .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 40)

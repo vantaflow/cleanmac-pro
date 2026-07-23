@@ -97,7 +97,34 @@ extension Wallpaper {
     }
 }
 
+/// Per-module color identity — CleanMyMac 5 tints its whole background,
+/// hero glyph and scan button to the active module's hue.
+struct ModuleTheme {
+    var bgTop: Color
+    var bgBottom: Color
+    var glow: Color
+    var accent: Color
+}
+
 extension View {
+    /// The full-bleed per-module background: dark diagonal base + a soft radial
+    /// glow behind the hero, exactly like CleanMyMac 5.
+    func moduleBackground(_ t: ModuleTheme) -> some View {
+        self.background(
+            ZStack {
+                LinearGradient(colors: [t.bgTop, t.bgBottom],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                RadialGradient(colors: [t.glow.opacity(0.55), .clear],
+                               center: .init(x: 0.62, y: 0.30),
+                               startRadius: 0, endRadius: 620)
+                RadialGradient(colors: [t.glow.opacity(0.28), .clear],
+                               center: .init(x: 0.5, y: 1.05),
+                               startRadius: 0, endRadius: 520)
+            }
+            .ignoresSafeArea()
+        )
+    }
+
     /// Frosted translucent card, à la CleanMyMac 5 content surfaces.
     func immersiveCard(radius: CGFloat = 28) -> some View {
         self

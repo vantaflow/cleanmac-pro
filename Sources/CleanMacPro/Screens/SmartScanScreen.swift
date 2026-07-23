@@ -20,6 +20,8 @@ struct SmartScanScreen: View {
         categories.reduce(0) { $0 + (appState.state(for: $1).result?.totalSize ?? 0) }
     }
 
+    private var accent: Color { ModuleID.smartScan.theme.accent }
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 12)
@@ -32,50 +34,41 @@ struct SmartScanScreen: View {
                         .stroke(Color.white.opacity(0.9),
                                 style: StrokeStyle(lineWidth: 5, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .frame(width: 240, height: 240)
+                        .frame(width: 250, height: 250)
                         .animation(.easeOut(duration: 0.4), value: aggregatedProgress)
                 }
-                ModuleGlyph(symbol: "scan", size: 190, tint: ModuleID.smartScan.glyphTint)
+                ModuleGlyph(symbol: "desktopcomputer", size: 200, tint: ModuleID.smartScan.glyphTint)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 14)
 
             Text(headline)
-                .font(.system(size: 34, weight: .bold))
-                .tracking(-0.4)
+                .font(.system(size: 44, weight: .regular))
+                .tracking(-0.5)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
 
             Text(subline)
-                .font(.system(size: 15))
-                .foregroundColor(.white.opacity(0.7))
+                .font(.system(size: 16))
+                .foregroundColor(.white.opacity(0.72))
                 .multilineTextAlignment(.center)
-                .padding(.top, 6)
-                .frame(maxWidth: 460)
+                .lineSpacing(2)
+                .padding(.top, 10)
+                .frame(maxWidth: 500)
 
-            // Category chips.
-            HStack(spacing: 10) {
-                ForEach(categories, id: \.self) { m in
-                    categoryChip(m)
+            // Category chips (only once a scan has run / is running).
+            if anyScanning || scanned {
+                HStack(spacing: 10) {
+                    ForEach(categories, id: \.self) { m in
+                        categoryChip(m)
+                    }
                 }
+                .padding(.top, 26)
             }
-            .padding(.top, 26)
 
             Spacer()
 
-            // Primary action.
-            Button(action: primaryAction) {
-                HStack(spacing: 9) {
-                    CmpIcon(name: anyScanning ? "pause" : "scan", size: 15, color: Color(red: 0.14, green: 0.16, blue: 0.36))
-                    Text(actionLabel)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(red: 0.14, green: 0.16, blue: 0.36))
-                }
-                .padding(.horizontal, 30).padding(.vertical, 14)
-                .background(Capsule().fill(Color.white))
-                .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 40)
+            RoundScanButton(label: actionLabel, accent: accent, action: primaryAction)
+                .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 40)
@@ -83,13 +76,13 @@ struct SmartScanScreen: View {
 
     private var headline: String {
         if anyScanning { return "Analyse en cours…" }
-        if scanned { return reclaimable > 0 ? "\(ByteFormatter.string(reclaimable)) à récupérer" : "Ton Mac est impeccable." }
-        return "Ton Mac va bien."
+        if scanned { return reclaimable > 0 ? "\(ByteFormatter.string(reclaimable)) à récupérer" : "Votre Mac est impeccable." }
+        return "Heureux de vous revoir !"
     }
     private var subline: String {
         if anyScanning { return "Nettoyage, fichiers, protection, mises à jour et confidentialité." }
-        if scanned { return reclaimable > 0 ? "Passe en revue et lance le nettoyage en un clic." : "Rien à nettoyer pour le moment. Reviens plus tard." }
-        return "Lance Smart Care pour voir ce qu'il y a à récupérer et à protéger."
+        if scanned { return reclaimable > 0 ? "Passez en revue puis lancez le nettoyage en un clic." : "Rien à nettoyer pour le moment. Revenez plus tard." }
+        return "Pour commencer, lancez une analyse rapide et complète de votre Mac."
     }
     private var actionLabel: String {
         if anyScanning { return "Arrêter" }
