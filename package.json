@@ -11,16 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/khalilbenaz/cleanmac-pro.git"
+    "url": "git+https://github.com/vantaflow/cleanmac-pro.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/khalilbenaz/cleanmac-pro/issues"
+    "url": "https://github.com/vantaflow/cleanmac-pro/issues"
   },
-  "homepage": "https://github.com/khalilbenaz/cleanmac-pro#readme",
+  "homepage": "https://github.com/vantaflow/cleanmac-pro#readme",
   "devDependencies": {
     "puppeteer": "^25.0.4"
   }
