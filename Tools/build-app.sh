@@ -28,6 +28,27 @@ cp "$ICON"  "$APP/Contents/Resources/AppIcon.icns"
 cp "$PLIST" "$APP/Contents/Info.plist"
 chmod +x "$APP/Contents/MacOS/CleanMacPro"
 
+# Optional version injection (used by the release workflow).
+if [[ -n "${APP_VERSION:-}" ]]; then
+    plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$APP/Contents/Info.plist"
+fi
+if [[ -n "${APP_BUILD:-}" ]]; then
+    plutil -replace CFBundleVersion -string "$APP_BUILD" "$APP/Contents/Info.plist"
+fi
+
+# Sparkle.framework (auto-update): copy into Contents/Frameworks + add rpath.
+SPARKLE_FW="$(find "$ROOT/.build" -type d -name Sparkle.framework -path '*macos*' -prune -print -quit 2>/dev/null || true)"
+if [[ -z "$SPARKLE_FW" ]]; then
+    SPARKLE_FW="$(find "$ROOT/.build" -type d -name Sparkle.framework -prune -print -quit 2>/dev/null || true)"
+fi
+if [[ -z "$SPARKLE_FW" ]]; then
+    echo "Sparkle.framework not found under .build — run: swift build -c release"
+    exit 1
+fi
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/CleanMacPro" 2>/dev/null || true
+
 # Prefer a STABLE self-signed identity (see make-signing-cert.sh) so TCC
 # permissions persist across rebuilds. Fall back to ad-hoc if it's not set up.
 SIGN_ID="CleanMac Pro Dev"

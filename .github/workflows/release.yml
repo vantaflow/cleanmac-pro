@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["feat/release-selfupdate"] # TEMP
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and zip only (no GitHub release, no appcast)"
+        type: boolean
+        default: true
+      version:
+        description: "Version for a manual run (default 0.0.0-dryrun)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: v
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            DRY=false
+          else
+            VERSION="${{ inputs.version }}"
+            [[ -z "$VERSION" ]] && VERSION="0.0.0-dryrun"
+            DRY="${{ inputs.dry_run }}"
+            [[ -z "$DRY" ]] && DRY=true
+          fi
+          BUILD="$(git rev-list --count HEAD)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION (build $BUILD), dry_run=$DRY"
+
+      - name: Build (release)
+        run: swift build -c release
+
+      - name: Assemble .app (ad-hoc signed)
+        env:
+          APP_VERSION: ${{ steps.v.outputs.version }}
+          APP_BUILD: ${{ steps.v.outputs.build }}
+        run: |
+          ./Tools/build-app.sh
+          plutil -p "build/CleanMac Pro.app/Contents/Info.plist" | grep -E "Version|SU"
+          ls "build/CleanMac Pro.app/Contents/Frameworks"
+
+      - name: Zip
+        id: zip
+        run: |
+          ZIP="CleanMacPro-${{ steps.v.outputs.version }}.zip"
+          ditto -c -k --keepParent "build/CleanMac Pro.app" "$ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          ls -l "$ZIP"
+
+      - name: Upload zip (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CleanMacPro-${{ steps.v.outputs.version }}
+          path: ${{ steps.zip.outputs.zip }}
+
+      - name: Create GitHub release
+        if: steps.v.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.zip.outputs.zip }}" \
+            --title "CleanMac Pro ${{ steps.v.outputs.version }}" --generate-notes
+
+      - name: Sign zip and update appcast
+        if: steps.v.outputs.dry != 'true'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
+            echo "::warning::Secret SPARKLE_ED_PRIVATE_KEY missing: release published, appcast NOT updated. Run Tools/make-sparkle-keys.sh."
+            exit 0
+          fi
+          SIGN="$(find .build -type f -name sign_update -perm -u+x -print -quit)"
+          [[ -n "$SIGN" ]] || { echo "::error::sign_update not found in .build"; exit 1; }
+          ZIP="${{ steps.zip.outputs.zip }}"
+          SIG="$(printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$SIGN" --ed-key-file - -p "$ZIP")"
+          LEN="$(stat -f%z "$ZIP")"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${ZIP}"
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 Tools/appcast-add.py docs/appcast.xml \
+            "${{ steps.v.outputs.version }}" "${{ steps.v.outputs.build }}" "$URL" "$LEN" "$SIG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          git commit -m "chore(release): appcast ${{ steps.v.outputs.version }}" || exit 0
+          git push origin main

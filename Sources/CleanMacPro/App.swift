@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 /// Bridges SwiftUI's `openWindow` action to AppKit (AppDelegate / status item),
 /// so the main window can be reopened after it has been closed.
@@ -88,6 +89,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Sparkle 2 self-update. The updater only starts when `SUPublicEDKey` is set in
+/// Info.plist (run Tools/make-sparkle-keys.sh once); otherwise the menu item is
+/// disabled and nothing is started, so the app never crashes without a key.
+@MainActor
+final class AppUpdater {
+    static let shared = AppUpdater()
+    let controller: SPUStandardUpdaterController?
+    let isConfigured: Bool
+
+    private init() {
+        let key = (Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        isConfigured = !key.isEmpty
+        controller = isConfigured
+            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            : nil
+    }
+
+    func checkForUpdates() { controller?.checkForUpdates(nil) }
+}
+
 @main
 struct CleanMacProApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -110,6 +132,12 @@ struct CleanMacProApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Rechercher des mises à jour…") { AppUpdater.shared.checkForUpdates() }
+                    .disabled(!AppUpdater.shared.isConfigured)
+            }
+        }
     }
 }
 

@@ -9,10 +9,16 @@ let package = Package(
         .executable(name: "CleanMacProSmoke", targets: ["CleanMacProSmoke"]),
         .library(name: "CleanCore", targets: ["CleanCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.6.4"),
+    ],
     targets: [
         .executableTarget(
             name: "CleanMacPro",
-            dependencies: ["CleanCore"],
+            dependencies: [
+                "CleanCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/CleanMacPro"
         ),
         .executableTarget(

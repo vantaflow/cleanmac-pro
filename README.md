@@ -114,6 +114,19 @@ swift run CleanMacProSmoke   # 8 checks against fixture trees
 XCTest tests live in `Tests/CleanCoreTests/` — they run when you have a full
 Xcode install (Command Line Tools alone can't import `XCTest`).
 
+## Release & auto-update
+
+CleanMac Pro updates itself through [Sparkle 2](https://sparkle-project.org)
+(menu **Rechercher des mises à jour…**, feed `docs/appcast.xml` served by GitHub Pages).
+
+- **One-time setup:** on a Mac, after `swift build`, run `./Tools/make-sparkle-keys.sh`
+  (creates the EdDSA keys, writes the public key into `Tools/Info.plist`, stores the
+  private key as the `SPARKLE_ED_PRIVATE_KEY` secret). Commit `Tools/Info.plist`.
+  Until then the update menu item stays disabled.
+- **Release:** push a tag `vX.Y.Z`. `.github/workflows/release.yml` builds, zips the `.app`,
+  creates the GitHub release and adds the item to the appcast. Test with
+  *Actions → Release → Run workflow* (`dry_run` = true: zip as artifact only).
+
 ## Permissions
 
 Some modules need extra macOS permissions to be fully useful:
@@ -129,6 +142,7 @@ Some modules need extra macOS permissions to be fully useful:
 ## Roadmap
 
 - [ ] Notarized signed distribution
+- [x] Automated release workflow + Sparkle auto-update (run `Tools/make-sparkle-keys.sh` once)
 - [x] Sparkle feed checks for direct-download apps
 - [ ] Optional Claude API integration for the AI assistant overlay
 - [ ] Schedule scans via LaunchAgent

@@ -32,6 +32,14 @@
     <string>public.app-category.utilities</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 TurkeyCode. MIT licensed.</string>
+    <key>SUFeedURL</key>
+    <string>https://vantaflow.github.io/cleanmac-pro/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <!-- Sparkle EdDSA public key. Empty until you run Tools/make-sparkle-keys.sh;
+         while empty, self-update is disabled (menu item greyed out). -->
+    <key>SUPublicEDKey</key>
+    <string></string>
     <key>NSDesktopFolderUsageDescription</key>
     <string>CleanMac Pro analyse le Bureau pour trouver les gros fichiers récupérables.</string>
     <key>NSDocumentsFolderUsageDescription</key>

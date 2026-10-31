@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>CleanMac Pro</title>
+        <link>https://vantaflow.github.io/cleanmac-pro/appcast.xml</link>
+        <description>Mises à jour de CleanMac Pro</description>
+        <language>fr</language>
+    </channel>
+</rss>
