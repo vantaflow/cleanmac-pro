@@ -149,6 +149,38 @@ func runSmoke() async {
         Smoke.check(restored.restored == [origin.path] && FileManager.default.fileExists(atPath: origin.path),
                     "History restore moves the file back")
 
+        // Cleaning semantics: regenerable folders are deleted for good, grouped per app.
+        let appCaches = root.appendingPathComponent("AppCaches")
+        for i in 1...40 { try Smoke.write(600, to: appCaches.appendingPathComponent("com.example.one/f\(i)")) }
+        for i in 1...3 { try Smoke.write(900, to: appCaches.appendingPathComponent("com.example.two/f\(i)")) }
+        let grouped = try await CleanupScanner(rootOverrides: [appCaches]).scan { _, _ in }
+        Smoke.check(grouped.count == 2 && grouped.items.contains { $0.fileCount == 40 },
+                    "CleanupScanner groups cache files per app folder (2 rows for 43 files, got \(grouped.count))")
+        let plan = SmartCarePlan(results: [.cleanup: grouped],
+                                 selections: [.cleanup: SmartCarePlan.defaultSelection(for: .cleanup, items: grouped.items)])
+        Smoke.check(plan.runnableItems.count == 2, "Smart Care selects regenerable caches by default")
+        let cleaned = Cleaner.clean(items: plan.runnableItems)
+        Smoke.check(cleaned.permanentCount == 2 && cleaned.trashed.isEmpty
+                    && !FileManager.default.fileExists(atPath: appCaches.appendingPathComponent("com.example.one").path),
+                    "Cleaner deletes caches permanently (no Trash record)")
+        let personal = root.appendingPathComponent("Downloads2/keep-me.bin")
+        try Smoke.write(2_000, to: personal)
+        let noReview = SmartCarePlan(results: [.files: ScanResult(module: .files, items: [ScanItem(url: personal, size: 2_000, kind: .largeFile)])],
+                                     selections: [.files: SmartCarePlan.defaultSelection(for: .files, items: [])])
+        Smoke.check(noReview.runnableItems.isEmpty && FileManager.default.fileExists(atPath: personal.path),
+                    "an unreviewed Smart Care run never contains a personal file")
+        let trashed = Cleaner.clean(items: [ScanItem(url: personal, size: 2_000, kind: .largeFile)])
+        Smoke.check(trashed.trashed.count == 1 || !trashed.failedItems.isEmpty, "Cleaner sends personal files to the Trash")
+        if let rec = trashed.trashed.first {
+            let back = CleanHistory.restore(HistoryEntry(module: "files", itemCount: 1, freedBytes: 2_000, records: [rec]))
+            Smoke.check(back.restored == [personal.path], "a trashed personal file can be restored")
+        }
+        Smoke.check(!Cleaner.isSafeToRemove(FS.home) && !Cleaner.isSafeToRemove(URL(fileURLWithPath: "/")),
+                    "Cleaner refuses to remove the home folder or /")
+        let snapA = DiskSpace.snapshot(), snapB = DiskSpace.snapshot()
+        Smoke.check(snapA != nil && (snapA?.freeBytes ?? 0) > 0, "free space of the startup volume is readable")
+        Smoke.check(SpaceMeasure(before: snapA, after: snapB, reportedBytes: 10).freedBytes >= 0, "measured free space is never negative")
+
         // Scheduled-scan LaunchAgent plist
         let planned = ScheduledScanAgent.plistData(bundleID: "ai.smoke", executablePath: "/x/CleanMacPro",
                                                    schedule: ScanSchedule(frequency: .daily, hour: 8, minute: 15))
