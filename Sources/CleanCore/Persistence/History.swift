@@ -138,3 +138,15 @@ public struct CleanHistory: Codable, Equatable, Sendable {
         try AppSupport.save(self, to: Self.fileURL(in: dir))
     }
 }
+
+public extension CleanHistory {
+    /// Records a permanent deletion (no Trash records, nothing to restore).
+    @discardableResult
+    mutating func recordPermanent(module: String, report: CleanReport, date: Date = Date()) -> HistoryEntry? {
+        guard report.removedCount > 0 else { return nil }
+        let e = HistoryEntry(date: date, module: module, itemCount: report.removedCount,
+                             freedBytes: report.freedBytes, records: [])
+        record(e)
+        return e
+    }
+}

@@ -49,6 +49,7 @@ private struct ScheduleSettings: View {
 
     var body: some View {
         Form {
+            RemovalWatchSetting()
             Section {
                 Picker(L("Fréquence"), selection: Binding(
                     get: { appState.schedule.frequency },

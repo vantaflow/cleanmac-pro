@@ -520,6 +520,13 @@ final class AppState: ObservableObject {
         return outcome
     }
 
+    /// Permanent deletions (app-removal prompt): logged without Trash records.
+    func recordPermanentRemoval(_ report: CleanReport) {
+        if history.recordPermanent(module: ModuleID.uninstaller.rawValue, report: report) != nil {
+            try? history.save()
+        }
+    }
+
     func removeHistoryEntry(_ entry: HistoryEntry) {
         history.remove(id: entry.id)
         try? history.save()

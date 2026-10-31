@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UITestDriver.shared.start()   // CI UI test mode: no background agent
         } else {
             AppState.shared.background.activate()
+            AppRemovalCoordinator.shared.start()
         }
     }
 
