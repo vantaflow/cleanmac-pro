@@ -59,6 +59,8 @@ final class UITestDriver {
         }
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         started = Date()
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
         Task { @MainActor in
             await self.run()
             self.finish()
