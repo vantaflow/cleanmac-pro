@@ -126,3 +126,27 @@ jobs:
           name: ui-screens
           path: ${{ env.OUT }}
           if-no-files-found: warn
+
+  install:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install latest release with docs/install.sh (piped, like curl | bash)
+        env:
+          CLEANMAC_DEST: ${{ runner.temp }}/Apps
+          CLEANMAC_NO_OPEN: "1"
+          GH_TOKEN: ${{ github.token }}
+        run: cat docs/install.sh | bash
+      - name: Check installed app (no quarantine, valid signature, launches)
+        run: |
+          app="$RUNNER_TEMP/Apps/CleanMac Pro.app"
+          test -x "$app/Contents/MacOS/CleanMacPro"
+          defaults read "$app/Contents/Info" CFBundleShortVersionString
+          if xattr -r "$app" | grep -q com.apple.quarantine; then echo "::error::quarantine flag present"; exit 1; fi
+          codesign --verify --deep --strict "$app"
+          open "$app"
+          for i in $(seq 1 20); do pgrep -x CleanMacPro && break; sleep 1; done
+          sleep 5
+          pgrep -x CleanMacPro || { echo "::error::app did not stay running"; ls ~/Library/Logs/DiagnosticReports || true; exit 1; }
+          pkill -x CleanMacPro || true
+          echo "✓ installed app launches"

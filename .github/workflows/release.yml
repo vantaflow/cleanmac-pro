@@ -74,8 +74,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > notes.md <<'NOTES'
+          **Installer / mettre à jour** (sans blocage Gatekeeper) :
+
+          ```bash
+          curl -fsSL https://vantaflow.github.io/cleanmac-pro/install.sh | bash
+          ```
+          NOTES
           gh release create "${GITHUB_REF_NAME}" "${{ steps.zip.outputs.zip }}" \
-            --title "CleanMac Pro ${{ steps.v.outputs.version }}" --generate-notes
+            --title "CleanMac Pro ${{ steps.v.outputs.version }}" \
+            --notes-file notes.md --generate-notes
+
+      - name: Verify install script against this release
+        if: steps.v.outputs.dry != 'true'
+        env:
+          CLEANMAC_VERSION: ${{ github.ref_name }}
+          CLEANMAC_DEST: ${{ runner.temp }}/Apps
+          CLEANMAC_NO_OPEN: "1"
+        run: |
+          bash docs/install.sh
+          test -x "$RUNNER_TEMP/Apps/CleanMac Pro.app/Contents/MacOS/CleanMacPro"
 
       - name: Sign zip and update appcast
         if: steps.v.outputs.dry != 'true'

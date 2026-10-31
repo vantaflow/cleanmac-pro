@@ -92,6 +92,18 @@ public protocol FileScanner: Sendable {
 
 The UI treats every scanner the same way: empty → scanning → results, with sort/select/clean.
 
+## Install
+
+macOS 14+ on Apple Silicon. One command installs (or updates) the latest release into `/Applications`:
+
+```bash
+curl -fsSL https://vantaflow.github.io/cleanmac-pro/install.sh | bash
+```
+
+Downloaded with `curl`, the app carries no quarantine flag, so Gatekeeper doesn't block it even though it isn't notarized.
+If you downloaded the zip from the browser instead: `xattr -dr com.apple.quarantine "/Applications/CleanMac Pro.app"`
+(or System Settings → Privacy & Security → *Open Anyway*).
+
 ## Build
 
 Requires Swift 5.9+ (Xcode 15 or macOS Command Line Tools).
