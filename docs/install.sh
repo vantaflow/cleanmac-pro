@@ -48,7 +48,7 @@ fi
 
 sudo_if_needed() { if [[ -w "$DEST" ]]; then "$@"; else sudo "$@"; fi; }
 mkdir -p "$DEST" 2>/dev/null || sudo mkdir -p "$DEST"
-say "Installation dans $DEST…"
+say "Installation dans ${DEST}…"
 sudo_if_needed rm -rf "$DEST/$APP_NAME"
 sudo_if_needed ditto "$tmp/x/$APP_NAME" "$DEST/$APP_NAME"
 # Belt and braces: no quarantine flag on anything we installed.
