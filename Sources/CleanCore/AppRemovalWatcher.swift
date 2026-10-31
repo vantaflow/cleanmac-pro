@@ -37,7 +37,7 @@ public struct AppRemovalDetector: Sendable {
     /// Snapshot of the current state; nothing already there is ever reported.
     public mutating func baseline() {
         known = Dictionary(uniqueKeysWithValues: AppIndex.build(roots: roots).apps.map { ($0.path, $0) })
-        trashSeen = Set(trashApps().map(\.path))
+        trashSeen = Set(trashApps().map { $0.standardizedFileURL.path })
     }
 
     private func trashApps() -> [URL] {
