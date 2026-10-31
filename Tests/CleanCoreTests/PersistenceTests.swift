@@ -155,7 +155,8 @@ final class PersistenceTests: XCTestCase {
     func testCleanerReportsTrashPathsWhenTrashAvailable() throws {
         let f = tmp.appendingPathComponent("victim.bin")
         try Data(repeating: 7, count: 64).write(to: f)
-        let report = Cleaner.clean(items: [ScanItem(url: f, size: 64, kind: .cache)])
+        // A personal file (large file) goes to the Trash; caches are deleted for good.
+        let report = Cleaner.clean(items: [ScanItem(url: f, size: 64, kind: .largeFile)])
         guard report.failedItems.isEmpty else { throw XCTSkip("trashItem unavailable on this runner") }
         XCTAssertEqual(report.trashed.count, 1)
         XCTAssertEqual(report.trashed[0].originalPath, f.path)
