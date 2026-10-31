@@ -154,7 +154,11 @@ final class AppState: ObservableObject {
         moduleStates[module] = s
     }
 
+    /// UI test mode only: fixture scanners replacing the real ones.
+    var scannerOverrides: [ModuleID: any FileScanner] = [:]
+
     func scanner(for module: ModuleID) -> (any FileScanner)? {
+        if let o = scannerOverrides[module] { return o }
         switch module {
         case .cleanup:     return CleanupScanner()
         case .files:       return FilesScanner()

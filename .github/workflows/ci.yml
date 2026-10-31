@@ -39,3 +39,63 @@ jobs:
           swift run CleanMacProSmoke
           plutil -p /Applications/Rectangle.app/Contents/Info.plist | grep -E "CFBundleShortVersionString|CFBundleVersion"
           codesign --verify --deep --strict /Applications/Rectangle.app
+
+  ui:
+    # Launches the assembled .app in its built-in --ui-test mode (see
+    # Sources/CleanMacPro/Shell/UITestDriver.swift): walks every screen,
+    # captures PNGs + report.json, fails on any broken screen or crash.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release + assemble app
+        run: |
+          swift build -c release
+          ./Tools/build-app.sh
+      - name: Run UI test mode
+        run: |
+          OUT="$RUNNER_TEMP/ui-out"
+          mkdir -p "$OUT"
+          touch "$OUT/.start-marker"
+          # Full-screen shot before/after (menu bar included); best-effort.
+          screencapture -x "$OUT/desktop-before.png" || true
+          "build/CleanMac Pro.app/Contents/MacOS/CleanMacPro" --ui-test --ui-test-out "$OUT" \
+            > "$OUT/app.log" 2>&1 &
+          PID=$!
+          for i in $(seq 1 100); do
+            sleep 3
+            kill -0 $PID 2>/dev/null || break
+            if [ "$i" = 40 ]; then
+              screencapture -x "$OUT/desktop-mid.png" || true
+            fi
+          done
+          if kill -0 $PID 2>/dev/null; then
+            echo "::error::app still running after 300 s, killing"
+            kill -9 $PID; echo hang > "$OUT/hang"
+          fi
+          wait $PID && CODE=0 || CODE=$?
+          echo "exit code: $CODE"
+          echo "$CODE" > "$OUT/exit-code.txt"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+      - name: Verify report and crash logs
+        run: |
+          cat "$OUT/app.log" || true
+          cat "$OUT/report.json" || { echo "::error::no report.json"; exit 1; }
+          ls "$OUT"
+          CRASH=$(find ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports -name 'CleanMacPro*' -newer "$OUT/.start-marker" 2>/dev/null || true)
+          if [ -n "$CRASH" ]; then echo "::error::crash report(s): $CRASH"; cp $CRASH "$OUT/" ; exit 1; fi
+          [ ! -e "$OUT/hang" ] || exit 1
+          [ "$(cat "$OUT/exit-code.txt")" = 0 ] || { echo "::error::app exited non-zero"; exit 1; }
+          /usr/bin/python3 - <<PY
+          import json,sys,os
+          r=json.load(open(os.environ["OUT"]+"/report.json"))
+          bad=[s for s in r["screens"] if not s["renderOK"]]
+          print("ok:",r["ok"],"screens:",len(r["screens"]),"bad:",[b["id"] for b in bad])
+          sys.exit(0 if r["ok"] and r["screens"] and not bad else 1)
+          PY
+      - name: Upload screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screens
+          path: ${{ env.OUT || runner.temp }}/ui-out
+          if-no-files-found: warn

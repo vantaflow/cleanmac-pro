@@ -114,6 +114,8 @@ open Package.swift
 swift run CleanMacProSmoke   # 8 checks against fixture trees
 ```
 
+The CI `ui` job launches the built `.app` with `--ui-test` (skips onboarding, captures every screen to PNG + `report.json`; nothing is deleted).
+
 XCTest tests live in `Tests/CleanCoreTests/` — they run when you have a full
 Xcode install (Command Line Tools alone can't import `XCTest`).
 
