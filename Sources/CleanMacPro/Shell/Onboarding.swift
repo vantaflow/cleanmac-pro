@@ -79,7 +79,10 @@ struct OnboardingOverlay: View {
             .frame(maxWidth: step == 2 ? 680 : 520)
             .padding(40)
         }
-        .preferredColorScheme(.dark)
+        // The onboarding is an immersive dark overlay in both appearances; scope it
+        // locally (preferredColorScheme would force the whole window dark).
+        .environment(\.colorScheme, .dark)
+        .environment(\.theme, Theme(accent: theme.accent, dark: true))
     }
 
     // MARK: – Steps

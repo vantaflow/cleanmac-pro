@@ -512,6 +512,8 @@ private struct ApplicationsCard: View {
 }
 
 private struct ClutterCard: View {
+    @Environment(\.theme) private var theme
+    private var dark: Bool { theme.dark }
     @EnvironmentObject var appState: AppState
     let plan: SmartCarePlan
 
@@ -524,7 +526,7 @@ private struct ClutterCard: View {
                      ? L("Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier.")
                      : L("\(sel.count) fichier(s) choisis (\(ByteFormatter.string(selBytes))) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer."),
                  linkLabel: L("Choisir les fichiers →"),
-                 border: sel.isEmpty ? Color(hex: 0x3A3F4C) : Accent.coral.color,
+                 border: sel.isEmpty ? Color.strongBorder(dark) : Accent.coral.color,
                  dashed: sel.isEmpty,
                  compact: true,
                  onReview: { appState.review(.files) },

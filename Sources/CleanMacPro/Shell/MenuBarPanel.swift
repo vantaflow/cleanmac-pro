@@ -42,7 +42,7 @@ struct MenuPanelContent: View {
     }
 
     var body: some View {
-        let dark = true
+        let dark = theme.dark
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 CmpLogo(size: 32, accent: Accent.mint.color)
@@ -139,7 +139,6 @@ struct MenuPanelContent: View {
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.strongBorder(dark), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .foregroundColor(.text1(dark))
-        .preferredColorScheme(.dark)
         .onAppear { stats.start(); appState.refreshDisk(); refreshTrash() }
         .onDisappear { stats.stop() }
     }
@@ -155,6 +154,8 @@ struct MenuPanelContent: View {
 // MARK: — Shared subviews
 
 struct MenuMeter: View {
+    @Environment(\.theme) private var theme
+    private var dark: Bool { theme.dark }
     let label: String
     let value: String
     let fraction: Double
@@ -163,12 +164,12 @@ struct MenuMeter: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).font(.system(size: 11, weight: .semibold)).tracking(0.6)
-                .foregroundColor(.text3(true))
+                .foregroundColor(.text3(dark))
             Text(value).font(.figure(18, .bold)).lineLimit(1).minimumScaleFactor(0.6)
-                .foregroundColor(.text1(true))
+                .foregroundColor(.text1(dark))
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.track(true))
+                    Capsule().fill(Color.track(dark))
                     Capsule().fill(color).frame(width: geo.size.width * CGFloat(max(0.02, min(1, fraction))))
                 }
             }
@@ -176,11 +177,13 @@ struct MenuMeter: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(dark: true, radius: 11, fill: Color.sidebarBg(true))
+        .cardSurface(dark: dark, radius: 11, fill: Color.sidebarBg(dark))
     }
 }
 
 struct MenuAction: View {
+    @Environment(\.theme) private var theme
+    private var dark: Bool { theme.dark }
     let title: String
     let sub: String
     var trailing: String
@@ -193,17 +196,17 @@ struct MenuAction: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.text1(true))
-                    Text(sub).font(.system(size: 12)).foregroundColor(.text2(true)).lineLimit(1)
+                    Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.text1(dark))
+                    Text(sub).font(.system(size: 12)).foregroundColor(.text2(dark)).lineLimit(1)
                 }
                 Spacer(minLength: 6)
                 Text(trailing).font(.system(size: highlighted ? 13 : 16, weight: .bold))
-                    .foregroundColor(highlighted ? Accent.mint.color : .text3(true))
+                    .foregroundColor(highlighted ? Accent.mint.color : .text3(dark))
             }
             .padding(.horizontal, 10)
             .frame(height: highlighted ? 52 : 48)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(highlighted ? Color.raised(true) : (hover ? Color.raised(true).opacity(0.5) : .clear)))
+                .fill(highlighted ? Color.raised(dark) : (hover ? Color.raised(dark).opacity(0.5) : .clear)))
             .contentShape(Rectangle())
             .opacity(enabled ? 1 : 0.45)
         }
@@ -214,12 +217,14 @@ struct MenuAction: View {
 }
 
 struct MenuToggleRow: View {
+    @Environment(\.theme) private var theme
+    private var dark: Bool { theme.dark }
     let label: String
     @Binding var isOn: Bool
 
     var body: some View {
         HStack {
-            Text(label).font(.system(size: 13)).foregroundColor(.textSoft(true))
+            Text(label).font(.system(size: 13)).foregroundColor(.textSoft(dark))
             Spacer()
             CmpCheckbox(isOn: $isOn, accent: Accent.mint.color, label: label)
         }

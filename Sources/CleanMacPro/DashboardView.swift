@@ -38,9 +38,10 @@ struct RootView: View {
 /// Hosts the active module's screen, directly on the gradient.
 private struct ContentPane: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.theme) private var theme
 
     private var themed: Theme {
-        var t = appState.theme
+        var t = theme   // keeps the effective light/dark from `.themed(_:)`
         t.accent = appState.active.accentEnum
         return t
     }

@@ -3,15 +3,18 @@ import AppKit
 import UniformTypeIdentifiers
 import CleanCore
 
-/// Réglages (⌘,) : planification, exclusions, historique.
+/// Réglages (⌘,) : apparence, planification, exclusions, historique, autorisations.
 struct SettingsView: View {
-    enum Tab: Hashable { case schedule, exclusions, history, permissions }
+    enum Tab: Hashable { case appearance, schedule, exclusions, history, permissions }
     @State private var tab: Tab
 
-    init(initialTab: Tab = .schedule) { _tab = State(initialValue: initialTab) }
+    init(initialTab: Tab = .appearance) { _tab = State(initialValue: initialTab) }
 
     var body: some View {
         TabView(selection: $tab) {
+            AppearanceSettings()
+                .tabItem { Label(L("Apparence"), systemImage: "circle.lefthalf.filled") }
+                .tag(Tab.appearance)
             ScheduleSettings()
                 .tabItem { Label(L("Planification"), systemImage: "clock.arrow.circlepath") }
                 .tag(Tab.schedule)
@@ -26,6 +29,24 @@ struct SettingsView: View {
                 .tag(Tab.permissions)
         }
         .frame(width: 560, height: 420)
+    }
+}
+
+private struct AppearanceSettings: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(L("Thème"), selection: $appState.appearance) {
+                    ForEach(Appearance.allCases) { a in Text(a.title).tag(a) }
+                }
+                .pickerStyle(.segmented)
+                Text(L("« Système » suit le réglage de macOS (clair le jour, sombre la nuit si vous l'avez choisi). Le changement s'applique tout de suite à toutes les fenêtres et au menu de la barre des menus."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: — Design system
 //
@@ -13,42 +14,43 @@ enum Accent: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .mint:   return Color(hex: 0x2BC4A9)   // Nettoyage
-        case .blue:   return Color(hex: 0x4C8DFF)   // Protection
-        case .amber:  return Color(hex: 0xF5A524)   // Performances
-        case .violet: return Color(hex: 0x9B7BFF)   // Applications
-        case .coral:  return Color(hex: 0xFF7A59)   // Encombrement
-        case .cyan:   return Color(hex: 0x4FB6E8)   // Développeur
-        case .pink:   return Color(hex: 0xE56BB0)   // Télescope
-        case .slate:  return Color(hex: 0xA9B0BE)   // Historique
+        case .mint:   return .adaptive(0x2BC4A9, 0x14A88F)   // Nettoyage
+        case .blue:   return .adaptive(0x4C8DFF, 0x3478F0)   // Protection
+        case .amber:  return .adaptive(0xF5A524, 0xE08E0B)   // Performances
+        case .violet: return .adaptive(0x9B7BFF, 0x8463F2)   // Applications
+        case .coral:  return .adaptive(0xFF7A59, 0xF0623F)   // Encombrement
+        case .cyan:   return .adaptive(0x4FB6E8, 0x2A9BD3)   // Développeur
+        case .pink:   return .adaptive(0xE56BB0, 0xD4549C)   // Télescope
+        case .slate:  return .adaptive(0xA9B0BE, 0x7C8394)   // Historique
         }
     }
 
-    /// Lighter variant for text on the dark canvas (links, kickers).
+    /// Text variant of the accent (links, kickers): lighter on the dark canvas,
+    /// deeper on the light one so it keeps a readable contrast.
     var soft: Color {
         switch self {
-        case .mint:   return Color(hex: 0x7FE3D0)
-        case .blue:   return Color(hex: 0x9EC0FF)
-        case .amber:  return Color(hex: 0xFFCF7A)
-        case .violet: return Color(hex: 0xC4B3FF)
-        case .coral:  return Color(hex: 0xFFAE96)
-        case .cyan:   return Color(hex: 0x9ADAF7)
-        case .pink:   return Color(hex: 0xF3A6D2)
-        case .slate:  return Color(hex: 0xC4CAD6)
+        case .mint:   return .adaptive(0x7FE3D0, 0x0B7A67)
+        case .blue:   return .adaptive(0x9EC0FF, 0x1F5FD1)
+        case .amber:  return .adaptive(0xFFCF7A, 0x95590A)
+        case .violet: return .adaptive(0xC4B3FF, 0x5F41CC)
+        case .coral:  return .adaptive(0xFFAE96, 0xB9472A)
+        case .cyan:   return .adaptive(0x9ADAF7, 0x17739F)
+        case .pink:   return .adaptive(0xF3A6D2, 0xA83677)
+        case .slate:  return .adaptive(0xC4CAD6, 0x4A5160)
         }
     }
 
-    /// Dark tinted chip background (icon tiles, pills).
+    /// Tinted chip background (icon tiles, pills), dark or pale per appearance.
     var tint: Color {
         switch self {
-        case .mint:   return Color(hex: 0x123A35)
-        case .blue:   return Color(hex: 0x16294A)
-        case .amber:  return Color(hex: 0x3F2D0E)
-        case .violet: return Color(hex: 0x2A2147)
-        case .coral:  return Color(hex: 0x3D1F17)
-        case .cyan:   return Color(hex: 0x12323F)
-        case .pink:   return Color(hex: 0x3F1B30)
-        case .slate:  return Color(hex: 0x262B36)
+        case .mint:   return .adaptive(0x123A35, 0xDAF4EE)
+        case .blue:   return .adaptive(0x16294A, 0xE0EBFF)
+        case .amber:  return .adaptive(0x3F2D0E, 0xFCEFD6)
+        case .violet: return .adaptive(0x2A2147, 0xEBE5FF)
+        case .coral:  return .adaptive(0x3D1F17, 0xFFE6DE)
+        case .cyan:   return .adaptive(0x12323F, 0xDCF0F9)
+        case .pink:   return .adaptive(0x3F1B30, 0xFAE2F0)
+        case .slate:  return .adaptive(0x262B36, 0xE6E8EE)
         }
     }
 
@@ -69,7 +71,32 @@ enum Accent: String, CaseIterable, Identifiable {
 
 struct Theme {
     var accent: Accent = .mint
+    /// Effective appearance. Never set by hand: `.themed(_:)` derives it from the
+    /// window's real color scheme (which follows `AppState.appearance`).
     var dark: Bool = true
+}
+
+/// User choice in Réglages › Apparence. Applied app-wide through `NSApp.appearance`,
+/// so the main window, Settings, the menu-bar popover and floating panels all agree.
+enum Appearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: return L("Système")
+        case .light:  return L("Clair")
+        case .dark:   return L("Sombre")
+        }
+    }
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light:  return NSAppearance(named: .aqua)
+        case .dark:   return NSAppearance(named: .darkAqua)
+        }
+    }
 }
 
 extension Color {
@@ -82,6 +109,19 @@ extension Color {
     }
 
     private static func pick(_ dark: Bool, _ d: UInt32, _ l: UInt32) -> Color { Color(hex: dark ? d : l) }
+
+    /// A color that resolves itself against the appearance it is drawn in
+    /// (dark value, light value). Used where no `theme` is at hand: static
+    /// palettes, accents, floating panels.
+    static func adaptive(_ d: UInt32, _ l: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let hex = isDark ? d : l
+            return NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                           green: CGFloat((hex >> 8) & 0xFF) / 255,
+                           blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        })
+    }
 
     // Surfaces
     static func canvas(_ dark: Bool) -> Color      { pick(dark, 0x0D0F14, 0xF4F5F8) }
@@ -166,6 +206,23 @@ extension View {
 }
 
 // MARK: — Environment-injected theme
+
+/// Injects `\.theme` with `dark` taken from the real color scheme of the view
+/// (so "Système" follows macOS live, and "Clair"/"Sombre" follow NSApp.appearance).
+private struct ThemeBridge: ViewModifier {
+    @ObservedObject var state: AppState
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        var t = state.theme
+        t.dark = scheme == .dark
+        return content.environment(\.theme, t)
+    }
+}
+
+extension View {
+    @MainActor func themed(_ state: AppState) -> some View { modifier(ThemeBridge(state: state)) }
+}
 
 private struct ThemeKey: EnvironmentKey {
     static let defaultValue = Theme()

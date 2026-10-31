@@ -109,6 +109,9 @@ final class UITestDriver {
         fixtureRoot = fx
         appState.scannerOverrides = fx.scanners(lensRoot: lensRoot)
         appState.showOnboarding = false   // not persisted
+        // Dark first, whatever the runner's macOS appearance (not persisted); the
+        // light pass at the end switches to "Clair".
+        appState.appearance = .dark
         // Deterministic permission states (no system probing, no dialogs) so the banner is captured.
         PermissionCenter.shared.forced = [.fullDiskAccess: .denied, .notifications: .notDetermined, .automation: .granted]
 
@@ -166,7 +169,7 @@ final class UITestDriver {
             report.notes.append("settings scene window did not open; hosting SettingsView in a window")
             let host = NSHostingView(rootView: SettingsView()
                 .environmentObject(appState)
-                .environment(\.theme, appState.theme))
+                .themed(appState))
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
             w.isReleasedWhenClosed = false
@@ -186,9 +189,9 @@ final class UITestDriver {
         // 5b. Permissions: Settings tab + onboarding step (hosted windows, forced states).
         for (id, file, size, root) in [
             ("settings-permissions", "screen-settings-permissions.png", NSSize(width: 560, height: 420),
-             AnyView(SettingsView(initialTab: .permissions).environmentObject(appState).environment(\.theme, appState.theme))),
+             AnyView(SettingsView(initialTab: .permissions).environmentObject(appState).themed(appState))),
             ("onboarding-permissions", "screen-onboarding-permissions.png", NSSize(width: 1000, height: 800),
-             AnyView(OnboardingOverlay(initialStep: 2).environmentObject(appState).environment(\.theme, appState.theme))),
+             AnyView(OnboardingOverlay(initialStep: 2).environmentObject(appState).themed(appState))),
         ] {
             let w = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -219,8 +222,90 @@ final class UITestDriver {
             }
             pop.performClose(nil)
         }
+        log("light")
+        await lightAppearancePass(main: main)
+
         log("done")
         try? await Task.sleep(nanoseconds: 300_000_000)
+    }
+
+    // MARK: Light appearance
+
+    /// Réglages › Apparence › Clair: every module, Settings and the menu-bar popover
+    /// are captured again, and their pixels must really be light (not a dark
+    /// screen with a light title bar). The dark captures are checked the other way.
+    private func lightAppearancePass(main: NSWindow) async {
+        appState.navigate(to: .smartScan)
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        if let l = contentLuminance(main) { check(l < 0.35, "dark appearance renders dark (median \(fmt(l)))") }
+
+        appState.appearance = .light
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        check(NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua, "NSApp switched to light")
+        for module in ModuleID.allCases where module != .result {
+            appState.active = module
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            record(window: main, id: "light-\(module.rawValue)", title: module.title + " (clair)",
+                   file: "light-\(module.rawValue).png", distinct: false)
+            // Space Lens draws a full-width colored treemap of the fixture: not a canvas test.
+            if module != .spaceLens, let l = contentLuminance(main) {
+                check(l > 0.7, "light \(module.rawValue) renders light (median \(fmt(l)))")
+            }
+        }
+
+        let size = NSSize(width: 560, height: 420)
+        let w = NSWindow(contentRect: NSRect(origin: .zero, size: size),
+                         styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        w.isReleasedWhenClosed = false
+        w.contentView = NSHostingView(rootView: SettingsView().environmentObject(appState).themed(appState)
+            .frame(width: size.width, height: size.height))
+        w.center()
+        w.makeKeyAndOrderFront(nil)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        record(window: w, id: "light-settings", title: "Réglages (clair)", file: "light-settings.png", distinct: false)
+        w.close()
+
+        if let delegate = AppDelegate.current, let item = delegate.statusItem,
+           let button = item.button, let pop = delegate.popover {
+            pop.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if let pw = pop.contentViewController?.view.window {
+                record(window: pw, id: "light-menubar-popover", title: "Barre de menus (clair)",
+                       file: "light-menubar-popover.png", distinct: false)
+                if let l = contentLuminance(pw) { check(l > 0.7, "light menu-bar popover renders light (median \(fmt(l)))") }
+            }
+            pop.performClose(nil)
+        }
+
+        appState.appearance = .system
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        appState.navigate(to: .smartScan)
+    }
+
+    private func fmt(_ v: Double) -> String { String(format: "%.2f", v) }
+
+    /// Median luminance of a sparse grid over the content area (sidebar skipped
+    /// for the main window).
+    private func contentLuminance(_ window: NSWindow) -> Double? {
+        guard let view = window.contentView,
+              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        let scale = Double(rep.pixelsWide) / max(1, Double(view.bounds.width))   // Retina: 2 px per pt
+        let skip = Int((window.frame.width >= 900 ? 240 : 0) * scale)
+        var values: [Double] = []
+        var y = Int(40 * scale)
+        while y < rep.pixelsHigh - 10 {
+            var x = skip + 10
+            while x < rep.pixelsWide - 10 {
+                if let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) {
+                    values.append(0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent)
+                }
+                x += 23
+            }
+            y += 23
+        }
+        guard !values.isEmpty else { return nil }
+        return values.sorted()[values.count / 2]
     }
 
     // MARK: Removal prompt
@@ -306,8 +391,7 @@ final class UITestDriver {
             .environmentObject(appState)
             .environmentObject(appState.hostStats)
             .environmentObject(appState.background)
-            .environment(\.theme, appState.theme)
-            .preferredColorScheme(appState.theme.dark ? .dark : .light)
+            .themed(appState)
             .frame(width: 1100, height: 720))
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                          styleMask: [.titled, .closable, .fullSizeContentView],

@@ -464,3 +464,13 @@
 "%@ (supprimée)" = "%@ (eliminada)";
 
 "Libéré %@" = "Liberado %@";
+
+"Clair" = "Claro";
+
+"Sombre" = "Oscuro";
+
+"Apparence" = "Apariencia";
+
+"Thème" = "Tema";
+
+"« Système » suit le réglage de macOS (clair le jour, sombre la nuit si vous l'avez choisi). Le changement s'applique tout de suite à toutes les fenêtres et au menu de la barre des menus." = "«Sistema» sigue el ajuste de macOS (claro de día, oscuro de noche si lo elegiste). El cambio se aplica al instante en todas las ventanas y en el menú de la barra de menús.";

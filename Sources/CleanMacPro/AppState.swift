@@ -10,6 +10,17 @@ final class AppState: ObservableObject {
     static let shared = AppState()
 
     @Published var theme = Theme()
+    /// Réglages › Apparence (Système / Clair / Sombre), persisted. The UI test
+    /// switches it without persisting so a local run never changes the user's choice.
+    @Published var appearance: Appearance = Appearance(
+        rawValue: UserDefaults.standard.string(forKey: "appearance") ?? "") ?? .system {
+        didSet {
+            if !UITestDriver.isEnabled { UserDefaults.standard.set(appearance.rawValue, forKey: "appearance") }
+            applyAppearance()
+        }
+    }
+
+    func applyAppearance() { NSApp?.appearance = appearance.nsAppearance }
     @Published var active: ModuleID = .smartScan {
         didSet { if oldValue != active { searchText = "" } }
     }

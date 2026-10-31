@@ -28,28 +28,28 @@ extension PermissionKind {
 /// Local palette for the permission cards (matches the onboarding mock-up).
 /// Maps the permission views onto the shared design tokens (Theme/Tokens.swift).
 private enum PermPalette {
-    static let card = Color.card(true)
-    static let border = Color.cardBorder(true)
-    static let borderGranted = Color(red: 0x1F/255, green: 0x5E/255, blue: 0x54/255)
+    static let card = Color.adaptive(0x151922, 0xFFFFFF)
+    static let border = Color.adaptive(0x232733, 0xDCDFE7)
+    static let borderGranted = Color.adaptive(0x1F5E54, 0x8FD9C9)
     static let accent = Accent.mint.color
     static let accentText = Accent.mint.soft
-    static let text = Color.text1(true)
-    static let muted = Color.text2(true)
-    static let pill = Color(red: 0xE8/255, green: 0xEC/255, blue: 0xF3/255)
-    static let ink = Color.canvas(true)
+    static let text = Color.adaptive(0xF2F4F8, 0x14161B)
+    static let muted = Color.adaptive(0xA9B0BE, 0x565D6C)
+    static let pill = Color.adaptive(0xE8ECF3, 0x14161B)
+    static let ink = Color.adaptive(0x0D0F14, 0xFFFFFF)
 
     static func iconBg(_ k: PermissionKind) -> Color {
         switch k {
-        case .fullDiskAccess: return Color(red: 0x12/255, green: 0x3A/255, blue: 0x35/255)
-        case .notifications:  return Color(red: 0x16/255, green: 0x29/255, blue: 0x4A/255)
-        case .automation:     return Color(red: 0x3A/255, green: 0x2C/255, blue: 0x10/255)
+        case .fullDiskAccess: return Accent.mint.tint
+        case .notifications:  return Accent.blue.tint
+        case .automation:     return Accent.amber.tint
         }
     }
     static func iconFg(_ k: PermissionKind) -> Color {
         switch k {
         case .fullDiskAccess: return accent
-        case .notifications:  return Color(red: 0x9E/255, green: 0xC0/255, blue: 0xFF/255)
-        case .automation:     return Color(red: 0xF5/255, green: 0xC4/255, blue: 0x6B/255)
+        case .notifications:  return Accent.blue.soft
+        case .automation:     return Accent.amber.soft
         }
     }
 }
@@ -144,9 +144,9 @@ struct PermissionBanner: View {
                 .buttonStyle(.plain)
                 .help(L("Masquer"))
             }
-            .foregroundColor(.white)
+            .foregroundColor(PermPalette.text)
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(Capsule().fill(Color.black.opacity(0.28)))
+            .background(Capsule().fill(PermPalette.card))
             .overlay(Capsule().strokeBorder(Color.cmpWarn.opacity(0.5), lineWidth: 0.8))
             .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 6)
             .zIndex(1)

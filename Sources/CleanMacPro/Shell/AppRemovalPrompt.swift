@@ -10,18 +10,18 @@ import CleanCore
 // the on/off setting.
 
 private enum PromptColors {
-    static let background = Color.card(true)
-    static let border = Color.strongBorder(true)
-    static let text = Color.text1(true)
-    static let muted = Color.text2(true)
-    static let faint = Color.text3(true)
-    static let row = Color(red: 0xC4 / 255, green: 0xCA / 255, blue: 0xD6 / 255)
-    static let listBorder = Color.cardBorder(true)
-    static let listFill = Color.sidebarBg(true)
+    static let background = Color.adaptive(0x151922, 0xFFFFFF)
+    static let border = Color.adaptive(0x2C3240, 0xC9CED9)
+    static let text = Color.adaptive(0xF2F4F8, 0x14161B)
+    static let muted = Color.adaptive(0xA9B0BE, 0x565D6C)
+    static let faint = Color.adaptive(0x8A91A1, 0x7C8394)
+    static let row = Color.adaptive(0xC4CAD6, 0x3A404D)
+    static let listBorder = Color.adaptive(0x232733, 0xDCDFE7)
+    static let listFill = Color.adaptive(0x12151C, 0xF4F5F8)
     static let accent = Accent.violet.color
-    static let onAccent = Color(red: 0x16 / 255, green: 0x0B / 255, blue: 0x33 / 255)
-    static let tile = Color(red: 0x3B / 255, green: 0x2A / 255, blue: 0x6B / 255)
-    static let tileText = Color(red: 0xD9 / 255, green: 0xCC / 255, blue: 0xFF / 255)
+    static let onAccent = Color.adaptive(0x160B33, 0xFFFFFF)
+    static let tile = Color.adaptive(0x3B2A6B, 0xEBE5FF)
+    static let tileText = Color.adaptive(0xD9CCFF, 0x5F41CC)
 }
 
 // MARK: - Model

@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(AppState.shared.background.menuBarOnly ? .accessory : .regular)
         AppDelegate.current = self
+        AppState.shared.applyAppearance()
         setupStatusItem()
         PermissionCenter.shared.start()   // silent probe + re-check on app activation; never prompts
         if UITestDriver.isEnabled {
@@ -78,7 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .environmentObject(AppState.shared)
                 .environmentObject(AppState.shared.hostStats)
                 .environmentObject(AppState.shared.background)
-                .environment(\.theme, AppState.shared.theme)
+                .themed(AppState.shared)
                 .frame(width: 360, height: 520)
         )
 
@@ -146,8 +147,7 @@ struct CleanMacProApp: App {
                 .environmentObject(appState)
                 .environmentObject(appState.hostStats)
                 .environmentObject(appState.background)
-                .environment(\.theme, appState.theme)
-                .preferredColorScheme(appState.theme.dark ? .dark : .light)
+                .themed(appState)
                 .frame(minWidth: 1100, minHeight: 720)
                 .onAppear { if !UITestDriver.isEnabled { appState.background.activate() } }
                 .background(WindowOpenerBridge())
@@ -164,7 +164,7 @@ struct CleanMacProApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appState)
-                .environment(\.theme, appState.theme)
+                .themed(appState)
         }
     }
 }
