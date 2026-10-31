@@ -296,9 +296,10 @@ private struct CareCard<Trailing: View, Extra: View>: View {
                 if !compact { trailing() }
             }
             if compact { trailing() }
+            // One line, shrinking if needed: a second line would push the review
+            // links of the bottom row under the footer at the default window size.
             Text(big).font(.figure(28, .bold)).tracking(-0.4).foregroundColor(.text1(dark))
-                .lineLimit(2).minimumScaleFactor(0.6)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1).minimumScaleFactor(0.5)
             Text(text).font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(4)
