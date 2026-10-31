@@ -490,3 +490,5 @@
 "%@ a été supprimée. Il reste %@ de fichiers associés." = "Se ha eliminado %@. Quedan %@ de archivos asociados.";
 "Recherche des restes d'apps supprimées…" = "Buscando restos de apps eliminadas…";
 "%@ (supprimée)" = "%@ (eliminada)";
+
+"Libéré %@" = "Liberado %@";

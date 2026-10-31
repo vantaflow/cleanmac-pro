@@ -10,15 +10,15 @@ import CleanCore
 // the on/off setting.
 
 private enum PromptColors {
-    static let background = Color(red: 0x15 / 255, green: 0x19 / 255, blue: 0x22 / 255)
-    static let border = Color(red: 0x2C / 255, green: 0x32 / 255, blue: 0x40 / 255)
-    static let text = Color(red: 0xF2 / 255, green: 0xF4 / 255, blue: 0xF8 / 255)
-    static let muted = Color(red: 0xA9 / 255, green: 0xB0 / 255, blue: 0xBE / 255)
-    static let faint = Color(red: 0x8A / 255, green: 0x91 / 255, blue: 0xA1 / 255)
+    static let background = Color.card(true)
+    static let border = Color.strongBorder(true)
+    static let text = Color.text1(true)
+    static let muted = Color.text2(true)
+    static let faint = Color.text3(true)
     static let row = Color(red: 0xC4 / 255, green: 0xCA / 255, blue: 0xD6 / 255)
-    static let listBorder = Color(red: 0x23 / 255, green: 0x27 / 255, blue: 0x33 / 255)
-    static let listFill = Color(red: 0x12 / 255, green: 0x15 / 255, blue: 0x1C / 255)
-    static let accent = Color(red: 0x9B / 255, green: 0x7B / 255, blue: 0xFF / 255)
+    static let listBorder = Color.cardBorder(true)
+    static let listFill = Color.sidebarBg(true)
+    static let accent = Accent.violet.color
     static let onAccent = Color(red: 0x16 / 255, green: 0x0B / 255, blue: 0x33 / 255)
     static let tile = Color(red: 0x3B / 255, green: 0x2A / 255, blue: 0x6B / 255)
     static let tileText = Color(red: 0xD9 / 255, green: 0xCC / 255, blue: 0xFF / 255)

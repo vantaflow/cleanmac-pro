@@ -490,3 +490,5 @@
 "%@ a été supprimée. Il reste %@ de fichiers associés." = "%@ wurde entfernt. %@ an zugehörigen Dateien sind übrig.";
 "Recherche des restes d'apps supprimées…" = "Suche nach Resten entfernter Apps…";
 "%@ (supprimée)" = "%@ (entfernt)";
+
+"Libéré %@" = "%@ freigegeben";

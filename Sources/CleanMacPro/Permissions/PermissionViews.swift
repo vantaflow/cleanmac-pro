@@ -26,16 +26,17 @@ extension PermissionKind {
 }
 
 /// Local palette for the permission cards (matches the onboarding mock-up).
+/// Maps the permission views onto the shared design tokens (Theme/Tokens.swift).
 private enum PermPalette {
-    static let card = Color(red: 0x15/255, green: 0x19/255, blue: 0x22/255)
-    static let border = Color(red: 0x23/255, green: 0x27/255, blue: 0x33/255)
+    static let card = Color.card(true)
+    static let border = Color.cardBorder(true)
     static let borderGranted = Color(red: 0x1F/255, green: 0x5E/255, blue: 0x54/255)
-    static let accent = Color(red: 0x2B/255, green: 0xC4/255, blue: 0xA9/255)
-    static let accentText = Color(red: 0x7F/255, green: 0xE3/255, blue: 0xD0/255)
-    static let text = Color(red: 0xF2/255, green: 0xF4/255, blue: 0xF8/255)
-    static let muted = Color(red: 0xA9/255, green: 0xB0/255, blue: 0xBE/255)
+    static let accent = Accent.mint.color
+    static let accentText = Accent.mint.soft
+    static let text = Color.text1(true)
+    static let muted = Color.text2(true)
     static let pill = Color(red: 0xE8/255, green: 0xEC/255, blue: 0xF3/255)
-    static let ink = Color(red: 0x0D/255, green: 0x0F/255, blue: 0x14/255)
+    static let ink = Color.canvas(true)
 
     static func iconBg(_ k: PermissionKind) -> Color {
         switch k {

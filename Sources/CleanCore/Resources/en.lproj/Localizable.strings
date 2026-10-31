@@ -490,3 +490,5 @@
 "%@ a été supprimée. Il reste %@ de fichiers associés." = "%@ has been removed. %@ of associated files remain.";
 "Recherche des restes d'apps supprimées…" = "Looking for leftovers of removed apps…";
 "%@ (supprimée)" = "%@ (removed)";
+
+"Libéré %@" = "Freed %@";

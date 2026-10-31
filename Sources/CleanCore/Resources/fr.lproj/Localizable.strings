@@ -490,3 +490,5 @@
 "%@ a été supprimée. Il reste %@ de fichiers associés." = "%@ a été supprimée. Il reste %@ de fichiers associés.";
 "Recherche des restes d'apps supprimées…" = "Recherche des restes d'apps supprimées…";
 "%@ (supprimée)" = "%@ (supprimée)";
+
+"Libéré %@" = "Libéré %@";
