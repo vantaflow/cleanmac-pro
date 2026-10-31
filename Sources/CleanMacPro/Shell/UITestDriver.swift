@@ -76,8 +76,7 @@ final class UITestDriver {
         }
     }
 
-    private func log(_ m: String) { FileHandle.standardError.write(Data(("[ui-test] " + m + "
-").utf8)) }
+    private func log(_ m: String) { FileHandle.standardError.write(Data(("[ui-test] " + m + "\n").utf8)) }
 
     private func fail(_ message: String) { report.errors.append(message) }
 
