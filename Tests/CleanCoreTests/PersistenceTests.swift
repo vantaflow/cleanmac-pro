@@ -97,7 +97,22 @@ final class PersistenceTests: XCTestCase {
 
         let r = try await CleanupScanner(rootOverrides: [root]).scanFiltered(exclusions: loaded) { _, _ in }
         XCTAssertEqual(r.count, 1)
-        XCTAssertTrue(r.items[0].url.path.hasSuffix("keep/a"))
+        XCTAssertTrue(r.items[0].url.path.hasSuffix("/keep"), "cache files are grouped per folder")
+    }
+
+    func testExcludingSomethingInsideAGroupedFolderHidesTheWholeFolder() {
+        let folder = ScanItem(url: URL(fileURLWithPath: "/u/Library/Caches/com.foo.app"), size: 10, kind: .cache, fileCount: 3)
+        var ex = ExclusionList()
+        ex.addPath("/u/Library/Caches/com.foo.app/Important")
+        XCTAssertTrue(ex.isExcluded(folder), "the folder would delete the excluded path")
+        // A single file is not a folder row: only exact / ancestor paths exclude it.
+        let file = ScanItem(url: URL(fileURLWithPath: "/u/Library/Caches/loose.bin"), size: 1, kind: .cache)
+        XCTAssertFalse(ex.isExcluded(file))
+        var byApp = ExclusionList()
+        byApp.addAppID("com.foo.app")
+        XCTAssertTrue(byApp.isExcluded(folder), "excluding an app also hides its cache folder")
+        XCTAssertFalse(byApp.isExcluded(ScanItem(url: URL(fileURLWithPath: "/u/Library/Caches/com.other"), size: 1,
+                                                 kind: .cache, fileCount: 1)))
     }
 
     // MARK: History

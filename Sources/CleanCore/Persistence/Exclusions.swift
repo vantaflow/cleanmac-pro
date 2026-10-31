@@ -51,6 +51,9 @@ public struct ExclusionList: Codable, Equatable, Sendable {
     public func isExcluded(_ item: ScanItem,
                            bundleID: (URL) -> String? = ExclusionList.bundleID(ofAppAt:)) -> Bool {
         if paths.contains(where: { Self.path(item.url.path, isUnder: $0) }) { return true }
+        // A folder row stands for everything inside it: if the user excluded
+        // something *inside* it, the whole folder must not be offered for cleaning.
+        if item.fileCount != nil, paths.contains(where: { Self.path($0, isUnder: item.url.path) }) { return true }
         guard !appIDs.isEmpty else { return false }
         switch item.kind {
         case .app:
@@ -60,6 +63,11 @@ public struct ExclusionList: Codable, Equatable, Sendable {
             // Residues are named after the app's bundle id (caches, prefs, containers…).
             let haystack = item.url.path.lowercased()
             return appIDs.contains { haystack.contains($0.lowercased()) }
+        case .cache, .log, .tempFile:
+            // Cache folders are named after the owning app's bundle id.
+            guard item.fileCount != nil else { return false }
+            let name = item.url.lastPathComponent.lowercased()
+            return appIDs.contains { name == $0.lowercased() || name.hasPrefix($0.lowercased() + ".") }
         default:
             return false
         }
