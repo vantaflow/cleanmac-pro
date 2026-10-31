@@ -59,7 +59,7 @@ jobs:
           # Full-screen shot before/after (menu bar included); best-effort.
           screencapture -x "$OUT/desktop-before.png" || true
           # Launch like a user would (LaunchServices), so the app is a proper GUI process.
-          open -n "build/CleanMac Pro.app" --args --ui-test --ui-test-out "$OUT"
+          open -n "build/CleanMac Pro.app" --args --ui-test "--ui-test-out=$OUT"
           sleep 5
           PID=$(pgrep -x CleanMacPro | head -1 || true)
           echo "pid: $PID"

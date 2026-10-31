@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import CleanCore
 
-/// Built-in UI test mode (`--ui-test [--ui-test-out <dir>]`), driven by CI on a
+/// Built-in UI test mode (`--ui-test [--ui-test-out=<dir>]`), driven by CI on a
 /// macOS runner with a graphical session. It skips the onboarding, walks every
 /// screen (all `ModuleID` cases, the settings window, the menu-bar popover),
 /// writes one PNG per screen plus `report.json`, then quits.
@@ -55,8 +55,10 @@ final class UITestDriver {
 
     func start() {
         let args = CommandLine.arguments
-        if let i = args.firstIndex(of: "--ui-test-out"), i + 1 < args.count {
-            outDir = URL(fileURLWithPath: args[i + 1])
+        // Single token on purpose: a bare path argument would make AppKit try to
+        // "open" it as a document and suppress the main window.
+        if let a = args.first(where: { $0.hasPrefix("--ui-test-out=") }) {
+            outDir = URL(fileURLWithPath: String(a.dropFirst("--ui-test-out=".count)))
         }
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         started = Date()
