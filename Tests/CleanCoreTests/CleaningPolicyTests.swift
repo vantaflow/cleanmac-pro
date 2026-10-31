@@ -328,7 +328,7 @@ final class CleaningPolicyTests: XCTestCase {
         var bytes: Int64 = 0
         for i in 0..<16 {
             let u = dir.appendingPathComponent("blk-\(i).bin")
-            try Data((0..<(4 * 1024 * 1024)).map { _ in UInt8.random(in: 0...255) }).write(to: u)
+            try Data(repeating: UInt8(i + 1), count: 4 * 1024 * 1024).write(to: u)
             bytes += FS.size(of: u)
         }
         let before = DiskSpace.snapshot(at: tmp)
