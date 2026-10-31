@@ -28,7 +28,7 @@ enum ScheduleInstaller {
     }
 }
 
-/// `CleanMacPro --scheduled-scan`: silent Cleanup + Files scan (nothing is
+/// `CleanMacPro --scheduled-scan`: silent Cleanup + Files + Developer scan (nothing is
 /// deleted), notification with the recoverable amount, then exit.
 @MainActor
 enum ScheduledScan {
@@ -44,7 +44,7 @@ enum ScheduledScan {
 
     private static func perform() async {
         let exclusions = ExclusionList.load()
-        let scanners: [any FileScanner] = [CleanupScanner(), FilesScanner()]
+        let scanners: [any FileScanner] = [CleanupScanner(), FilesScanner(), DeveloperScanner(includeTools: false)]
         var bytes: Int64 = 0
         for s in scanners {
             if let r = try? await s.scanFiltered(exclusions: exclusions, progress: { _, _ in }) {
