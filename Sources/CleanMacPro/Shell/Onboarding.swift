@@ -4,7 +4,10 @@ import CleanCore
 struct OnboardingOverlay: View {
     @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
-    @State private var step: Int = 0
+    @State private var step: Int
+    private let lastStep = 3
+
+    init(initialStep: Int = 0) { _step = State(initialValue: initialStep) }
 
     var body: some View {
         ZStack {
@@ -27,6 +30,7 @@ struct OnboardingOverlay: View {
                     switch step {
                     case 0: welcomeStep
                     case 1: transparencyStep
+                    case 2: permissionsStep
                     default: readyStep
                     }
                 }
@@ -35,7 +39,7 @@ struct OnboardingOverlay: View {
 
                 // Stepper dots
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
+                    ForEach(0..<4) { i in
                         Capsule()
                             .fill(i <= step ? theme.accent.color : Color.white.opacity(0.2))
                             .frame(width: i == step ? 24 : 6, height: 6)
@@ -48,10 +52,10 @@ struct OnboardingOverlay: View {
                         Btn(kind: .ghost, label: L("Retour")) { step -= 1 }
                     }
                     Btn(kind: .primary, size: .lg,
-                        icon: step == 2 ? "scan" : nil,
+                        icon: step == lastStep ? "scan" : nil,
                         label: step == 0 ? L("Continuer") : step == 1 ? L("C'est noté")
-                                                                   : L("Lancer le premier scan")) {
-                        if step < 2 { step += 1 }
+                             : step == 2 ? L("Continuer") : L("Lancer le premier scan")) {
+                        if step < lastStep { step += 1 }
                         else {
                             appState.dismissOnboarding()
                             appState.active = .smartScan
@@ -61,7 +65,7 @@ struct OnboardingOverlay: View {
                     }
                 }
 
-                if step < 2 {
+                if step < lastStep {
                     Button(L("Passer l'intro")) {
                         appState.dismissOnboarding()
                     }
@@ -166,6 +170,36 @@ struct OnboardingOverlay: View {
             }
         }
         .multilineTextAlignment(.center)
+    }
+
+    private var permissionsStep: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 80, height: 80)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
+                Image(systemName: "hand.raised").font(.system(size: 34)).foregroundColor(theme.accent.color)
+            }
+            Text(L("Trois autorisations, zéro surprise."))
+                .font(.system(size: 26, weight: .bold)).tracking(-0.6)
+                .foregroundColor(.white)
+            Text(L("Je ne demande que ce qui sert, au bon moment. Rien n'est obligatoire et tu peux tout changer plus tard dans les Réglages."))
+                .font(.system(size: 13.5)).foregroundColor(.white.opacity(0.6))
+                .frame(maxWidth: 440)
+            VStack(spacing: 8) {
+                ForEach(PermissionKind.allCases, id: \.self) { kind in
+                    PermissionRow(kind: kind, onDark: true)
+                        .padding(.horizontal, 12)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            Text(L("Coche CleanMac Pro dans la liste, puis reviens ici : la vérification est automatique."))
+                .font(.system(size: 11.5)).foregroundColor(.white.opacity(0.45))
+        }
+        .multilineTextAlignment(.center)
+        .onAppear { PermissionCenter.shared.refresh() }
     }
 
     private var readyStep: some View {

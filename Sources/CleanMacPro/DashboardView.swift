@@ -44,8 +44,11 @@ private struct ContentPane: View {
     }
 
     var body: some View {
-        content
-            .environment(\.theme, themed)
+        VStack(spacing: 0) {
+            PermissionBanner(module: appState.active)
+            content
+        }
+        .environment(\.theme, themed)
     }
 
     private var content: some View {

@@ -5,14 +5,25 @@ import CleanCore
 
 /// Réglages (⌘,) : planification, exclusions, historique.
 struct SettingsView: View {
+    enum Tab: Hashable { case schedule, exclusions, history, permissions }
+    @State private var tab: Tab
+
+    init(initialTab: Tab = .schedule) { _tab = State(initialValue: initialTab) }
+
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             ScheduleSettings()
                 .tabItem { Label(L("Planification"), systemImage: "clock.arrow.circlepath") }
+                .tag(Tab.schedule)
             ExclusionsSettings()
                 .tabItem { Label(L("Exclusions"), systemImage: "nosign") }
+                .tag(Tab.exclusions)
             HistorySettings()
                 .tabItem { Label(L("Historique"), systemImage: "clock") }
+                .tag(Tab.history)
+            PermissionsSettings()
+                .tabItem { Label(L("Autorisations"), systemImage: "hand.raised") }
+                .tag(Tab.permissions)
         }
         .frame(width: 560, height: 420)
     }
@@ -41,7 +52,8 @@ private struct ScheduleSettings: View {
             Section {
                 Picker(L("Fréquence"), selection: Binding(
                     get: { appState.schedule.frequency },
-                    set: { f in var s = appState.schedule; s.frequency = f; appState.setSchedule(s) })) {
+                    set: { f in var s = appState.schedule; s.frequency = f; appState.setSchedule(s)
+                        if f != .off { PermissionCenter.shared.requestNotifications() } })) {
                     ForEach(ScheduleFrequency.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
                 if appState.schedule.frequency != .off {

@@ -166,6 +166,17 @@ func runSmoke() async {
         await runLiveInstallCheck()
     }
 
+    do {
+        let a = URL(fileURLWithPath: "/a"), b = URL(fileURLWithPath: "/b")
+        Smoke.check(PermissionDetector.fullDiskAccess(probes: [a, b]) { $0 == a ? .denied : .readable } == .granted, "FDA granted when a probe is readable")
+        Smoke.check(PermissionDetector.fullDiskAccess(probes: [a, b]) { _ in .denied } == .denied, "FDA denied when probes are refused")
+        Smoke.check(PermissionDetector.fullDiskAccess(probes: [a]) { _ in .missing } == .notDetermined, "FDA undetermined when no probe exists")
+        Smoke.check(PermissionDetector.automation(osStatus: -1743) == .denied, "automation -1743 maps to denied")
+        Smoke.check(PermissionDetector.notifications(rawAuthorizationStatus: 2) == .granted, "notifications authorized maps to granted")
+        let real = PermissionDetector.fullDiskAccess()
+        print("  (real FDA status on this machine: \(real))")
+    }
+
     print("\n— Smoke summary —")
     if Smoke.failures.isEmpty {
         print("All checks passed ✓")
