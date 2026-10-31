@@ -76,9 +76,13 @@ final class UITestDriver {
         }
     }
 
+    private func log(_ m: String) { FileHandle.standardError.write(Data(("[ui-test] " + m + "
+").utf8)) }
+
     private func fail(_ message: String) { report.errors.append(message) }
 
     private func finish() {
+        log("finish")
         report.durationSeconds = Date().timeIntervalSince(started)
         report.ok = report.errors.isEmpty
         writeReport()
@@ -171,6 +175,7 @@ final class UITestDriver {
                    file: "screen-smartScan-scanned.png", distinct: false)
         }
 
+        log("settings")
         // 5. Settings window (scene first, hosted fallback if the scene does not open).
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         try? await Task.sleep(nanoseconds: 1_500_000_000)
@@ -184,6 +189,7 @@ final class UITestDriver {
                 .environment(\.theme, appState.theme))
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            w.isReleasedWhenClosed = false
             w.title = "Réglages"
             w.contentView = host
             w.center()
@@ -197,6 +203,7 @@ final class UITestDriver {
             settings.close()
         }
 
+        log("popover")
         // 6. Menu-bar popover.
         if let delegate = AppDelegate.current, let item = delegate.statusItem,
            let button = item.button, let pop = delegate.popover {
@@ -210,6 +217,7 @@ final class UITestDriver {
             }
             pop.performClose(nil)
         }
+        log("done")
         try? await Task.sleep(nanoseconds: 300_000_000)
     }
 
@@ -243,6 +251,7 @@ final class UITestDriver {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                          styleMask: [.titled, .closable, .fullSizeContentView],
                          backing: .buffered, defer: false)
+        w.isReleasedWhenClosed = false
         w.titlebarAppearsTransparent = true
         w.titleVisibility = .hidden
         w.contentView = host

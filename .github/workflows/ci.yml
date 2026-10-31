@@ -59,7 +59,7 @@ jobs:
           # Full-screen shot before/after (menu bar included); best-effort.
           screencapture -x "$OUT/desktop-before.png" || true
           # Launch like a user would (LaunchServices), so the app is a proper GUI process.
-          open -n "build/CleanMac Pro.app" --args --ui-test "--ui-test-out=$OUT"
+          open -n --stdout "$OUT/app.log" --stderr "$OUT/app.log" "build/CleanMac Pro.app" --args --ui-test "--ui-test-out=$OUT"
           sleep 5
           PID=$(pgrep -x CleanMacPro | head -1 || true)
           echo "pid: $PID"
@@ -98,6 +98,7 @@ jobs:
       - name: Verify report and crash logs
         run: |
           cat "$OUT/app.log" || true
+          ls -la ~/Library/Logs/DiagnosticReports || true
           cat "$OUT/report.json" || { echo "::error::no report.json"; exit 1; }
           ls "$OUT"
           CRASH=$(find ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports -name 'CleanMacPro*' -newer "$OUT/.start-marker" 2>/dev/null || true)
