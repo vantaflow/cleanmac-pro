@@ -77,15 +77,13 @@ final class AppState: ObservableObject {
         guard let release = item.sparkleRelease else { return runMaintenance(item: item) }
         let name = item.url.deletingPathExtension().lastPathComponent
         let alert = NSAlert()
-        alert.messageText = "Mettre à jour (name) ?"
-        alert.informativeText = "(item.title ?? name)
-
-La mise à jour est téléchargée, vérifiée (signature), puis remplace l'app ; l'ancienne version va à la Corbeille. (name) doit être fermée."
+        alert.messageText = "Mettre à jour \(name) ?"
+        alert.informativeText = "\(item.title ?? name)\n\nLa mise à jour est téléchargée, vérifiée (signature), puis remplace l'app ; l'ancienne version va à la Corbeille. \(name) doit être fermée."
         alert.addButton(withTitle: "Mettre à jour")
         alert.addButton(withTitle: "Annuler")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
-        update(.updates) { $0.status = "Mise à jour de (name)…" }
+        update(.updates) { $0.status = "Mise à jour de \(name)…" }
         Task { [weak self] in
             let outcome = await SparkleInstaller.install(appURL: item.url, release: release) { step in
                 Task { @MainActor [weak self] in self?.update(.updates) { $0.status = step } }
@@ -94,21 +92,19 @@ La mise à jour est téléchargée, vérifiée (signature), puis remplace l'app 
             let done = NSAlert()
             switch outcome {
             case .installed:
-                done.messageText = "(name) est à jour"
+                done.messageText = "\(name) est à jour"
                 done.informativeText = outcome.message
-                self.update(.updates) { $0.status = "✓ (name) mis à jour" }
+                self.update(.updates) { $0.status = "✓ \(name) mis à jour" }
                 self.startScan(module: .updates)
             case .manual:
                 done.messageText = "Installation manuelle nécessaire"
-                done.informativeText = outcome.message + "
-
-L'app va être ouverte pour que tu la mettes à jour."
-                self.update(.updates) { $0.status = "⚠ (name) : installation manuelle" }
+                done.informativeText = outcome.message + "\n\nL'app va être ouverte pour que tu la mettes à jour."
+                self.update(.updates) { $0.status = "⚠ \(name) : installation manuelle" }
                 self.runMaintenance(item: item)
             case .failed:
-                done.messageText = "Échec de la mise à jour de (name)"
+                done.messageText = "Échec de la mise à jour de \(name)"
                 done.informativeText = outcome.message
-                self.update(.updates) { $0.status = "⚠ Échec — (outcome.message.prefix(120))" }
+                self.update(.updates) { $0.status = "⚠ Échec — \(outcome.message.prefix(120))" }
             }
             done.runModal()
         }

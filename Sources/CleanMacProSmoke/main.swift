@@ -139,31 +139,30 @@ func runLiveInstallCheck() async {
     let name = (ProcessInfo.processInfo.environment["CLEANMAC_INSTALL_UPDATE"] ?? "")
         .trimmingCharacters(in: .whitespaces)
     guard !name.isEmpty else { return }
-    print("
-— Live install check ((name)) —")
+    print("\n— Live install check (\(name)) —")
     do {
         let result = try await UpdatesScanner().scan { _, _ in }
         guard let item = result.items.first(where: {
             $0.group == "Apps · Direct (Sparkle)" && ($0.title ?? "").hasPrefix(name)
         }), let release = item.sparkleRelease else {
-            Smoke.failures.append("✗ (name): no outdated Sparkle item to install")
+            Smoke.failures.append("✗ \(name): no outdated Sparkle item to install")
             return
         }
-        let outcome = await SparkleInstaller.install(appURL: item.url, release: release) { print("  … ($0)") }
-        print("  outcome: (outcome)")
+        let outcome = await SparkleInstaller.install(appURL: item.url, release: release) { print("  … \($0)") }
+        print("  outcome: \(outcome)")
         Smoke.check({ if case .installed = outcome { return true } else { return false } }(),
-                    "(name) installed in place ((outcome.message))")
+                    "\(name) installed in place (\(outcome.message))")
         let plist = NSDictionary(contentsOfFile: item.url.appendingPathComponent("Contents/Info.plist").path)
         let build = plist?["CFBundleVersion"] as? String
         let short = plist?["CFBundleShortVersionString"] as? String
-        print("  installed now: v(short ?? "?") (build (build ?? "?")), appcast: v(release.shortVersion ?? "?") (build (release.build ?? "?"))")
+        print("  installed now: v\(short ?? "?") (build \(build ?? "?")), appcast: v\(release.shortVersion ?? "?") (build \(release.build ?? "?"))")
         Smoke.check(build == release.build || short == release.shortVersion,
-                    "(item.url.path) has the appcast version")
+                    "\(item.url.path) has the appcast version")
         let rescan = try await UpdatesScanner().scan { _, _ in }
         let again = rescan.items.first { $0.group == "Apps · Direct (Sparkle)" && ($0.title ?? "").hasPrefix(name) }
-        Smoke.check(again?.severity == .good, "(name) reported up to date after install (got: (again?.detail ?? "absent"))")
+        Smoke.check(again?.severity == .good, "\(name) reported up to date after install (got: \(again?.detail ?? "absent"))")
     } catch {
-        Smoke.failures.append("✗ install check threw: (error)")
+        Smoke.failures.append("✗ install check threw: \(error)")
     }
 }
 
