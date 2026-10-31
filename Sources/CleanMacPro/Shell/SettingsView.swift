@@ -55,7 +55,9 @@ private struct ScheduleSettings: View {
                     DatePicker(L("Heure"), selection: time, displayedComponents: .hourAndMinute)
                 }
             } footer: {
-                Text(L("Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles et Volumineux & doublons), puis notification « X Go récupérables ». Rien n'est supprimé."))
+                Text(L("Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles, Volumineux & doublons, Développeur), puis notification « X Go récupérables ». Rien n'est supprimé."))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
             }
         }
         .formStyle(.grouped)

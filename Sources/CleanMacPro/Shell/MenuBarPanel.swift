@@ -189,7 +189,7 @@ struct MenuMeter: View {
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 9))
     }
-    private func formatted(_ v: Double) -> String { v >= 100 ? "\(Int(v))" : String(format: "%.1f", v) }
+    private func formatted(_ v: Double) -> String { v >= 10 ? "\(Int(v.rounded()))" : String(format: "%.1f", v) }
 }
 
 struct MenuQuickAction: View {

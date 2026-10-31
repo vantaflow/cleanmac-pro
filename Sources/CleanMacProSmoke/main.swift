@@ -244,4 +244,22 @@ func runLiveInstallCheck() async {
     }
 }
 
+/// `CleanMacProSmoke --probe`: runs the real scanners on this Mac (read-only) and
+/// prints what each would propose, grouped, with sizes. Nothing is cleaned.
+func runProbe() async {
+    let scanners: [any FileScanner] = [CleanupScanner(), FilesScanner(), PrivacyScanner(),
+                                       DeveloperScanner(), UpdatesScanner(), AppUninstaller()]
+    for s in scanners {
+        let t0 = Date()
+        guard let r = try? await s.scan(progress: { _, _ in }) else { print("\(s.module): scan threw"); continue }
+        print("\n== \(s.module) · \(r.items.count) items · \(ByteFormatter.string(r.totalSize)) · \(String(format: "%.1f", Date().timeIntervalSince(t0)))s")
+        let groups = Dictionary(grouping: r.items, by: { $0.group ?? "-" })
+        for (g, items) in groups.sorted(by: { $0.value.reduce(0) { $0 + $1.size } > $1.value.reduce(0) { $0 + $1.size } }).prefix(12) {
+            print("   \(g): \(items.count) · \(ByteFormatter.string(items.reduce(0) { $0 + $1.size })) · ex: \(items.first?.name ?? "")")
+        }
+    }
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--probe") { await runProbe() }
 await runSmoke()

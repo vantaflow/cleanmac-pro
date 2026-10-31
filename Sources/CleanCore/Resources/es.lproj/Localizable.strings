@@ -341,7 +341,7 @@
 "Fréquence" = "Frecuencia";
 "Jour" = "Día";
 "Heure" = "Hora";
-"Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles et Volumineux & doublons), puis notification « X Go récupérables ». Rien n'est supprimé." = "Un LaunchAgent inicia CleanMac Pro en segundo plano a la hora elegida: análisis silencioso (Archivos basura y Archivos grandes y duplicados) y notificación «X GB recuperables». No se elimina nada.";
+"Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles, Volumineux & doublons, Développeur), puis notification « X Go récupérables ». Rien n'est supprimé." = "Un LaunchAgent inicia CleanMac Pro en segundo plano a la hora elegida: análisis silencioso (Archivos basura, Archivos grandes y duplicados, Desarrollador) y notificación «X GB recuperables». No se elimina nada.";
 "Chemins ignorés" = "Rutas ignoradas";
 "Aucun" = "Ninguno";
 "Retirer" = "Quitar";
