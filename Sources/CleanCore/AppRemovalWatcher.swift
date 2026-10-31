@@ -10,6 +10,13 @@ public struct AppRemovalEvent: Identifiable, Hashable, @unchecked Sendable {
     public let appPath: String
     public let items: [ScanItem]
     public var totalSize: Int64 { items.reduce(0) { $0 + $1.size } }
+
+    public init(appName: String, bundleID: String, appPath: String, items: [ScanItem]) {
+        self.appName = appName
+        self.bundleID = bundleID
+        self.appPath = appPath
+        self.items = items
+    }
 }
 
 /// Pure detection state: remembers which apps were installed (bundle id <-> path)

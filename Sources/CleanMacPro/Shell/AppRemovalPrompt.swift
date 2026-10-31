@@ -352,9 +352,10 @@ final class AppRemovalCoordinator: ObservableObject {
             let apps = AppIndex.build(roots: [URL(fileURLWithPath: "/Applications"),
                                               FS.home.appendingPathComponent("Applications")]).apps
             for a in apps where !known.contains(a.path) {
-                let img = NSWorkspace.shared.icon(forFile: a.path)
-                let flat = Self.flatten(img, side: 128)
-                await MainActor.run { [weak self] in if let flat { self?.icons[a.path] = flat } }
+                let path = a.path
+                await MainActor.run { [weak self] in
+                    if let flat = Self.flatten(NSWorkspace.shared.icon(forFile: path), side: 128) { self?.icons[path] = flat }
+                }
             }
         }
     }
