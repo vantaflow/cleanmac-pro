@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CleanCore
 
 /// Bridges SwiftUI's `openWindow` action to AppKit (AppDelegate / status item),
 /// so the main window can be reopened after it has been closed.
