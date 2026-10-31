@@ -72,6 +72,7 @@ jobs:
             echo "::error::app still running after 300 s, killing"
             kill -9 $PID; echo hang > "$OUT/hang"
           fi
+          screencapture -x "$OUT/desktop-after.png" || true
           wait $PID && CODE=0 || CODE=$?
           echo "exit code: $CODE"
           echo "$CODE" > "$OUT/exit-code.txt"
@@ -97,5 +98,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-screens
-          path: ${{ env.OUT || runner.temp }}/ui-out
+          path: ${{ env.OUT }}
           if-no-files-found: warn

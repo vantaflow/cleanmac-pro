@@ -199,13 +199,22 @@ final class UITestDriver {
 
     // MARK: Helpers
 
+    private func windowDump() -> String {
+        NSApp.windows.map { w in
+            "[\(type(of: w)) title=\"\(w.title)\" visible=\(w.isVisible) frame=\(Int(w.frame.width))x\(Int(w.frame.height)) mask=\(w.styleMask.rawValue) content=\(Int(w.contentView?.bounds.width ?? -1))]"
+        }.joined(separator: " ") + " policy=\(NSApp.activationPolicy().rawValue) active=\(NSApp.isActive)"
+    }
+
     private func waitForMainWindow() async -> NSWindow? {
-        for _ in 0..<80 {
-            if let w = NSApp.windows.first(where: {
-                $0.isVisible && $0.styleMask.contains(.titled) && ($0.contentView?.bounds.width ?? 0) >= 900
-            }) { return w }
+        for i in 0..<80 {
+            if let w = NSApp.windows.first(where: { ($0.contentView?.bounds.width ?? 0) >= 900 && $0.styleMask.contains(.titled) }) {
+                if !w.isVisible { w.makeKeyAndOrderFront(nil) }
+                if w.isVisible { return w }
+            }
+            if i == 6 || i == 20 { WindowOpener.shared.open?() }
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
+        fail("windows: " + windowDump())
         return nil
     }
 
