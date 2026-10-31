@@ -14,3 +14,11 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+      - name: Smoke + live Sparkle check
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          CLEANMAC_LIVE: "1"
+          CLEANMAC_EXPECT_SPARKLE: "iTerm,Rectangle"
+        run: |
+          brew install --cask iterm2 rectangle
+          swift run CleanMacProSmoke

@@ -82,6 +82,11 @@ func runSmoke() async {
         Smoke.failures.append("✗ Exception thrown: \(error)")
     }
 
+    // Live checks (network + real /Applications). Opt-in: CI sets CLEANMAC_LIVE=1.
+    if ProcessInfo.processInfo.environment["CLEANMAC_LIVE"] == "1" {
+        await runLiveSparkleChecks()
+    }
+
     print("\n— Smoke summary —")
     if Smoke.failures.isEmpty {
         print("All checks passed ✓")
@@ -90,6 +95,32 @@ func runSmoke() async {
         for f in Smoke.failures { print(f) }
         print("\n\(Smoke.failures.count) failure(s)")
         exit(1)
+    }
+}
+
+/// Runs the Updates scanner on the machine's real apps and checks that every
+/// app declaring a Sparkle feed (SUFeedURL) gets a real verdict from its appcast.
+/// `CLEANMAC_EXPECT_SPARKLE` names apps that must be found (e.g. "iTerm2").
+func runLiveSparkleChecks() async {
+    print("\n— Live Sparkle checks —")
+    do {
+        let result = try await UpdatesScanner().scan { _, _ in }
+        let sparkle = result.items.filter { $0.group == "Apps · Direct (Sparkle)" }
+        for item in sparkle {
+            print("  \(item.title ?? "?") · \(item.detail ?? "") · \(item.severity)")
+        }
+        let expected = (ProcessInfo.processInfo.environment["CLEANMAC_EXPECT_SPARKLE"] ?? "")
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        for name in expected where !name.isEmpty {
+            let item = sparkle.first { ($0.title ?? "").hasPrefix(name) }
+            Smoke.check(item != nil, "\(name) detected as a Sparkle app")
+            if let item {
+                Smoke.check(item.severity == .good || item.severity == .warn,
+                            "\(name) compared against its appcast (got: \(item.detail ?? ""))")
+            }
+        }
+    } catch {
+        Smoke.failures.append("✗ UpdatesScanner threw: \(error)")
     }
 }
 
