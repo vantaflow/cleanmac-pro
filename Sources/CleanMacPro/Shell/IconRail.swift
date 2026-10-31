@@ -12,6 +12,8 @@ extension ModuleID {
         case .performance: return "Performances"
         case .uninstaller: return "Applications"
         case .files:       return "Mes fichiers inutiles"
+        case .similarPhotos: return "Photos similaires"
+        case .developer:   return "Développeur"
         case .spaceLens:   return "Télescope"
         case .privacy:     return "Confidentialité"
         case .updates:     return "Mises à jour"
@@ -29,6 +31,8 @@ extension ModuleID {
         case .performance: return "bolt.fill"
         case .uninstaller: return "square.grid.2x2.fill"
         case .files:       return "folder.fill"
+        case .similarPhotos: return "photo.on.rectangle.angled"
+        case .developer:   return "hammer.fill"
         case .spaceLens:   return "circle.circle.fill"
         case .privacy:     return "eye.fill"
         case .updates:     return "arrow.down.circle.fill"
@@ -55,9 +59,12 @@ extension ModuleID {
         case .uninstaller:
             return ModuleTheme(bgTop: c(0.06,0.10,0.26), bgBottom: c(0.16,0.30,0.64),
                                glow: c(0.30,0.55,1.0), accent: c(0.32,0.56,0.98))
-        case .files:
+        case .files, .similarPhotos:
             return ModuleTheme(bgTop: c(0.05,0.16,0.16), bgBottom: c(0.14,0.38,0.36),
                                glow: c(0.28,0.74,0.68), accent: c(0.28,0.74,0.68))
+        case .developer:
+            return ModuleTheme(bgTop: c(0.04,0.12,0.22), bgBottom: c(0.10,0.34,0.52),
+                               glow: c(0.25,0.68,0.90), accent: c(0.28,0.72,0.92))
         case .spaceLens:
             return ModuleTheme(bgTop: c(0.11,0.06,0.30), bgBottom: c(0.30,0.18,0.72),
                                glow: c(0.46,0.32,0.96), accent: c(0.46,0.32,0.96))
@@ -77,11 +84,12 @@ extension ModuleID {
     /// progress) pick up the module hue.
     var accentEnum: Accent {
         switch self {
-        case .cleanup, .files:                       return .mint
+        case .cleanup, .files, .similarPhotos:       return .mint
         case .uninstaller, .updates, .spaceLens:     return .blue
         case .security, .privacy, .smartScan,
              .dashboard, .result:                    return .violet
         case .performance, .maintenance:             return .orange
+        case .developer:                             return .blue
         }
     }
 
@@ -101,7 +109,7 @@ struct IconRail: View {
 
     private let primary: [ModuleID] = [
         .smartScan, .cleanup, .security, .performance,
-        .uninstaller, .files, .spaceLens
+        .uninstaller, .files, .developer, .spaceLens
     ]
 
     var body: some View {

@@ -108,3 +108,16 @@ struct PerformanceScreen: View {
         ])
     }
 }
+
+struct FilesScreen: View {
+    var body: some View {
+        TabbedModuleScreen(tabs: [
+            .init(module: .files,
+                  label: "Volumineux & doublons",
+                  subtitle: "Examinez votre espace de stockage pour supprimer les fichiers dont vous n'avez pas besoin et désencombrer votre disque."),
+            .init(module: .similarPhotos,
+                  label: "Photos similaires",
+                  subtitle: "Retrouve les photos quasi identiques (recadrées, redimensionnées, recompressées) dans Images, Téléchargements et Bureau. La meilleure de chaque groupe est conservée ; les autres vont à la Corbeille.")
+        ])
+    }
+}

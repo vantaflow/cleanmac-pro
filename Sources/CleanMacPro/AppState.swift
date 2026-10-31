@@ -63,13 +63,22 @@ final class AppState: ObservableObject {
     }
 
     /// Runs an executable maintenance task; surfaces status via the module status string.
-    func runMaintenance(item: ScanItem) {
-        guard item.command != nil else { return }
-        update(.maintenance) { $0.status = "Exécution de « \(item.title ?? "tâche") »…" }
+    func runMaintenance(item: ScanItem, module: ModuleID = .maintenance) {
+        guard let command = item.command else { return }
+        // Destructive tool commands (Docker prune) ask for confirmation first.
+        if command.contains("system prune") {
+            let alert = NSAlert()
+            alert.messageText = "Lancer « \(item.title ?? "docker system prune") » ?"
+            alert.informativeText = "Supprime les conteneurs arrêtés, les réseaux et les images inutilisés. Cette action est irréversible."
+            alert.addButton(withTitle: "Supprimer")
+            alert.addButton(withTitle: "Annuler")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        update(module) { $0.status = "Exécution de « \(item.title ?? "tâche") »…" }
         Task.detached(priority: .utility) { [weak self] in
             let (status, output) = MaintenanceScanner.execute(item)
             await MainActor.run { [weak self] in
-                self?.update(.maintenance) { s in
+                self?.update(module) { s in
                     s.status = status == 0
                         ? "✓ « \(item.title ?? "tâche") » terminée"
                         : "⚠ Échec — \(output.prefix(120))"
@@ -80,7 +89,7 @@ final class AppState: ObservableObject {
 
     /// Updates a Sparkle app in place (after confirmation); falls back to `open -a` when automatic install is impossible.
     func installSparkleUpdate(item: ScanItem) {
-        guard let release = item.sparkleRelease else { return runMaintenance(item: item) }
+        guard let release = item.sparkleRelease else { return runMaintenance(item: item, module: .updates) }
         let name = item.url.deletingPathExtension().lastPathComponent
         let alert = NSAlert()
         alert.messageText = "Mettre à jour \(name) ?"
@@ -106,7 +115,7 @@ final class AppState: ObservableObject {
                 done.messageText = "Installation manuelle nécessaire"
                 done.informativeText = outcome.message + "\n\nL'app va être ouverte pour que tu la mettes à jour."
                 self.update(.updates) { $0.status = "⚠ \(name) : installation manuelle" }
-                self.runMaintenance(item: item)
+                self.runMaintenance(item: item, module: .updates)
             case .failed:
                 done.messageText = "Échec de la mise à jour de \(name)"
                 done.informativeText = outcome.message
@@ -149,6 +158,8 @@ final class AppState: ObservableObject {
         switch module {
         case .cleanup:     return CleanupScanner()
         case .files:       return FilesScanner()
+        case .similarPhotos: return SimilarPhotosScanner()
+        case .developer:   return DeveloperScanner()
         case .uninstaller: return AppUninstaller()
         case .security:    return SecurityScanner()
         case .privacy:     return PrivacyScanner()
@@ -277,7 +288,7 @@ final class AppState: ObservableObject {
         guard let result = state.result, !state.selection.isEmpty else { return }
         let toClean = result.items.filter { state.selection.contains($0.id) }
             .filter { ![.securityFinding, .updateAvailable, .loginItem, .launchAgent,
-                        .processSnapshot, .maintenanceTask, .spaceFolder].contains($0.kind) }
+                        .processSnapshot, .maintenanceTask, .spaceFolder, .keeper].contains($0.kind) }
 
         let report = permanent ? Cleaner.delete(items: toClean) : Cleaner.clean(items: toClean)
         applyClean(module: module, report: report)

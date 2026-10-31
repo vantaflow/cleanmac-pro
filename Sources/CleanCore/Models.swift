@@ -61,6 +61,7 @@ public enum ItemKind: String, Hashable, Sendable {
     case privacyData
     case maintenanceTask
     case spaceFolder
+    case keeper   // best photo of a similar group: shown, never cleaned
 }
 
 public struct ScanResult {
@@ -78,7 +79,7 @@ public struct ScanResult {
 }
 
 public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
-    case dashboard, smartScan, cleanup, uninstaller, files, spaceLens
+    case dashboard, smartScan, cleanup, uninstaller, files, similarPhotos, developer, spaceLens
     case security, privacy
     case updates, performance, maintenance
     case result
@@ -92,6 +93,8 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .cleanup:     return "Fichiers inutiles"
         case .uninstaller: return "Désinstalleur"
         case .files:       return "Volumineux & doublons"
+        case .similarPhotos: return "Photos similaires"
+        case .developer:   return "Développeur"
         case .spaceLens:   return "Space Lens"
         case .security:    return "Sécurité"
         case .privacy:     return "Confidentialité"
@@ -109,6 +112,8 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .cleanup:     return "Caches, logs, corbeilles"
         case .uninstaller: return "Apps + résidus"
         case .files:       return "Gros fichiers & doublons"
+        case .similarPhotos: return "Images quasi identiques"
+        case .developer:   return "Xcode, node_modules, caches"
         case .spaceLens:   return "Carte interactive du disque"
         case .security:    return "Anti-malware, FileVault"
         case .privacy:     return "Cookies, traceurs"
@@ -126,6 +131,8 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .cleanup:     return "broom"
         case .uninstaller: return "app"
         case .files:       return "files"
+        case .similarPhotos: return "files"
+        case .developer:   return "chip"
         case .spaceLens:   return "disk"
         case .security:    return "shield"
         case .privacy:     return "eye"

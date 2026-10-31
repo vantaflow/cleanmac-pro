@@ -43,7 +43,7 @@ struct ScanScreen: View {
                             label: selected == 0 ? "Tout sélectionner" : "\(primaryActionLabel) (\(selected))") {
                             if selected == 0 {
                                 appState.update(module) { s in
-                                    s.selection = Set(result.items.map(\.id))
+                                    s.selection = Set(result.items.filter { $0.kind != .keeper }.map(\.id))
                                 }
                             } else {
                                 appState.clean(module: module, permanent: permanentDelete)
@@ -244,7 +244,7 @@ private struct ItemRow: View {
 
     private var selectable: Bool {
         ![.securityFinding, .maintenanceTask, .updateAvailable,
-          .processSnapshot, .spaceFolder, .loginItem, .launchAgent].contains(item.kind)
+          .processSnapshot, .spaceFolder, .loginItem, .launchAgent, .keeper].contains(item.kind)
     }
     private var isRunnable: Bool {
         item.command != nil &&
@@ -287,7 +287,7 @@ private struct ItemRow: View {
                     icon: item.needsAdmin ? "lock" : "play",
                     label: runLabel) {
                     if item.sparkleRelease != nil { appState.installSparkleUpdate(item: item) }
-                    else { appState.runMaintenance(item: item) }
+                    else { appState.runMaintenance(item: item, module: module) }
                 }
                 .padding(.trailing, 8)
             }
@@ -368,6 +368,7 @@ private struct ItemRow: View {
         case .privacyData:                     return "eye"
         case .maintenanceTask:                 return "wrench"
         case .spaceFolder:                     return "folder"
+        case .keeper:                          return "check"
         }
     }
 
