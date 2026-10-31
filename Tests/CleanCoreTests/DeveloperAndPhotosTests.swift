@@ -67,7 +67,7 @@ final class DeveloperAndPhotosTests: XCTestCase {
         XCTAssertEqual(archives.count, 1)
         XCTAssertEqual(archives.first?.url.lastPathComponent, "Old.xcarchive")
         XCTAssertEqual(items(L("Xcode · Simulateurs")).count, 1)
-        XCTAssertEqual(items("Caches de paquets").count, 2)
+        XCTAssertEqual(items(L("Caches de paquets")).count, 2)
 
         let nm = items("node_modules").map { $0.url.deletingLastPathComponent().lastPathComponent }.sorted()
         XCTAssertEqual(nm, ["old", "orphan"])
