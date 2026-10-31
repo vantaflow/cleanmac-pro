@@ -3,7 +3,6 @@ name: Release
 on:
   push:
     tags: ["v*"]
-    branches: ["feat/release-selfupdate"] # TEMP
   workflow_dispatch:
     inputs:
       dry_run:
