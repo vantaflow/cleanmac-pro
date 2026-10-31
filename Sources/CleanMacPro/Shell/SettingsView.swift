@@ -38,6 +38,7 @@ private struct ScheduleSettings: View {
 
     var body: some View {
         Form {
+            RemovalWatchSetting()
             Section {
                 Picker(L("Fréquence"), selection: Binding(
                     get: { appState.schedule.frequency },
@@ -163,7 +164,9 @@ private struct HistorySettings: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button(L("Restaurer")) { message = appState.restore(e).message }
+                        if !e.records.isEmpty {
+                            Button(L("Restaurer")) { message = appState.restore(e).message }
+                        }
                     }
                     .contextMenu {
                         Button(L("Supprimer de l'historique")) { appState.removeHistoryEntry(e) }

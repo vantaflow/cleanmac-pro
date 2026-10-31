@@ -156,6 +156,39 @@ func runSmoke() async {
         Smoke.check((parsed?["ProgramArguments"] as? [String])?.last == ScheduledScanAgent.argument,
                     "LaunchAgent plist carries the --scheduled-scan argument")
 
+        // App removal: detector + leftovers + orphans on a fixture "Applications"/"Library"
+        do {
+            let base = try Smoke.tmpDir()
+            let apps = base.appendingPathComponent("Applications"), lib = base.appendingPathComponent("Library")
+            let trash = base.appendingPathComponent(".Trash")
+            for d in [apps, lib, trash] { try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true) }
+            func mk(_ n: String, _ id: String) throws -> URL {
+                let c = apps.appendingPathComponent("\(n).app/Contents")
+                try FileManager.default.createDirectory(at: c, withIntermediateDirectories: true)
+                try PropertyListSerialization.data(fromPropertyList: ["CFBundleIdentifier": id], format: .xml, options: 0)
+                    .write(to: c.appendingPathComponent("Info.plist"))
+                return apps.appendingPathComponent("\(n).app")
+            }
+            let foo = try mk("Foo", "com.foo.app"); _ = try mk("Word", "com.microsoft.Word")
+            try Smoke.write(4000, to: lib.appendingPathComponent("Caches/com.foo.app/c"))
+            try Smoke.write(100, to: lib.appendingPathComponent("Preferences/com.foo.app.plist"))
+            try Smoke.write(100, to: lib.appendingPathComponent("Caches/com.foo.application/c"))
+            try Smoke.write(100, to: lib.appendingPathComponent("Application Support/FooBar/c"))
+            try Smoke.write(100, to: lib.appendingPathComponent("Caches/com.microsoft.Excel/c"))
+            try Smoke.write(100, to: lib.appendingPathComponent("Caches/com.gone.Old/c"))
+            let left = AppLeftovers(library: lib)
+            let found = left.find(bundleID: "com.foo.app", name: "Foo")
+            Smoke.check(found.count == 2 && found.allSatisfy { $0.size > 0 }, "AppLeftovers: exact id only, no partial-name match (\(found.map(\.name)))")
+            var det = AppRemovalDetector(roots: [apps], trash: trash)
+            try FileManager.default.moveItem(at: foo, to: trash.appendingPathComponent("Foo.app"))
+            let removed = det.refresh()
+            Smoke.check(removed.map(\.bundleID) == ["com.foo.app"], "AppRemovalDetector sees the removed app")
+            let ev = det.events(for: removed, leftovers: left, installed: AppIndex.build(roots: [apps]), exclusions: ExclusionList())
+            Smoke.check(ev.first?.items.count == 2, "removal event carries the leftovers")
+            let orphans = left.orphans(index: AppIndex.build(roots: [apps]))
+            Smoke.check(orphans.map(\.bundleID).sorted() == ["com.foo.app", "com.foo.application", "com.gone.Old"], "orphans: removed apps only, vendor-shared and partial names skipped (\(orphans.map(\.bundleID)))")
+        }
+
     } catch {
         Smoke.failures.append("✗ Exception thrown: \(error)")
     }
@@ -257,6 +290,16 @@ func runProbe() async {
         for (g, items) in groups.sorted(by: { $0.value.reduce(0) { $0 + $1.size } > $1.value.reduce(0) { $0 + $1.size } }).prefix(12) {
             print("   \(g): \(items.count) · \(ByteFormatter.string(items.reduce(0) { $0 + $1.size })) · ex: \(items.first?.name ?? "")")
         }
+    }
+    // Orphans ("Restes d'apps supprimées"), read-only.
+    let t0 = Date()
+    var idx = AppIndex.build(roots: AppIndex.defaultRoots + [FS.home.appendingPathComponent("Applications")])
+    let appCount = idx.apps.count
+    idx.extraIDs.formUnion(AppIndex.spotlightIDs())
+    let orphans = AppLeftovers().orphans(index: idx)
+    print("\n== orphans · \(orphans.count) apps · \(ByteFormatter.string(orphans.reduce(0) { $0 + $1.totalSize })) · index \(appCount) apps + \(idx.extraIDs.count) spotlight ids · \(String(format: "%.1f", Date().timeIntervalSince(t0)))s")
+    for o in orphans.prefix(40) {
+        print("   \(o.bundleID): \(ByteFormatter.string(o.totalSize)) · \(o.items.map { $0.url.path.replacingOccurrences(of: NSHomeDirectory() + "/Library/", with: "~L/") }.joined(separator: " | "))")
     }
     exit(0)
 }

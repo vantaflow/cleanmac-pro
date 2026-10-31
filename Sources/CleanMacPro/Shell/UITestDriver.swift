@@ -202,6 +202,10 @@ final class UITestDriver {
             settings.close()
         }
 
+        log("removal prompt")
+        // 5b. "App removed" prompt on a throw-away fixture: every button gets a real effect.
+        await runRemovalPromptChecks()
+
         log("popover")
         // 6. Menu-bar popover.
         if let delegate = AppDelegate.current, let item = delegate.statusItem,
@@ -218,6 +222,65 @@ final class UITestDriver {
         }
         log("done")
         try? await Task.sleep(nanoseconds: 300_000_000)
+    }
+
+    // MARK: Removal prompt
+
+    private func runRemovalPromptChecks() async {
+        let fm = FileManager.default
+        let dir = outDir.appendingPathComponent("removal-fixture")
+        try? fm.removeItem(at: dir)
+        var items: [ScanItem] = []
+        for (name, kb) in [("Application Support/Vivaldi", 1500), ("Caches/com.vivaldi.Vivaldi", 286),
+                           ("Preferences/com.vivaldi.Vivaldi.plist", 12), ("Saved Application State/com.vivaldi.Vivaldi.savedState", 3)] {
+            let u = dir.appendingPathComponent(name)
+            try? fm.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Data(repeating: 7, count: kb * 1024).write(to: u)
+            items.append(ScanItem(url: u, size: Int64(kb * 1024), kind: .appResidue, group: "Vivaldi"))
+        }
+        func event() -> AppRemovalEvent {
+            AppRemovalEvent(appName: "Vivaldi", bundleID: "com.vivaldi.ui-test", appPath: "/nonexistent/Vivaldi.app", items: items)
+        }
+        guard let (panel, model) = AppRemovalCoordinator.shared.presentForTesting(event()) else {
+            fail("removal prompt did not open"); return
+        }
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        record(window: panel, id: "removal-prompt", title: "Invite app supprimée",
+               file: "screen-removal-prompt.png", distinct: false)
+        model.expanded = false
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        record(window: panel, id: "removal-prompt-collapsed", title: "Invite app supprimée (repliée)",
+               file: "screen-removal-prompt-collapsed.png", distinct: false)
+        model.expanded = true
+
+        // Ignorer: closes, deletes nothing.
+        model.ignoreOnce()
+        if items.contains(where: { !fm.fileExists(atPath: $0.url.path) }) { fail("removal prompt: Ignorer deleted files") }
+        if panel.isVisible { fail("removal prompt: Ignorer did not close the panel") }
+
+        // Toujours ignorer: adds the app id to the exclusions, deletes nothing.
+        if let (p2, m2) = AppRemovalCoordinator.shared.presentForTesting(event()) {
+            m2.alwaysIgnore()
+            if !appState.exclusions.appIDs.contains("com.vivaldi.ui-test") { fail("removal prompt: Toujours ignorer did not exclude the app") }
+            appState.removeExclusion(appID: "com.vivaldi.ui-test")
+            if p2.isVisible { fail("removal prompt: Toujours ignorer did not close the panel") }
+            if items.contains(where: { !fm.fileExists(atPath: $0.url.path) }) { fail("removal prompt: Toujours ignorer deleted files") }
+        } else { fail("removal prompt (2) did not open") }
+
+        // Supprimer: really deletes the fixture and logs history.
+        let before = appState.history.entries.count
+        if let (p3, m3) = AppRemovalCoordinator.shared.presentForTesting(event()) {
+            m3.deleteAll()
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            record(window: p3, id: "removal-prompt-done", title: "Invite app supprimée (terminé)",
+                   file: "screen-removal-prompt-done.png", distinct: false)
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if items.contains(where: { fm.fileExists(atPath: $0.url.path) }) { fail("removal prompt: Supprimer left files behind") }
+            if appState.history.entries.count != before + 1 { fail("removal prompt: deletion not recorded in history") }
+            if p3.isVisible { fail("removal prompt: panel still visible after deletion") }
+            report.notes.append("removal prompt: Ignorer / Toujours ignorer / Supprimer verified on fixture")
+        } else { fail("removal prompt (3) did not open") }
+        try? fm.removeItem(at: dir)
     }
 
     // MARK: Helpers

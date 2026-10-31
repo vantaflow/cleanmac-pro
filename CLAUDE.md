@@ -31,4 +31,5 @@ The UI auto-renders every module via `ModuleID.allCases` — no view changes nee
 ## Known limits
 - The package can't produce a notarized `.app` from CLI alone — open in Xcode for that.
 - System Caches at `/Library/Caches` may require admin rights; the scanner just skips unreadable paths.
-- The Uninstaller's residue match is substring-based. Keep it conservative.
+- Residue matching lives in `AppLeftovers` (exact bundle id, `<id>.` helper prefix, Team-ID/`group.` prefix, exact app name in Application Support/Caches/Logs; never substring). Keep it conservative. Orphan scan skips entries sharing a vendor namespace with any installed app.
+- `AppRemovalWatcher` (CleanCore) watches /Applications, ~/Applications and ~/.Trash via FSEvents; the app shows the prompt (Shell/AppRemovalPrompt.swift).

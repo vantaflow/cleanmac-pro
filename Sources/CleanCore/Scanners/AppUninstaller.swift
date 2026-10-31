@@ -13,8 +13,11 @@ public struct InstalledApp: Identifiable, Hashable {
 public struct AppUninstaller: FileScanner {
     public let module: ModuleID = .uninstaller
     public let searchPaths: [URL]
+    /// Also list leftovers of apps that are no longer installed ("Restes d'apps supprimées").
+    public let includeOrphans: Bool
 
-    public init(searchPaths: [URL]? = nil) {
+    public init(searchPaths: [URL]? = nil, includeOrphans: Bool = true) {
+        self.includeOrphans = includeOrphans
         self.searchPaths = searchPaths ?? [
             URL(fileURLWithPath: "/Applications"),
             FS.home.appendingPathComponent("Applications"),
@@ -24,21 +27,27 @@ public struct AppUninstaller: FileScanner {
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         let apps = discoverApps()
         var items: [ScanItem] = []
-        let total = Double(max(apps.count, 1))
+        let total = Double(max(apps.count, 1)) + 1
+        let index = AppIndex.build(roots: AppIndex.defaultRoots + searchPaths)
 
         for (idx, app) in apps.enumerated() {
             if Task.isCancelled { throw ScanError.cancelled }
             progress(Double(idx) / total, L("Analyzing \(app.lastPathComponent)…"))
-            let bundle = analyze(appURL: app)
-            // Add bundle itself
+            let bundle = analyze(appURL: app, index: index)
             items.append(ScanItem(
                 url: bundle.bundleURL,
                 size: bundle.bundleSize,
                 kind: .app,
                 group: bundle.name
             ))
-            // Add residues
             items.append(contentsOf: bundle.residues)
+        }
+        if includeOrphans {
+            if Task.isCancelled { throw ScanError.cancelled }
+            progress(Double(apps.count) / total, L("Recherche des restes d'apps supprimées…"))
+            var full = index
+            full.extraIDs.formUnion(AppIndex.spotlightIDs())
+            for o in AppLeftovers().orphans(index: full) { items.append(contentsOf: o.items) }
         }
         progress(1.0, L("Done"))
         return ScanResult(module: .uninstaller, items: items)
@@ -56,44 +65,15 @@ public struct AppUninstaller: FileScanner {
         return out
     }
 
-    public func analyze(appURL: URL) -> InstalledApp {
+    public func analyze(appURL: URL, index: AppIndex? = nil) -> InstalledApp {
         let name = appURL.deletingPathExtension().lastPathComponent
         let bundleID = readBundleID(appURL) ?? appURL.path
         let bundleSize = FS.directorySize(appURL)
-
-        let residueRoots: [URL] = [
-            FS.home.appendingPathComponent("Library/Application Support"),
-            FS.home.appendingPathComponent("Library/Caches"),
-            FS.home.appendingPathComponent("Library/Preferences"),
-            FS.home.appendingPathComponent("Library/Logs"),
-            FS.home.appendingPathComponent("Library/Containers"),
-            FS.home.appendingPathComponent("Library/Saved Application State"),
-        ]
-
-        var residues: [ScanItem] = []
-        let needles = Set([bundleID.lowercased(), name.lowercased()])
-
-        for root in residueRoots {
-            guard let entries = try? FileManager.default.contentsOfDirectory(
-                at: root, includingPropertiesForKeys: nil
-            ) else { continue }
-            for entry in entries {
-                let entryName = entry.lastPathComponent.lowercased()
-                let matches = needles.contains(where: { needle in
-                    !needle.isEmpty && (entryName == needle || entryName.contains(needle))
-                })
-                if matches {
-                    let size = FS.directorySize(entry)
-                    residues.append(ScanItem(
-                        url: entry,
-                        size: size,
-                        modified: FS.modified(of: entry),
-                        kind: .appResidue,
-                        group: name
-                    ))
-                }
-            }
-        }
+        let idx = index ?? AppIndex.build(roots: AppIndex.defaultRoots + searchPaths)
+        let residues = AppLeftovers().find(
+            bundleID: bundleID, name: name,
+            otherInstalledIDs: idx.knownIDs(excluding: bundleID),
+            otherInstalledNames: idx.knownNames(excluding: bundleID))
 
         return InstalledApp(
             id: bundleID,
