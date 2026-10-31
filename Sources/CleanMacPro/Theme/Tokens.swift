@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CleanCore
 
 // MARK: — Design system
 //
