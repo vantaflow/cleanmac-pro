@@ -12,6 +12,7 @@ public struct ScanItem: Identifiable, Hashable {
     public let severity: Severity    // for findings / updates
     public let command: String?      // shell command for executable items
     public let needsAdmin: Bool      // whether command requires root
+    public let sparkleRelease: SparkleRelease?  // set when the app can be updated in place
 
     public init(
         id: UUID = UUID(),
@@ -24,7 +25,8 @@ public struct ScanItem: Identifiable, Hashable {
         detail: String? = nil,
         severity: Severity = .info,
         command: String? = nil,
-        needsAdmin: Bool = false
+        needsAdmin: Bool = false,
+        sparkleRelease: SparkleRelease? = nil
     ) {
         self.id = id
         self.url = url
@@ -37,6 +39,7 @@ public struct ScanItem: Identifiable, Hashable {
         self.severity = severity
         self.command = command
         self.needsAdmin = needsAdmin
+        self.sparkleRelease = sparkleRelease
     }
 
     public var name: String { title ?? url.lastPathComponent }

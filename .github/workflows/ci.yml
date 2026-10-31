@@ -31,3 +31,11 @@ jobs:
           plutil -replace CFBundleShortVersionString -string 1.0 "$plist"
           plutil -replace CFBundleVersion -string 1 "$plist"
           swift run CleanMacProSmoke
+      - name: Live Sparkle install (really update Rectangle)
+        env:
+          CLEANMAC_LIVE: "1"
+          CLEANMAC_INSTALL_UPDATE: "Rectangle"
+        run: |
+          swift run CleanMacProSmoke
+          plutil -p /Applications/Rectangle.app/Contents/Info.plist | grep -E "CFBundleShortVersionString|CFBundleVersion"
+          codesign --verify --deep --strict /Applications/Rectangle.app
