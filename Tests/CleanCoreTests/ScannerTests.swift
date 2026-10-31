@@ -143,7 +143,9 @@ final class ScannerTests: XCTestCase {
         XCTAssertEqual(result.count, 3)
         XCTAssertEqual(Set(result.items.map(\.url)).count, 3, "URLs must be unique after merge")
         XCTAssertTrue(result.items.contains { $0.kind == .largeFile })
-        XCTAssertEqual(result.items.filter { $0.kind == .duplicate }.count, 2)
+        // One copy is the kept original (never cleanable), the other is the duplicate.
+        XCTAssertEqual(result.items.filter { $0.kind == .duplicate }.count, 1)
+        XCTAssertEqual(result.items.filter { $0.kind == .keeper }.count, 1)
     }
 
     func testShellCapturesLargeOutputWithoutDeadlock() {

@@ -24,6 +24,15 @@ final class AppState: ObservableObject {
     @Published private(set) var schedule = ScheduledScanAgent.loadSchedule()
     /// Live filter applied to the active module's results listing.
     @Published var searchText: String = ""
+    /// Free space of the startup volume (sidebar gauge, before/after measures).
+    @Published private(set) var disk: DiskSnapshot? = DiskSpace.snapshot()
+    /// Smart Care flow (home → scanning → results → running).
+    @Published var smartCare = SmartCareState()
+    /// What the last cleanup really did (Result screen).
+    @Published var lastOutcome: CleanOutcome?
+    /// True when a module screen was opened from a Smart Care card ("Revoir").
+    @Published var cameFromSmartCare = false
+    private var smartCareTask: Task<Void, Never>?
 
     /// Shared live host metrics for the menu-bar popover / in-window widget.
     let hostStats = HostStats()
@@ -34,8 +43,39 @@ final class AppState: ObservableObject {
     /// Modules that render a filterable results list (so the toolbar search
     /// applies). Dashboard / Smart Scan / Space Lens / Result don't.
     func isSearchable(_ module: ModuleID) -> Bool {
-        ![.dashboard, .smartScan, .spaceLens, .result].contains(module)
+        ![.dashboard, .smartScan, .spaceLens, .result, .history].contains(module)
     }
+
+    // MARK: — Navigation
+
+    /// Sidebar navigation.
+    func navigate(to module: ModuleID) {
+        cameFromSmartCare = false
+        active = module
+    }
+
+    /// Smart Care "Revoir": opens a module with a way back to the results.
+    func review(_ module: ModuleID) {
+        cameFromSmartCare = true
+        active = module
+    }
+
+    func backToSmartCare() {
+        cameFromSmartCare = false
+        active = .smartScan
+    }
+
+    /// Dot in the sidebar when an area has something worth a look.
+    func sidebarBadge(for module: ModuleID) -> Bool {
+        guard let r = moduleStates[module]?.result else { return false }
+        switch module {
+        case .security:  return r.items.contains { $0.kind == .securityFinding && ($0.severity == .warn || $0.severity == .bad) }
+        case .updates:   return r.items.contains { $0.kind == .updateAvailable && $0.severity == .warn }
+        default:         return r.items.contains { $0.kind.isCleanable }
+        }
+    }
+
+    func refreshDisk() { disk = DiskSpace.snapshot() }
 
     /// Case-insensitive filter over name, detail, path and group.
     func filter(_ items: [ScanItem]) -> [ScanItem] {
@@ -125,25 +165,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// "Quick Clean" — cleans every module that has a scan result with safe defaults.
-    /// If nothing has been scanned, runs a Smart Scan first.
-    func quickClean() {
-        let cleanable: [ModuleID] = [.cleanup, .files, .privacy]
-        let alreadyScanned = cleanable.contains { moduleStates[$0]?.result != nil }
-
-        guard alreadyScanned else {
-            active = .smartScan
-            [.cleanup, .files, .security, .updates, .privacy].forEach { startScan(module: $0) }
-            return
-        }
-        for m in cleanable {
-            guard let result = moduleStates[m]?.result, !result.items.isEmpty else { continue }
-            update(m) { $0.selection = Set(result.items.map(\.id)) }
-            clean(module: m)
-        }
-        active = .result
-    }
-
     func state(for module: ModuleID) -> ModuleState {
         moduleStates[module] ?? ModuleState()
     }
@@ -172,18 +193,20 @@ final class AppState: ObservableObject {
         case .maintenance: return MaintenanceScanner()
         case .spaceLens:   return SpaceLensScanner()
         case .smartScan:   return SmartScanner()     // cleanup + files + privacy + posture, in parallel
-        case .dashboard, .result: return nil
+        case .dashboard, .result, .history: return nil
         }
     }
 
-    func startScan(module: ModuleID) {
-        guard let scanner = scanner(for: module) else { return }
+    @discardableResult
+    func startScan(module: ModuleID, scanner customScanner: (any FileScanner)? = nil) -> Task<Void, Never>? {
+        guard let scanner = customScanner ?? scanner(for: module) else { return nil }
         update(module) { s in
             s.isScanning = true
             s.progress = 0
             s.status = L("Démarrage…")
             s.result = nil
             s.selection.removeAll()
+            s.lastMeasure = nil
         }
         let exclusions = self.exclusions
         let task = Task.detached(priority: .utility) { [weak self] in
@@ -200,6 +223,9 @@ final class AppState: ObservableObject {
                     self?.update(module) { s in
                         s.isScanning = false
                         s.result = result
+                        // Regenerable items start ticked; personal files, browser
+                        // data and the Trash never do.
+                        s.selection = SmartCarePlan.defaultSelection(for: module, items: result.items)
                         s.status = result.count == 1
                             ? L("1 élément · \(ByteFormatter.string(result.totalSize))")
                             : L("\(result.count) éléments · \(ByteFormatter.string(result.totalSize))")
@@ -215,6 +241,240 @@ final class AppState: ObservableObject {
             }
         }
         update(module) { $0.currentTask = task }
+        return task
+    }
+
+    // MARK: — Smart Care
+
+    static let smartCareModules: [ModuleID] = [.cleanup, .developer, .files, .privacy, .security, .performance, .updates]
+
+    /// What Smart Care's own analysis runs: the developer scan skips external
+    /// tools (brew, docker, simctl), and every other module uses its usual scanner.
+    private func smartCareScanner(for module: ModuleID) -> (any FileScanner)? {
+        if let o = scannerOverrides[module] { return o }
+        if module == .developer { return DeveloperScanner(includeTools: false) }
+        return scanner(for: module)
+    }
+
+    var smartCarePlan: SmartCarePlan {
+        var results: [ModuleID: ScanResult] = [:]
+        var selections: [ModuleID: Set<UUID>] = [:]
+        for (m, s) in moduleStates {
+            if let r = s.result { results[m] = r }
+            selections[m] = s.selection
+        }
+        return SmartCarePlan(results: results, selections: selections)
+    }
+
+    var smartCareProgress: Double {
+        let v = Self.smartCareModules.map { state(for: $0).progress }
+        return v.reduce(0, +) / Double(max(v.count, 1))
+    }
+
+    func startSmartCare() {
+        guard smartCare.phase != .scanning, smartCare.phase != .running else { return }
+        smartCare.phase = .scanning
+        smartCare.scanStarted = Date()
+        cameFromSmartCare = false
+        refreshDisk()
+        let tasks = Self.smartCareModules.compactMap { startScan(module: $0, scanner: smartCareScanner(for: $0)) }
+        smartCareTask = Task { @MainActor [weak self] in
+            for t in tasks { await t.value }
+            guard let self, self.smartCare.phase == .scanning else { return }
+            self.smartCare.scanSeconds = Date().timeIntervalSince(self.smartCare.scanStarted ?? Date())
+            self.smartCare.phase = .results
+            self.smartCare.includeUpdates = false
+            self.smartCare.lastScan = Date()
+            UserDefaults.standard.set(Date(), forKey: Self.lastScanKey)
+            self.refreshDisk()
+        }
+    }
+
+    func cancelSmartCare() {
+        guard smartCare.phase == .scanning else { return }
+        smartCare.phase = .home
+        smartCareTask?.cancel()
+        Self.smartCareModules.forEach { cancelScan(module: $0) }
+    }
+
+    /// Back to the home screen to start a fresh analysis.
+    func resetSmartCare() {
+        guard smartCare.phase == .results else { return }
+        smartCare.phase = .home
+    }
+
+    static let lastScanKey = "ai.turkeycode.cleanmacpro.smartcare.lastScan"
+    var lastSmartCareScan: Date? { UserDefaults.standard.object(forKey: Self.lastScanKey) as? Date }
+
+    /// Card checkbox "Inclure" of the Nettoyage card: ticks / unticks every
+    /// regenerable item (caches, logs, temp, developer caches).
+    func setCleanupIncluded(_ on: Bool) {
+        for m in [ModuleID.cleanup, .developer] {
+            guard let r = state(for: m).result else { continue }
+            let ids = Set(r.items.filter { $0.kind.isRegenerable }.map(\.id))
+            update(m) { s in s.selection = on ? s.selection.union(ids) : s.selection.subtracting(ids) }
+        }
+    }
+
+    /// "Vider aussi la Corbeille": ticks / unticks the Trash rows.
+    func setTrashIncluded(_ on: Bool) {
+        guard let r = state(for: .cleanup).result else { return }
+        let ids = Set(r.items.filter { $0.kind == .trash }.map(\.id))
+        update(.cleanup) { s in s.selection = on ? s.selection.union(ids) : s.selection.subtracting(ids) }
+    }
+
+    /// "Lancer": runs exactly `smartCarePlan.runnableItems` (+ Sparkle updates if
+    /// ticked), measures the volume's free space before and after, and shows the Result.
+    func runSmartCare() {
+        guard smartCare.phase == .results else { return }
+        let plan = smartCarePlan
+        let items = plan.runnableItems
+        let installs = smartCare.includeUpdates ? plan.installableUpdates : []
+        guard !items.isEmpty || !installs.isEmpty else { return }
+        smartCare.phase = .running
+        smartCare.runProgress = 0
+        smartCare.runStatus = L("Préparation…")
+
+        var groups: [(ModuleID, [ScanItem])] = []
+        for m in SmartCarePlan.cleanableModules {
+            let ids = Set(state(for: m).result?.items.map(\.id) ?? [])
+            let mine = items.filter { ids.contains($0.id) }
+            if !mine.isEmpty { groups.append((m, mine)) }
+        }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let outcome = await self.perform(groups: groups, forcePermanent: false, installs: installs,
+                                             source: ModuleID.smartScan.railTitle) { p, status in
+                self.smartCare.runProgress = p
+                self.smartCare.runStatus = status
+            }
+            self.lastOutcome = outcome
+            self.smartCare.phase = .results
+            self.active = .result
+        }
+    }
+
+    // MARK: — Cleaning
+
+    /// Shared engine for Smart Care and the per-module "Nettoyer" buttons:
+    /// measures free space before / after, cleans module by module (policy-aware,
+    /// with the admin fallback), installs updates, updates results + history.
+    private func perform(groups: [(ModuleID, [ScanItem])], forcePermanent: Bool, installs: [ScanItem],
+                         source: String, progress: @escaping @MainActor (Double, String) -> Void) async -> CleanOutcome {
+        refreshDisk()
+        let before = DiskSpace.snapshot()
+        let steps = Double(max(groups.count + (installs.isEmpty ? 0 : 1), 1))
+        var done = 0.0
+        var rows: [OutcomeRow] = []
+        var total = CleanReport.empty
+
+        for (module, items) in groups {
+            progress(done / steps, L("Nettoyage : \(module.railTitle)…"))
+            let report = await Task.detached(priority: .userInitiated) {
+                Cleaner.clean(items: items, forcePermanent: forcePermanent, adminFallback: true)
+            }.value
+            applyClean(module: module, items: items, report: report)
+            rows.append(OutcomeRow(module: module, report: report))
+            total = total.merged(with: report)
+            done += 1
+        }
+
+        var installed = 0, manual = 0, failedInstalls = 0
+        if !installs.isEmpty {
+            for (i, item) in installs.enumerated() {
+                guard let release = item.sparkleRelease else { continue }
+                let name = item.url.deletingPathExtension().lastPathComponent
+                progress((done + Double(i) / Double(installs.count)) / steps, L("Mise à jour de \(name)…"))
+                switch await SparkleInstaller.install(appURL: item.url, release: release, progress: { _ in }) {
+                case .installed: installed += 1
+                case .manual:    manual += 1
+                case .failed:    failedInstalls += 1
+                }
+            }
+            if installed > 0 { startScan(module: .updates) }
+            done += 1
+        }
+
+        progress(1, L("Mesure de l'espace libéré…"))
+        try? await Task.sleep(nanoseconds: 700_000_000)   // let APFS settle before measuring
+        let after = DiskSpace.snapshot()
+        refreshDisk()
+        await ScanCache.shared.invalidate()
+        return CleanOutcome(
+            source: source,
+            measure: SpaceMeasure(before: before, after: after, reportedBytes: total.freedBytes,
+                                  trashedBytes: total.trashedBytes),
+            report: total, rows: rows,
+            updatesInstalled: installed, updatesManual: manual, updatesFailed: failedInstalls)
+    }
+
+    /// Per-module "Nettoyer" button. - Parameter permanent: Uninstaller — removes
+    /// outright so a removed .app never lingers in the Trash.
+    func clean(module: ModuleID, permanent: Bool = false) {
+        let state = self.state(for: module)
+        guard !state.isCleaning, let result = state.result, !state.selection.isEmpty else { return }
+        let toClean = result.items.filter { state.selection.contains($0.id) && $0.kind.isCleanable }
+        guard !toClean.isEmpty else { return }
+
+        // Emptying the Trash is the one irreversible step the user must confirm.
+        let trashRows = toClean.filter { $0.kind == .trash }
+        if !trashRows.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = L("Vider la Corbeille ?")
+            alert.informativeText = L("\(trashRows.count) élément(s) · \(ByteFormatter.string(trashRows.reduce(0) { $0 + $1.size })) seront supprimés définitivement. Cette action est irréversible.")
+            alert.addButton(withTitle: L("Vider la Corbeille"))
+            alert.addButton(withTitle: L("Annuler"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+
+        update(module) { $0.isCleaning = true; $0.status = L("Nettoyage en cours…") }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let outcome = await self.perform(groups: [(module, toClean)], forcePermanent: permanent, installs: [],
+                                             source: module.railTitle) { _, status in
+                self.update(module) { $0.status = status }
+            }
+            self.lastOutcome = outcome
+            self.update(module) { s in
+                s.isCleaning = false
+                s.lastReport = outcome.report
+                s.lastMeasure = outcome.measure
+                s.status = outcome.summaryLine
+            }
+        }
+    }
+
+    /// Empties the whole Trash (menu-bar and Result actions). Confirms first.
+    func emptyTrash() {
+        let size = FS.directorySize(FS.home.appendingPathComponent(".Trash"))
+        let alert = NSAlert()
+        alert.messageText = L("Vider la Corbeille ?")
+        alert.informativeText = L("\(ByteFormatter.string(size)) seront supprimés définitivement. Cette action est irréversible.")
+        alert.addButton(withTitle: L("Vider la Corbeille"))
+        alert.addButton(withTitle: L("Annuler"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let before = DiskSpace.snapshot()
+            let report = await Task.detached(priority: .userInitiated) { () -> CleanReport? in
+                if let r = Cleaner.emptyTrash() { return r }
+                // No access to ~/.Trash: let Finder do it (its own permission prompt).
+                _ = Shell.run("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty the trash"], timeout: 120)
+                return nil
+            }.value
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            let after = DiskSpace.snapshot()
+            self.refreshDisk()
+            if let report, self.history.record(module: ModuleID.cleanup.rawValue, report: report) != nil {
+                try? self.history.save()
+            }
+            self.update(.cleanup) { s in s.result?.items.removeAll { $0.kind == .trash }; s.selection = s.selection.filter { id in s.result?.items.contains { $0.id == id } == true } }
+            let rep = report ?? CleanReport.empty
+            self.lastOutcome = CleanOutcome(
+                source: L("Corbeille"),
+                measure: SpaceMeasure(before: before, after: after, reportedBytes: max(rep.freedBytes, size)),
+                report: rep, rows: [], updatesInstalled: 0, updatesManual: 0, updatesFailed: 0)
+        }
     }
 
     // MARK: — Exclusions
@@ -286,51 +546,59 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// - Parameter permanent: when true (Uninstaller), removes items outright
-    ///   instead of trashing, so a removed .app never lingers in the Trash
-    ///   where other cleaners detect it and nag.
-    func clean(module: ModuleID, permanent: Bool = false) {
-        let state = self.state(for: module)
-        guard let result = state.result, !state.selection.isEmpty else { return }
-        let toClean = result.items.filter { state.selection.contains($0.id) }
-            .filter { ![.securityFinding, .updateAvailable, .loginItem, .launchAgent,
-                        .processSnapshot, .maintenanceTask, .spaceFolder, .keeper].contains($0.kind) }
-
-        let report = permanent ? Cleaner.delete(items: toClean) : Cleaner.clean(items: toClean)
-        applyClean(module: module, report: report)
-
-        // Items that failed are usually root-owned (App Store apps like Xcode).
-        // Retry with an admin prompt, off the main thread so the UI doesn't
-        // freeze during authentication.
-        let needAdmin = toClean.filter { report.failedItems.contains($0.url) }
-        guard !needAdmin.isEmpty else { return }
-        update(module) { $0.status = L("Authentification requise pour \(needAdmin.count) élément(s)…") }
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let adminReport = permanent
-                ? Cleaner.deleteWithAdmin(items: needAdmin)
-                : Cleaner.trashWithAdmin(items: needAdmin)
-            await MainActor.run { [weak self] in
-                self?.applyClean(module: module, report: adminReport, appendFreed: report.freedBytes)
-            }
-        }
-    }
-
-    /// Removes successfully-cleaned items from the module result and reports.
-    private func applyClean(module: ModuleID, report: CleanReport, appendFreed: Int64 = 0) {
+    /// Removes successfully-cleaned items from the module result, records the
+    /// history entry (restorable only for what went to the Trash).
+    private func applyClean(module: ModuleID, items: [ScanItem], report: CleanReport) {
         if history.record(module: module.rawValue, report: report) != nil {
             try? history.save()
         }
+        let failed = Set(report.failedItems)
+        let gone = Set(items.filter { !failed.contains($0.url) }.map(\.id))
         update(module) { s in
             s.lastReport = report
-            s.result?.items.removeAll { !report.failedItems.contains($0.url) && s.selection.contains($0.id) }
-            let freed = report.freedBytes + appendFreed
-            if report.failedItems.isEmpty {
-                s.selection.removeAll()
-                s.status = L("Libéré \(ByteFormatter.string(freed))")
-            } else {
-                s.status = L("Libéré \(ByteFormatter.string(freed)) · \(report.failedItems.count) échec(s)")
-            }
+            s.result?.items.removeAll { gone.contains($0.id) }
+            s.selection.subtract(gone)
         }
+    }
+}
+
+/// Smart Care screen state.
+enum SmartCarePhase { case home, scanning, results, running }
+
+struct SmartCareState {
+    var phase: SmartCarePhase = .home
+    var scanStarted: Date?
+    var scanSeconds: Double = 0
+    var lastScan: Date?
+    /// "Mettre à jour" tick of the Applications card (off by default).
+    var includeUpdates = false
+    var runProgress: Double = 0
+    var runStatus: String = ""
+}
+
+/// One line of the Result breakdown.
+struct OutcomeRow: Identifiable {
+    let id = UUID()
+    let module: ModuleID
+    let report: CleanReport
+}
+
+/// What a cleanup really did.
+struct CleanOutcome {
+    var source: String
+    var measure: SpaceMeasure
+    var report: CleanReport
+    var rows: [OutcomeRow]
+    var updatesInstalled: Int
+    var updatesManual: Int
+    var updatesFailed: Int
+    var date = Date()
+
+    var summaryLine: String {
+        var s = L("Libéré \(ByteFormatter.string(measure.freedBytes)) sur le disque")
+        if report.trashedCount > 0 { s += " · " + L("\(ByteFormatter.string(report.trashedBytes)) dans la Corbeille") }
+        if !report.failedItems.isEmpty { s += " · " + L("\(report.failedItems.count) échec(s)") }
+        return s
     }
 }
 
@@ -341,6 +609,8 @@ struct ModuleState {
     var result: ScanResult? = nil
     var selection: Set<UUID> = []
     var lastReport: CleanReport? = nil
+    var lastMeasure: SpaceMeasure? = nil
+    var isCleaning: Bool = false
     var currentTask: Task<Void, Never>? = nil
     var sortKey: SortKey = .size
     var sortDescending: Bool = true

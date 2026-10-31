@@ -48,15 +48,24 @@ public struct DuplicatesScanner: FileScanner {
         // Step 3: emit items for groups with 2+ identical hashes
         var items: [ScanItem] = []
         for (hash, files) in byHash where files.count > 1 {
-            // Keep first as "original", mark rest as duplicates
+            // The first file is the "original": it is listed as a `.keeper`
+            // (shown, never selectable, never cleaned) so that no selection —
+            // not even "select all" — can remove every copy of a file. Only the
+            // other members are `.duplicate` rows.
             for (i, (url, size)) in files.enumerated() {
-                items.append(ScanItem(
-                    url: url,
-                    size: size,
-                    modified: FS.modified(of: url),
-                    kind: .duplicate,
-                    group: "\(hash.prefix(8)) (\(i == 0 ? "keep" : "dup"))"
-                ))
+                let label = "\(hash.prefix(8)) (\(i == 0 ? "keep" : "dup"))"
+                if i == 0 {
+                    items.append(ScanItem(
+                        url: url, size: 0, modified: FS.modified(of: url), kind: .keeper,
+                        group: label,
+                        detail: L("Original conservé · \(ByteFormatter.string(size))"),
+                        severity: .good))
+                } else {
+                    items.append(ScanItem(
+                        url: url, size: size, modified: FS.modified(of: url), kind: .duplicate,
+                        group: label,
+                        detail: L("Copie identique d'un fichier conservé")))
+                }
             }
         }
 

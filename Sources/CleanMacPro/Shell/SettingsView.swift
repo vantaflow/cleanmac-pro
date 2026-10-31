@@ -137,7 +137,7 @@ private struct HistorySettings: View {
         return f
     }()
 
-    private func moduleTitle(_ raw: String) -> String { ModuleID(rawValue: raw)?.title ?? raw }
+    private func moduleTitle(_ raw: String) -> String { ModuleID(rawValue: raw)?.railTitle ?? raw }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -161,9 +161,15 @@ private struct HistorySettings: View {
                             Text(moduleTitle(e.module)).fontWeight(.semibold)
                             Text(L("\(Self.dateFormat.string(from: e.date)) · \(e.itemCount) élément(s) · \(ByteFormatter.string(e.freedBytes))"))
                                 .font(.caption).foregroundStyle(.secondary)
+                            if e.permanentCount > 0 {
+                                Text(L("\(e.permanentCount) supprimé(s) définitivement : non restaurable(s)"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
-                        Button(L("Restaurer")) { message = appState.restore(e).message }
+                        if e.canRestore {
+                            Button(L("Restaurer")) { message = appState.restore(e).message }
+                        }
                     }
                     .contextMenu {
                         Button(L("Supprimer de l'historique")) { appState.removeHistoryEntry(e) }

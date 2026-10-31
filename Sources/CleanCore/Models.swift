@@ -13,6 +13,9 @@ public struct ScanItem: Identifiable, Hashable {
     public let command: String?      // shell command for executable items
     public let needsAdmin: Bool      // whether command requires root
     public let sparkleRelease: SparkleRelease?  // set when the app can be updated in place
+    /// Number of files represented by this row when it stands for a whole
+    /// folder (a cache folder grouped per app); `nil` for a single file.
+    public let fileCount: Int?
 
     public init(
         id: UUID = UUID(),
@@ -26,7 +29,8 @@ public struct ScanItem: Identifiable, Hashable {
         severity: Severity = .info,
         command: String? = nil,
         needsAdmin: Bool = false,
-        sparkleRelease: SparkleRelease? = nil
+        sparkleRelease: SparkleRelease? = nil,
+        fileCount: Int? = nil
     ) {
         self.id = id
         self.url = url
@@ -40,6 +44,15 @@ public struct ScanItem: Identifiable, Hashable {
         self.command = command
         self.needsAdmin = needsAdmin
         self.sparkleRelease = sparkleRelease
+        self.fileCount = fileCount
+    }
+
+    /// Same item with another size (used to retry only what is left on disk
+    /// after a partial deletion).
+    public func resized(_ newSize: Int64) -> ScanItem {
+        ScanItem(id: id, url: url, size: newSize, modified: modified, kind: kind, group: group,
+                 title: title, detail: detail, severity: severity, command: command,
+                 needsAdmin: needsAdmin, sparkleRelease: sparkleRelease, fileCount: fileCount)
     }
 
     public var name: String { title ?? url.lastPathComponent }
@@ -64,6 +77,53 @@ public enum ItemKind: String, Hashable, Sendable {
     case keeper   // best photo of a similar group: shown, never cleaned
 }
 
+/// What happens to an item when the user cleans it.
+public enum DeletionPolicy: String, Hashable, Sendable {
+    /// Removed for good (`removeItem`, admin fallback `rm -rf`): the item comes
+    /// back by itself or is already garbage, so the Trash would only hide the
+    /// fact that no disk space was freed.
+    case permanent
+    /// Moved to the Trash: a personal file the user may want back.
+    case trash
+    /// Never cleaned by `Cleaner` (findings, tasks, update rows, …).
+    case none
+}
+
+extension ItemKind {
+    /// Caches, logs and temporary files are rebuilt by the system / apps on
+    /// demand: removing them is lossless.
+    public var isRegenerable: Bool {
+        switch self {
+        case .cache, .log, .tempFile: return true
+        default: return false
+        }
+    }
+
+    /// Files that belong to the user (documents, downloads, photos…). These are
+    /// never touched without an explicit review and always go to the Trash.
+    public var isPersonalFile: Bool {
+        switch self {
+        case .largeFile, .oldFile, .duplicate: return true
+        default: return false
+        }
+    }
+
+    public var deletionPolicy: DeletionPolicy {
+        switch self {
+        case .cache, .log, .tempFile, .trash:
+            return .permanent
+        case .largeFile, .oldFile, .duplicate, .privacyData, .app, .appResidue:
+            return .trash
+        case .securityFinding, .updateAvailable, .launchAgent, .loginItem, .processSnapshot,
+             .maintenanceTask, .spaceFolder, .keeper:
+            return .none
+        }
+    }
+
+    /// Can `Cleaner` act on this kind of row at all?
+    public var isCleanable: Bool { deletionPolicy != .none }
+}
+
 public struct ScanResult {
     public let module: ModuleID
     public var items: [ScanItem]
@@ -82,6 +142,7 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
     case dashboard, smartScan, cleanup, uninstaller, files, similarPhotos, developer, spaceLens
     case security, privacy
     case updates, performance, maintenance
+    case history
     case result
 
     public var id: String { rawValue }
@@ -101,6 +162,7 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .updates:     return L("Mises à jour")
         case .performance: return L("Performance")
         case .maintenance: return L("Maintenance")
+        case .history:     return L("Historique")
         case .result:      return L("Nettoyage terminé")
         }
     }
@@ -120,6 +182,7 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .updates:     return L("Apps obsolètes")
         case .performance: return L("Démarrage, agents")
         case .maintenance: return L("Reindex, scripts")
+        case .history:     return L("Nettoyages passés")
         case .result:      return L("Récap après nettoyage")
         }
     }
@@ -139,6 +202,7 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
         case .updates:     return "arrow"
         case .performance: return "bolt"
         case .maintenance: return "wrench"
+        case .history:     return "clock"
         case .result:      return "sparkle"
         }
     }

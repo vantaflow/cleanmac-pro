@@ -2,10 +2,9 @@ import SwiftUI
 import AppKit
 import CleanCore
 
-/// Shared content for both the in-window widget and the real `MenuBarExtra`
-/// popover. `onDismiss` shows an X (in-window only). Opening the main window
-/// is handled internally via `openWindow` so it works even after the window
-/// has been closed and the app is resident in the menu bar.
+/// Content of the menu-bar popover (and of the in-window preview).
+/// Every row does something real: run / start Smart Care, jump to updates,
+/// empty the Trash (with confirmation), toggle the scheduled scan, open the app.
 struct MenuPanelContent: View {
     @Environment(\.theme) private var theme
     @Environment(\.openWindow) private var openWindow
@@ -14,13 +13,12 @@ struct MenuPanelContent: View {
     @EnvironmentObject var agent: BackgroundAgent
 
     var onDismiss: (() -> Void)? = nil
+    @State private var trashBytes: Int64 = 0
 
     /// Reopen / focus the single main window, recreating it if it was closed.
-    /// Prefer the AppKit bridge (works from the status-item popover, where the
-    /// SwiftUI `openWindow` action isn't wired), falling back to the environment
-    /// action for the in-window widget.
     private func openMain() {
         onDismiss?()
+        AppDelegate.current?.popover?.performClose(nil)
         if let open = WindowOpener.shared.open {
             open()
         } else {
@@ -30,98 +28,94 @@ struct MenuPanelContent: View {
         }
     }
 
-    private var recoverableLabel: String {
-        // Prefer a fresh in-session scan, else the last remembered total.
-        let live = appState.state(for: .cleanup).result?.totalSize ?? 0
-        let bytes = live > 0 ? live : agent.lastRecoverableBytes
-        if agent.isScanning { return L("Analyse en cours…") }
-        return bytes == 0 ? L("Lance un scan") : L("\(ByteFormatter.string(bytes)) récupérables")
+    private var plan: SmartCarePlan { appState.smartCarePlan }
+    private var hasPlan: Bool { appState.smartCare.phase == .results }
+    private var recoverable: Int64 {
+        if hasPlan { return plan.regenerableBytes }
+        return agent.lastRecoverableBytes
+    }
+    private var updatesCount: Int { plan.updates.count }
+
+    private var statusText: String {
+        if agent.isScanning || appState.smartCare.phase == .scanning { return L("Analyse en cours…") }
+        return recoverable > 0 ? L("\(ByteFormatter.string(recoverable)) à libérer") : L("Tout va bien")
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                CmpLogo(size: 22, accent: theme.accent.color)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("CleanMac Pro").font(.system(size: 12.5, weight: .semibold))
-                    Text(L("Veille active · \(recoverableLabel)"))
-                        .font(.system(size: 10.5)).opacity(0.55)
+        let dark = true
+        VStack(spacing: 14) {
+            HStack(spacing: 10) {
+                CmpLogo(size: 32, accent: Accent.mint.color)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("CleanMac Pro").font(.system(size: 14, weight: .semibold))
+                    Text(statusText).font(.system(size: 12)).foregroundColor(Accent.mint.soft)
                 }
                 Spacer()
                 if let onDismiss {
                     Button(action: onDismiss) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(4)
+                        Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.text3(dark)).padding(6)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 4).padding(.top, 4).padding(.bottom, 8)
 
             HStack(spacing: 8) {
-                MenuMeter(label: "CPU", value: stats.cpuPct, max: 100, unit: "%", color: .cmpInfo)
-                MenuMeter(label: "RAM", value: stats.ramUsedGB, max: stats.ramTotalGB, unit: L("Go"), color: .cmpViolet)
-                MenuMeter(label: L("Disque"), value: stats.diskUsedGB, max: stats.diskTotalGB, unit: L("Go"), color: theme.accent.color)
+                MenuMeter(label: "CPU", value: "\(Int(stats.cpuPct)) %", fraction: stats.cpuPct / 100, color: Accent.blue.color)
+                MenuMeter(label: L("MÉMOIRE"),
+                          value: "\(Int(stats.ramUsedGB.rounded()))/\(Int(stats.ramTotalGB.rounded()))",
+                          fraction: stats.ramTotalGB > 0 ? stats.ramUsedGB / stats.ramTotalGB : 0, color: Accent.violet.color)
+                MenuMeter(label: L("DISQUE"),
+                          value: appState.disk.map { ByteFormatter.string($0.freeBytes) } ?? "—",
+                          fraction: appState.disk?.usedFraction ?? 0, color: Accent.mint.color)
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(L("Activité système")).font(.system(size: 11, weight: .semibold)).opacity(0.7)
-                    Spacer()
-                    Text(verbatim: "CPU \(Int(stats.cpuPct))% · RAM \(String(format: "%.1f", stats.ramUsedGB)) " + L("Go"))
-                        .font(.system(size: 11, design: .monospaced)).opacity(0.5)
-                }
-                MenuSpark(samples: stats.cpuHistory, accent: theme.accent.color)
-                    .frame(height: 28)
-            }
-            .padding(10)
-            .background(Color.white.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(spacing: 2) {
-                MenuQuickAction(icon: "scan", label: L("Lancer Smart Scan"),
-                                sub: L("Tout vérifier"), accent: true) {
-                    openMain()
-                    appState.active = .smartScan
-                    [.cleanup, .files, .security, .updates, .privacy].forEach { appState.startScan(module: $0) }
-                }
-                MenuQuickAction(icon: "ram", label: L("Libérer la RAM"),
-                                sub: String(format: LK("%@ / %@ Go utilisés"), String(format: "%.1f", stats.ramUsedGB), String(format: "%.0f", stats.ramTotalGB))) {
-                    Task.detached(priority: .utility) { _ = Shell.run("/usr/sbin/purge", []) }
-                }
-                MenuQuickAction(icon: "trash", label: L("Vider la corbeille"),
-                                sub: L("Demande confirmation système")) {
-                    Task.detached(priority: .utility) {
-                        _ = Shell.run("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty the trash"])
+                if hasPlan && plan.hasWork {
+                    MenuAction(title: L("Libérer \(ByteFormatter.string(plan.runnablePermanentBytes)) maintenant"),
+                               sub: L("Caches, temporaires et journaux"),
+                               trailing: L("Lancer"), highlighted: true) {
+                        openMain()
+                        appState.navigate(to: .smartScan)
+                        appState.runSmartCare()
+                    }
+                } else {
+                    MenuAction(title: L("Analyser mon Mac"),
+                               sub: L("Nettoyage, sécurité, performances, applications"),
+                               trailing: L("Analyser"), highlighted: true) {
+                        openMain()
+                        appState.navigate(to: .smartScan)
+                        appState.startSmartCare()
                     }
                 }
+                if hasPlan && updatesCount > 0 {
+                    MenuAction(title: L("\(updatesCount) mise(s) à jour"), sub: L("Voir les applications à mettre à jour"), trailing: "›") {
+                        openMain()
+                        appState.review(.updates)
+                    }
+                }
+                MenuAction(title: L("Vider la Corbeille"),
+                           sub: trashBytes > 0 ? L("\(ByteFormatter.string(trashBytes)) · confirmation avant suppression")
+                                               : L("La Corbeille est vide"),
+                           trailing: "›", enabled: trashBytes > 0) {
+                    appState.emptyTrash()
+                    refreshTrash()
+                }
             }
 
-            Divider().background(Color.white.opacity(0.1))
-
-            HStack(spacing: 8) {
-                MenuToggle(icon: "clock.arrow.circlepath", label: L("Scan auto"),
-                           isOn: $agent.scheduledScanEnabled, accent: theme.accent.color)
-                MenuToggle(icon: "menubar.rectangle", label: L("Barre seule"),
-                           isOn: $agent.menuBarOnly, accent: theme.accent.color)
+            VStack(spacing: 10) {
+                MenuToggleRow(label: L("Analyse planifiée"), isOn: $agent.scheduledScanEnabled)
+                MenuToggleRow(label: L("Barre de menus seule"), isOn: $agent.menuBarOnly)
+                MenuToggleRow(label: L("Lancer au démarrage"), isOn: $agent.launchAtLogin)
             }
-            HStack(spacing: 8) {
-                MenuToggle(icon: "power", label: L("Démarrage"),
-                           isOn: $agent.launchAtLogin, accent: theme.accent.color)
-            }
+            .padding(12)
+            .cardSurface(dark: dark, radius: Radius.m, fill: Color.sidebarBg(dark))
 
-            Divider().background(Color.white.opacity(0.1))
+            Spacer(minLength: 0)
 
-            HStack {
-                Button {
-                    openMain()
-                    appState.active = .dashboard
-                } label: {
-                    Text(L("Ouvrir CleanMac Pro →"))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(theme.accent.color)
+            HStack(spacing: 14) {
+                Button(action: openMain) {
+                    Text(L("Ouvrir CleanMac Pro")).font(.system(size: 13, weight: .semibold)).foregroundColor(Accent.mint.soft)
                 }
                 .buttonStyle(.plain)
                 Spacer()
@@ -129,35 +123,32 @@ struct MenuPanelContent: View {
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 } label: {
-                    Text(L("Réglages"))
-                        .font(.system(size: 11.5))
-                        .foregroundColor(.white.opacity(0.5))
+                    Text(L("Réglages")).font(.system(size: 13)).foregroundColor(.text2(dark))
                 }
                 .buttonStyle(.plain)
                 Button { AppLifecycle.shared.quit() } label: {
-                    Text(L("Quitter"))
-                        .font(.system(size: 11.5))
-                        .foregroundColor(.white.opacity(0.5))
+                    Text(L("Quitter")).font(.system(size: 13)).foregroundColor(.text2(dark))
                 }
                 .buttonStyle(.plain)
-                Text(verbatim: "v\(appVersion)").font(.system(size: 10.5)).opacity(0.4)
+                Text(verbatim: "v\(appVersion)").font(.system(size: 11)).foregroundColor(.text3(dark))
             }
-            .padding(.top, 4)
         }
-        .padding(12)
-        .frame(width: 320)
-        .background(
-            ZStack {
-                Color(red: 28/255, green: 28/255, blue: 32/255).opacity(0.92)
-                Color.clear.background(.ultraThinMaterial)
-            }
-        )
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .foregroundColor(.white)
+        .padding(16)
+        .frame(width: 360, height: 520)
+        .background(Color.card(dark))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.strongBorder(dark), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .foregroundColor(.text1(dark))
         .preferredColorScheme(.dark)
-        .onAppear { stats.start() }
+        .onAppear { stats.start(); appState.refreshDisk(); refreshTrash() }
         .onDisappear { stats.stop() }
+    }
+
+    private func refreshTrash() {
+        Task.detached(priority: .utility) {
+            let size = FS.directorySize(FS.home.appendingPathComponent(".Trash"))
+            await MainActor.run { trashBytes = size }
+        }
     }
 }
 
@@ -165,113 +156,72 @@ struct MenuPanelContent: View {
 
 struct MenuMeter: View {
     let label: String
-    let value: Double
-    let max: Double
-    let unit: String
+    let value: String
+    let fraction: Double
     let color: Color
 
     var body: some View {
-        let pct = max > 0 ? value / max : 0
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased()).font(.system(size: 10, weight: .semibold))
-                .tracking(0.6).opacity(0.55)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(formatted(value)).font(.system(size: 16, weight: .bold, design: .monospaced)).tracking(-0.3)
-                Text(unit == "%" ? "%" : "/\(formatted(max)) \(unit)").font(.system(size: 10)).opacity(0.5)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).font(.system(size: 11, weight: .semibold)).tracking(0.6)
+                .foregroundColor(.text3(true))
+            Text(value).font(.figure(18, .bold)).lineLimit(1).minimumScaleFactor(0.6)
+                .foregroundColor(.text1(true))
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.track(true))
+                    Capsule().fill(color).frame(width: geo.size.width * CGFloat(max(0.02, min(1, fraction))))
+                }
             }
-            Capsule().fill(Color.white.opacity(0.08))
-                .overlay(GeometryReader { geo in
-                    Capsule().fill(color).frame(width: geo.size.width * pct)
-                })
-                .frame(height: 3)
+            .frame(height: 4)
         }
-        .padding(8)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(dark: true, radius: 11, fill: Color.sidebarBg(true))
     }
-    private func formatted(_ v: Double) -> String { v >= 10 ? "\(Int(v.rounded()))" : String(format: "%.1f", v) }
 }
 
-struct MenuQuickAction: View {
-    let icon: String
-    let label: String
+struct MenuAction: View {
+    let title: String
     let sub: String
-    var accent: Bool = false
-    var action: () -> Void
+    var trailing: String
+    var highlighted = false
+    var enabled = true
+    let action: () -> Void
     @State private var hover = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(accent ? Color.cmpGood.opacity(0.16) : Color.white.opacity(0.06))
-                    CmpIcon(name: icon, size: 15, color: accent ? .cmpGood : .white)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.text1(true))
+                    Text(sub).font(.system(size: 12)).foregroundColor(.text2(true)).lineLimit(1)
                 }
-                .frame(width: 28, height: 28)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(label).font(.system(size: 12.5, weight: .semibold))
-                    Text(sub).font(.system(size: 10.5)).opacity(0.55)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 10)).opacity(0.4)
+                Spacer(minLength: 6)
+                Text(trailing).font(.system(size: highlighted ? 13 : 16, weight: .bold))
+                    .foregroundColor(highlighted ? Accent.mint.color : .text3(true))
             }
-            .padding(8)
-            .background(hover ? Color.white.opacity(0.06) : .clear)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, 10)
+            .frame(height: highlighted ? 52 : 48)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(highlighted ? Color.raised(true) : (hover ? Color.raised(true).opacity(0.5) : .clear)))
+            .contentShape(Rectangle())
+            .opacity(enabled ? 1 : 0.45)
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
         .onHover { hover = $0 }
-        .foregroundColor(.white)
     }
 }
 
-/// Compact pill toggle used in the menu-bar footer.
-struct MenuToggle: View {
-    let icon: String
+struct MenuToggleRow: View {
     let label: String
     @Binding var isOn: Bool
-    let accent: Color
 
     var body: some View {
-        Button { isOn.toggle() } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 11, weight: .semibold))
-                Text(label).font(.system(size: 11.5, weight: .medium))
-                Spacer(minLength: 0)
-                Circle()
-                    .fill(isOn ? accent : Color.white.opacity(0.18))
-                    .frame(width: 7, height: 7)
-            }
-            .padding(.horizontal, 9).padding(.vertical, 7)
-            .frame(maxWidth: .infinity)
-            .background(isOn ? accent.opacity(0.16) : Color.white.opacity(0.05))
-            .overlay(RoundedRectangle(cornerRadius: 8)
-                .stroke(isOn ? accent.opacity(0.5) : Color.white.opacity(0.08), lineWidth: 0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .foregroundColor(isOn ? .white : .white.opacity(0.7))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-/// Real sparkline driven by live CPU samples (no fake animation → no idle work).
-struct MenuSpark: View {
-    let samples: [Double]
-    let accent: Color
-
-    var body: some View {
-        GeometryReader { geo in
-            let n = Swift.max(samples.count, 1)
-            let w = geo.size.width / CGFloat(n)
-            HStack(alignment: .bottom, spacing: 3) {
-                ForEach(Array(samples.enumerated()), id: \.offset) { _, v in
-                    let frac = CGFloat(Swift.min(Swift.max(v / 100, 0.02), 1))
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(accent.opacity(0.35 + Double(frac) * 0.5))
-                        .frame(width: Swift.max(2, w - 3), height: Swift.max(2, geo.size.height * frac))
-                }
-            }
+        HStack {
+            Text(label).font(.system(size: 13)).foregroundColor(.textSoft(true))
+            Spacer()
+            CmpCheckbox(isOn: $isOn, accent: Accent.mint.color, label: label)
         }
     }
 }

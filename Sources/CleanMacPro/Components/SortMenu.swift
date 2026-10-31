@@ -24,27 +24,23 @@ struct SortMenu: View {
                     }
                 }
             }
-            Divider()
-            Button {
-                appState.update(module) { $0.sortDescending.toggle() }
-            } label: {
-                Label(state.sortDescending ? L("Ordre décroissant ✓") : L("Ordre croissant ✓"),
-                      systemImage: "arrow.up.arrow.down")
-            }
         } label: {
             HStack(spacing: 6) {
+                Text(L("Trier"))
+                    .foregroundColor(.text2(theme.dark))
+                Text(state.sortKey.label)
+                    .foregroundColor(.text1(theme.dark))
                 Image(systemName: state.sortDescending ? "arrow.down" : "arrow.up")
-                    .font(.system(size: 11, weight: .semibold))
-                Text(L("Trier · \(state.sortKey.label)"))
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.text2(theme.dark))
             }
-            .padding(.horizontal, 12).frame(height: 34)
-            .background(Color.black.opacity(theme.dark ? 0.25 : 0.06))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.hairline(theme.dark), lineWidth: 0.5))
-            .foregroundColor(.text1(theme.dark))
-            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .font(.system(size: 13, weight: .semibold))
+            .padding(.horizontal, 14).frame(height: 36)
+            .background(Capsule().fill(Color.inset(theme.dark)))
+            .overlay(Capsule().strokeBorder(Color.cardBorder(theme.dark), lineWidth: 1))
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .fixedSize()
     }
 }

@@ -1,8 +1,9 @@
 import SwiftUI
 import CleanCore
 
-/// A CleanMyMac 5 module that groups several scanners under one identity with a
-/// segmented tab bar (e.g. Applications = Désinstaller + Mises à jour).
+/// A module that groups several scanners under one sidebar entry with a
+/// segmented tab bar (e.g. Applications = Désinstalleur + Mises à jour). The tab
+/// matching the active module (set by a Smart Care "Revoir") is selected on open.
 struct TabbedModuleScreen: View {
     struct Tab: Identifiable {
         let id = UUID()
@@ -20,8 +21,8 @@ struct TabbedModuleScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             SegmentedTabs(labels: tabs.map(\.label), selection: $sel,
-                          accent: appState.active.theme.accent)
-                .padding(.top, 18)
+                          accent: appState.active.accentEnum)
+                .padding(.top, 20)
                 .padding(.bottom, 4)
 
             let t = tabs[min(sel, tabs.count - 1)]
@@ -31,38 +32,46 @@ struct TabbedModuleScreen: View {
                        permanentDelete: t.permanentDelete)
                 .id(t.id)
         }
+        .onAppear { syncTab() }
+        .onChange(of: appState.active) { _ in syncTab() }
+    }
+
+    private func syncTab() {
+        if let i = tabs.firstIndex(where: { $0.module == appState.active }) { sel = i }
     }
 }
 
 private struct SegmentedTabs: View {
+    @Environment(\.theme) private var theme
     let labels: [String]
     @Binding var selection: Int
-    let accent: Color
+    let accent: Accent
 
     var body: some View {
-        HStack(spacing: 4) {
+        let dark = theme.dark
+        HStack(spacing: 2) {
             ForEach(Array(labels.enumerated()), id: \.offset) { i, label in
                 Button {
-                    selection = i
+                    withAnimation(.easeOut(duration: 0.15)) { selection = i }
                 } label: {
                     Text(label)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(selection == i ? .white : .white.opacity(0.7))
-                        .padding(.horizontal, 16).padding(.vertical, 7)
-                        .background(
-                            Capsule().fill(selection == i ? Color.white.opacity(0.20) : Color.clear)
-                        )
+                        .foregroundColor(selection == i ? accent.onAccent : .text2(dark))
+                        .padding(.horizontal, 18).padding(.vertical, 7)
+                        .background(Capsule().fill(selection == i ? accent.color : Color.clear))
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("tab-\(i)")
             }
         }
-        .padding(4)
-        .background(Capsule().fill(Color.black.opacity(0.22)))
-        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+        .padding(3)
+        .background(Capsule().fill(Color.inset(dark)))
+        .overlay(Capsule().strokeBorder(Color.cardBorder(dark), lineWidth: 1))
     }
 }
 
-// MARK: — CleanMyMac 5 grouped modules
+// MARK: — Grouped modules
 
 struct ApplicationsScreen: View {
     var body: some View {

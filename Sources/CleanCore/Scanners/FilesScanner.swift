@@ -27,7 +27,10 @@ public struct FilesScanner: FileScanner {
         // Merge, de-duplicating by URL so a file that is both large and a
         // duplicate is listed once (keeping the large-file entry) and its
         // size is never double-counted in the module total.
-        var items = largeResult.items
+        // A kept original is never offered for cleaning, even if it is also a
+        // large file: the keeper entry wins over the large-file entry.
+        let keepers = Set(dupResult.items.filter { $0.kind == .keeper }.map(\.url))
+        var items = largeResult.items.filter { !keepers.contains($0.url) }
         let seen = Set(items.map(\.url))
         items.append(contentsOf: dupResult.items.filter { !seen.contains($0.url) })
 

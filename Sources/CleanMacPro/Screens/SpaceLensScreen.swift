@@ -22,56 +22,39 @@ struct SpaceLensScreen: View {
 
     var body: some View {
         let state = appState.state(for: .spaceLens)
-        VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader(
-                kicker: L("Space Lens"),
-                title: L("Où vont tes Go."),
-                subtitle: L("Carte du disque en taille réelle. Survol → détail. Clic → explore le dossier.")
-            ) {
-                if state.isScanning {
-                    Btn(kind: .secondary, icon: "pause", label: L("Annuler")) {
-                        appState.cancelScan(module: .spaceLens)
-                    }
-                } else if state.result == nil || (state.result?.items.isEmpty ?? true) {
-                    Btn(kind: .primary, size: .lg, icon: "scan", label: L("Scanner mon disque")) {
-                        appState.startScan(module: .spaceLens)
-                    }
-                } else {
-                    Btn(kind: .secondary, icon: "scan", label: L("Re-scanner")) {
-                        appState.startScan(module: .spaceLens)
-                    }
-                }
-            }
-            .padding(.horizontal, 28).padding(.top, 20)
-
+        Group {
             if state.isScanning {
-                GlassPanel(radius: 14, padding: 24) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(L("Indexation \(state.status)")).font(.system(size: 13))
-                            .foregroundColor(.text2(theme.dark))
-                        ProgressView(value: state.progress).tint(theme.accent.color)
-                    }
+                ModuleScanning(module: .spaceLens, progress: state.progress, status: state.status) {
+                    appState.cancelScan(module: .spaceLens)
                 }
-                .padding(.horizontal, 28)
             } else if let result = state.result, !result.items.isEmpty {
-                content(items: currentItems.isEmpty && pathStack.isEmpty ? result.items : currentItems)
+                VStack(alignment: .leading, spacing: 0) {
+                    ScreenHeader(
+                        kicker: L("Télescope"),
+                        title: L("Où vont vos Go."),
+                        subtitle: L("Carte du disque en taille réelle. Survol → détail. Clic → explore le dossier.")
+                    ) {
+                        Btn(kind: .secondary, size: .lg, icon: "arrow.clockwise", label: L("Re-scanner")) {
+                            pathStack = []
+                            levelCache = [:]
+                            appState.startScan(module: .spaceLens)
+                        }
+                    }
+                    .padding(.horizontal, 28).padding(.top, 24)
+                    content(items: currentItems.isEmpty && pathStack.isEmpty ? result.items : currentItems)
+                }
+            } else if state.result != nil {
+                EmptyState(symbol: "internaldrive", title: L("Rien à cartographier"),
+                           message: L("Le scan n'a trouvé aucun dossier lisible. Vérifiez l'accès aux fichiers dans Réglages Système."),
+                           accent: .pink, actionLabel: L("Relancer l'analyse")) { appState.startScan(module: .spaceLens) }
             } else {
-                emptyState
+                ModuleIdle(module: .spaceLens,
+                           subtitle: L("Une carte interactive de votre disque : repérez en un coup d'œil les dossiers qui pèsent le plus. Le scan prend quelques secondes.")) {
+                    appState.startScan(module: .spaceLens)
+                }
             }
         }
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 14) {
-            Spacer()
-            CmpIcon(name: "disk", size: 56, color: .text3(theme.dark))
-            Text(L("Lance un scan pour cartographier ton disque"))
-                .font(.system(size: 14)).foregroundColor(.text2(theme.dark))
-            Text(L("Le scan utilise `du` — quelques secondes pour ton dossier utilisateur."))
-                .font(.system(size: 12)).foregroundColor(.text3(theme.dark))
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func content(items: [ScanItem]) -> some View {
@@ -182,14 +165,7 @@ struct SpaceLensScreen: View {
 // MARK: – Treemap
 
 private func paletteColor(_ i: Int) -> Color {
-    let p: [Color] = [
-        .cmpInfo, .cmpViolet, .cmpWarn,
-        Color(red: 255/255, green: 159/255, blue: 10/255),
-        .cmpBad,
-        Color(red: 191/255, green: 90/255, blue: 242/255),
-        Color(red: 0/255, green: 217/255, blue: 163/255),
-        .cmpGood,
-    ]
+    let p: [Color] = [Accent.blue, .violet, .amber, .coral, .mint, .pink, .cyan, .slate].map(\.color)
     return p[i % p.count]
 }
 

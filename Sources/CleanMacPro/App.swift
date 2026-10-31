@@ -70,14 +70,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let pop = NSPopover()
         pop.behavior = .transient
-        pop.contentSize = NSSize(width: 320, height: 500)
+        pop.contentSize = NSSize(width: 360, height: 520)
         pop.contentViewController = NSHostingController(
             rootView: MenuPanelContent()
                 .environmentObject(AppState.shared)
                 .environmentObject(AppState.shared.hostStats)
                 .environmentObject(AppState.shared.background)
                 .environment(\.theme, AppState.shared.theme)
-                .frame(width: 320)
+                .frame(width: 360, height: 520)
         )
 
         statusItem = item

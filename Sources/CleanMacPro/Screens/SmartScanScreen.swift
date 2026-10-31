@@ -1,128 +1,540 @@
 import SwiftUI
 import CleanCore
 
-/// Smart Care — the CleanMyMac 5 home. One glossy hero glyph, a headline, and a
-/// single Scan action that fans out to Cleanup / Files / Protection / Updates /
-/// Privacy in parallel with live per-category progress.
+/// Smart Care: home → analysis → results (one card per area, only what is
+/// ticked and safe gets run) → cleanup running. The measured outcome is shown by
+/// `ResultScreen`.
 struct SmartScanScreen: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Group {
+            switch appState.smartCare.phase {
+            case .home:     SmartCareHome()
+            case .scanning: SmartCareScanning()
+            case .results:  SmartCareResults()
+            case .running:  SmartCareRunning()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.3), value: appState.smartCare.phase)
+        .transition(.opacity)
+    }
+}
+
+// MARK: — Home
+
+private struct SmartCareHome: View {
     @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
 
-    private let categories: [ModuleID] = [.cleanup, .files, .security, .updates, .privacy]
-
-    private var aggregatedProgress: Double {
-        let v = categories.map { appState.state(for: $0).progress }
-        return v.reduce(0, +) / Double(max(v.count, 1))
-    }
-    private var anyScanning: Bool { categories.contains { appState.state(for: $0).isScanning } }
-    private var scanned: Bool { categories.allSatisfy { appState.state(for: $0).result != nil } }
-    private var reclaimable: Int64 {
-        categories.reduce(0) { $0 + (appState.state(for: $1).result?.totalSize ?? 0) }
+    private var firstName: String {
+        let full = NSFullUserName().trimmingCharacters(in: .whitespaces)
+        let first = full.split(separator: " ").first.map(String.init) ?? ""
+        return first.isEmpty ? NSUserName() : first
     }
 
-    private var accent: Color { ModuleID.smartScan.theme.accent }
+    private static let dateFormat: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: L10n.languageCode)
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 12)
-
-            // Hero glyph with progress ring while scanning.
-            ZStack {
-                if anyScanning {
-                    Circle()
-                        .trim(from: 0, to: aggregatedProgress)
-                        .stroke(Color.white.opacity(0.9),
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 250, height: 250)
-                        .animation(.easeOut(duration: 0.4), value: aggregatedProgress)
-                }
-                ModuleGlyph(symbol: "desktopcomputer", size: 200, tint: ModuleID.smartScan.glyphTint)
+        let dark = theme.dark
+        VStack(spacing: 28) {
+            HeroRing(symbol: "checkmark.shield", accent: .mint)
+            VStack(spacing: 10) {
+                Text(L("Bonjour, \(firstName)."))
+                    .font(.system(size: 40, weight: .semibold)).tracking(-0.8)
+                    .foregroundColor(.text1(dark))
+                Text(L("Une analyse rapide passe en revue le nettoyage, la sécurité, les performances et vos applications. Rien n'est supprimé sans votre accord."))
+                    .font(.system(size: 16)).lineSpacing(3)
+                    .foregroundColor(.text2(dark))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 560)
             }
-            .padding(.bottom, 14)
+            HStack(spacing: 10) {
+                chip(appState.lastSmartCareScan.map { L("Dernière analyse : \(Self.dateFormat.string(from: $0))") }
+                     ?? L("Aucune analyse pour l'instant"))
+                chip(L("\(ByteFormatter.string(appState.history.totalFreedBytes)) libérés au total"))
+            }
+            Btn(kind: .primary, size: .xl, label: L("Analyser mon Mac")) { appState.startSmartCare() }
+                .padding(.top, 6)
+                .accessibilityIdentifier("smartcare-analyze")
+        }
+        .padding(48)
+    }
 
-            Text(headline)
-                .font(.system(size: 44, weight: .regular))
-                .tracking(-0.5)
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
+    private func chip(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13)).foregroundColor(.textSoft(theme.dark))
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(Capsule().fill(Color.inset(theme.dark)))
+            .overlay(Capsule().strokeBorder(Color.cardBorder(theme.dark), lineWidth: 1))
+    }
+}
 
-            Text(subline)
-                .font(.system(size: 16))
-                .foregroundColor(.white.opacity(0.72))
-                .multilineTextAlignment(.center)
-                .lineSpacing(2)
-                .padding(.top, 10)
-                .frame(maxWidth: 500)
+// MARK: — Scanning
 
-            // Category chips (only once a scan has run / is running).
-            if anyScanning || scanned {
-                HStack(spacing: 10) {
-                    ForEach(categories, id: \.self) { m in
-                        categoryChip(m)
+private struct SmartCareScanning: View {
+    @Environment(\.theme) private var theme
+    @EnvironmentObject var appState: AppState
+
+    private func label(_ m: ModuleID) -> String {
+        switch m {
+        case .cleanup:     return L("Nettoyage")
+        case .developer:   return L("Développeur")
+        case .files:       return L("Encombrement")
+        case .privacy:     return L("Confidentialité")
+        case .security:    return L("Protection")
+        case .performance: return L("Performances")
+        case .updates:     return L("Applications")
+        default:           return m.railTitle
+        }
+    }
+
+    var body: some View {
+        let dark = theme.dark
+        VStack(spacing: 26) {
+            HeroRing(symbol: "magnifyingglass", accent: .mint, progress: appState.smartCareProgress)
+            VStack(spacing: 8) {
+                Text(L("Analyse en cours…"))
+                    .font(.system(size: 34, weight: .semibold)).tracking(-0.6)
+                    .foregroundColor(.text1(dark))
+                Text(verbatim: "\(Int(appState.smartCareProgress * 100)) %")
+                    .font(.figure(18)).foregroundColor(.text2(dark))
+            }
+            FlowChips(items: AppState.smartCareModules.map { m in
+                let s = appState.state(for: m)
+                return ChipModel(id: m.rawValue, title: label(m), done: s.result != nil && !s.isScanning)
+            })
+            .frame(maxWidth: 620)
+            Btn(kind: .secondary, size: .lg, label: L("Arrêter")) { appState.cancelSmartCare() }
+        }
+        .padding(48)
+    }
+}
+
+private struct ChipModel: Identifiable { let id: String; let title: String; let done: Bool }
+
+private struct FlowChips: View {
+    @Environment(\.theme) private var theme
+    let items: [ChipModel]
+
+    var body: some View {
+        let dark = theme.dark
+        HStack(spacing: 8) {
+            ForEach(items) { it in
+                HStack(spacing: 6) {
+                    Image(systemName: it.done ? "checkmark.circle.fill" : "circle.dotted")
+                        .font(.system(size: 12))
+                        .foregroundColor(it.done ? Accent.mint.color : Color.text3(dark))
+                    Text(it.title).font(.system(size: 12.5, weight: .medium))
+                        .foregroundColor(it.done ? .text1(dark) : .text2(dark))
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Capsule().fill(Color.inset(dark)))
+                .overlay(Capsule().strokeBorder(Color.cardBorder(dark), lineWidth: 1))
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: items.map(\.done))
+    }
+}
+
+// MARK: — Running
+
+private struct SmartCareRunning: View {
+    @Environment(\.theme) private var theme
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        VStack(spacing: 26) {
+            HeroRing(symbol: "sparkles", accent: .mint, progress: appState.smartCare.runProgress)
+            VStack(spacing: 8) {
+                Text(L("Nettoyage en cours…"))
+                    .font(.system(size: 34, weight: .semibold)).tracking(-0.6)
+                    .foregroundColor(.text1(theme.dark))
+                Text(appState.smartCare.runStatus)
+                    .font(.system(size: 15)).foregroundColor(.text2(theme.dark))
+                Text(L("Gardez l'app ouverte : l'espace libéré est mesuré à la fin."))
+                    .font(.system(size: 13)).foregroundColor(.text3(theme.dark))
+                    .padding(.top, 4)
+            }
+        }
+        .padding(48)
+    }
+}
+
+// MARK: — Results
+
+private struct SmartCareResults: View {
+    @Environment(\.theme) private var theme
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        let plan = appState.smartCarePlan
+        let dark = theme.dark
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    header(plan)
+                    Grid(horizontalSpacing: 14, verticalSpacing: 14) {
+                        GridRow {
+                            CleanupCard(plan: plan)
+                            ProtectionCard(plan: plan)
+                        }
+                        GridRow {
+                            PerformanceCard(plan: plan)
+                            ApplicationsCard(plan: plan)
+                        }
+                        GridRow {
+                            ClutterCard(plan: plan).gridCellColumns(2)
+                        }
                     }
                 }
-                .padding(.top, 26)
+                .padding(.horizontal, 40).padding(.top, 36).padding(.bottom, 20)
             }
-
-            Spacer()
-
-            RoundScanButton(label: actionLabel, accent: accent, action: primaryAction)
-                .padding(.bottom, 28)
+            footer(plan)
+                .background(Color.canvas(dark))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 40)
     }
 
-    private var headline: String {
-        if anyScanning { return L("Analyse en cours…") }
-        if scanned { return reclaimable > 0 ? L("\(ByteFormatter.string(reclaimable)) à récupérer") : L("Votre Mac est impeccable.") }
-        return L("Heureux de vous revoir !")
-    }
-    private var subline: String {
-        if anyScanning { return L("Nettoyage, fichiers, protection, mises à jour et confidentialité.") }
-        if scanned { return reclaimable > 0 ? L("Passez en revue puis lancez le nettoyage en un clic.") : L("Rien à nettoyer pour le moment. Revenez plus tard.") }
-        return L("Pour commencer, lancez une analyse rapide et complète de votre Mac.")
-    }
-    private var actionLabel: String {
-        if anyScanning { return L("Arrêter") }
-        if scanned && reclaimable > 0 { return L("Nettoyer") }
-        return L("Analyser")
+    private func attentionPoints(_ p: SmartCarePlan) -> Int {
+        [!p.securityIssues.isEmpty, !p.updates.isEmpty, p.clutterBytes > 0, !p.performanceTasks.isEmpty]
+            .filter { $0 }.count
     }
 
-    private func primaryAction() {
-        if anyScanning {
-            categories.forEach { appState.cancelScan(module: $0) }
-        } else if scanned && reclaimable > 0 {
-            appState.quickClean()
+    private func header(_ p: SmartCarePlan) -> some View {
+        let points = attentionPoints(p)
+        let bytes = p.regenerableBytes
+        let title: String
+        if bytes > 0 {
+            title = points > 0
+                ? L("\(ByteFormatter.string(bytes)) à libérer, \(points) point(s) à vérifier")
+                : L("\(ByteFormatter.string(bytes)) à libérer")
         } else {
-            categories.forEach { appState.startScan(module: $0) }
+            title = points > 0 ? L("\(points) point(s) à vérifier") : L("Votre Mac est impeccable")
+        }
+        let secs = Int(appState.smartCare.scanSeconds.rounded())
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(L("Analyse terminée · \(secs) s"))
+                .font(.system(size: 13, weight: .semibold)).foregroundColor(Accent.mint.soft)
+            Text(title)
+                .font(.system(size: 32, weight: .semibold)).tracking(-0.6)
+                .foregroundColor(.text1(theme.dark))
+            Text(L("Seuls les éléments cochés seront traités. Vos fichiers personnels ne sont jamais inclus sans revue."))
+                .font(.system(size: 15)).foregroundColor(.text2(theme.dark))
         }
     }
 
-    private func categoryChip(_ m: ModuleID) -> some View {
-        let s = appState.state(for: m)
-        let done = s.result != nil && !s.isScanning
-        return VStack(spacing: 7) {
-            ZStack {
-                ModuleGlyph(symbol: m.symbol, size: 40, tint: m.glyphTint)
-                if s.isScanning {
-                    Circle().trim(from: 0, to: s.progress)
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 46, height: 46)
-                } else if done {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                        .background(Circle().fill(m.glyphTint[1]).frame(width: 15, height: 15))
-                        .offset(x: 16, y: -16)
+    private func footer(_ p: SmartCarePlan) -> some View {
+        let dark = theme.dark
+        let permanent = p.runnablePermanentBytes
+        let toTrash = p.runnableTrashBytes
+        let installs = appState.smartCare.includeUpdates ? p.installableUpdates.count : 0
+        var parts: [String] = []
+        if permanent > 0 { parts.append(L("libérer \(ByteFormatter.string(permanent))")) }
+        if toTrash > 0 { parts.append(L("mettre \(ByteFormatter.string(toTrash)) à la Corbeille")) }
+        if installs > 0 { parts.append(L("installer \(installs) mise(s) à jour")) }
+        let summary = parts.isEmpty ? L("Rien de coché pour l'instant") : L("Prévu : ") + parts.joined(separator: " · ")
+        let canRun = p.hasWork || installs > 0
+        return HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary).font(.system(size: 14, weight: .semibold)).foregroundColor(.text1(dark))
+                if let d = appState.disk, permanent > 0 {
+                    Text(L("Espace libre avant : \(ByteFormatter.string(d.freeBytes)) · après (estimé) : \(ByteFormatter.string(d.freeBytes + permanent))"))
+                        .font(.system(size: 12.5)).foregroundColor(.text2(dark))
+                } else if let d = appState.disk {
+                    Text(L("Espace libre : \(ByteFormatter.string(d.freeBytes))"))
+                        .font(.system(size: 12.5)).foregroundColor(.text2(dark))
                 }
             }
-            Text(m.railTitle)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.75))
+            Spacer()
+            Btn(kind: .ghost, size: .lg, label: L("Nouvelle analyse")) { appState.resetSmartCare() }
+            Btn(kind: .primary, size: .lg, label: L("Lancer")) { appState.runSmartCare() }
+                .disabled(!canRun)
+                .accessibilityIdentifier("smartcare-run")
         }
-        .frame(width: 78)
+        .padding(.horizontal, 18).padding(.vertical, 14)
+        .cardSurface(dark: dark)
+        .padding(.horizontal, 40).padding(.bottom, 22).padding(.top, 4)
+    }
+}
+
+// MARK: — Cards
+
+/// Shared card chrome: icon tile, title, trailing control, big figure, text, link.
+private struct CareCard<Trailing: View, Extra: View>: View {
+    @Environment(\.theme) private var theme
+    let category: SmartCareCategory
+    let accent: Accent
+    let symbol: String
+    var big: String
+    var text: String
+    var linkLabel: String = L("Revoir les détails →")
+    var border: Color? = nil
+    var dashed: Bool = false
+    let onReview: () -> Void
+    @ViewBuilder var trailing: () -> Trailing
+    @ViewBuilder var extra: () -> Extra
+
+    var body: some View {
+        let dark = theme.dark
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                IconChip(symbol: symbol, accent: accent, size: 34)
+                Text(category.title).font(.system(size: 17, weight: .semibold)).foregroundColor(.text1(dark))
+                Spacer(minLength: 8)
+                trailing()
+            }
+            Text(big).font(.figure(28, .bold)).tracking(-0.4).foregroundColor(.text1(dark))
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Text(text).font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(4)
+            extra()
+            Spacer(minLength: 0)
+            Button(action: onReview) {
+                Text(linkLabel).font(.system(size: 13.5, weight: .semibold)).foregroundColor(accent.soft)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("review-\(category.rawValue)")
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .cardSurface(dark: dark, border: border, dashed: dashed)
+    }
+}
+
+private struct IncludeToggle: View {
+    @Environment(\.theme) private var theme
+    @Binding var isOn: Bool
+    var mixed = false
+    var accent: Accent
+    var label: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label).font(.system(size: 13)).foregroundColor(.textSoft(theme.dark))
+            CmpCheckbox(isOn: $isOn, mixed: mixed, accent: accent.color, label: label)
+        }
+    }
+}
+
+private struct CleanupCard: View {
+    @Environment(\.theme) private var theme
+    @EnvironmentObject var appState: AppState
+    let plan: SmartCarePlan
+
+    private var included: Binding<Bool> {
+        Binding(get: { plan.selectedRegenerableBytes > 0 },
+                set: { appState.setCleanupIncluded($0) })
+    }
+
+    private var partial: Bool {
+        plan.selectedRegenerableBytes > 0 && plan.selectedRegenerableBytes < plan.regenerableBytes
+    }
+
+    private var detail: String {
+        var parts: [String] = []
+        let cache = plan.regenerableBytes(kind: .cache, module: .cleanup)
+        let temp = plan.regenerableBytes(kind: .tempFile, module: .cleanup)
+        let logs = plan.regenerableBytes(kind: .log, module: .cleanup)
+        if cache > 0 { parts.append(L("caches des apps \(ByteFormatter.string(cache))")) }
+        if temp > 0 { parts.append(L("fichiers temporaires \(ByteFormatter.string(temp))")) }
+        if logs > 0 { parts.append(L("journaux \(ByteFormatter.string(logs))")) }
+        if plan.developerCacheBytes > 0 { parts.append(L("caches développeur \(ByteFormatter.string(plan.developerCacheBytes))")) }
+        if parts.isEmpty { return L("Aucun cache, journal ni fichier temporaire à supprimer.") }
+        let list = parts.joined(separator: " · ")
+        return list.prefix(1).uppercased() + list.dropFirst() + ". " + L("Supprimés définitivement, ils se recréent si besoin.")
+    }
+
+    var body: some View {
+        let on = plan.selectedRegenerableBytes > 0
+        CareCard(category: .cleanup, accent: .mint, symbol: "sparkles",
+                 big: plan.regenerableBytes > 0 ? ByteFormatter.string(plan.regenerableBytes) : L("Rien à nettoyer"),
+                 text: partial ? detail + " " + L("Sélectionné : \(ByteFormatter.string(plan.selectedRegenerableBytes)).") : detail,
+                 border: on ? Accent.mint.color : nil,
+                 onReview: { appState.review(.cleanup) },
+                 trailing: {
+                     if plan.regenerableBytes > 0 {
+                         IncludeToggle(isOn: included, mixed: partial, accent: .mint, label: L("Inclure"))
+                     } else {
+                         StatusPill(status: .good, text: L("Impeccable"))
+                     }
+                 },
+                 extra: {
+                     VStack(alignment: .leading, spacing: 6) {
+                         if plan.trashBytes > 0 {
+                             HStack(spacing: 8) {
+                                 CmpCheckbox(isOn: Binding(get: { plan.trashSelected },
+                                                           set: { appState.setTrashIncluded($0) }),
+                                             accent: Accent.mint.color, label: L("Vider aussi la Corbeille"))
+                                 Text(L("Vider aussi la Corbeille (\(ByteFormatter.string(plan.trashBytes))) — irréversible"))
+                                     .font(.system(size: 12.5)).foregroundColor(.textSoft(theme.dark))
+                             }
+                         }
+                         if plan.developerCacheBytes > 0 {
+                             Button { appState.review(.developer) } label: {
+                                 Text(L("Voir les caches développeur →"))
+                                     .font(.system(size: 12.5, weight: .medium)).foregroundColor(Accent.mint.soft)
+                             }.buttonStyle(.plain)
+                         }
+                     }
+                 })
+    }
+}
+
+private struct ProtectionCard: View {
+    @EnvironmentObject var appState: AppState
+    let plan: SmartCarePlan
+
+    private var text: String {
+        var out: [String] = []
+        let issues = plan.securityIssues
+        if !issues.isEmpty {
+            out.append(issues.prefix(3).map { "\($0.name) : \($0.detail ?? "")" }.joined(separator: " · ") + ".")
+        }
+        let ok = (appState.state(for: .security).result?.items ?? [])
+            .filter { $0.kind == .securityFinding && $0.severity == .good && $0.group != L("Menaces") }
+            .map(\.name)
+        if !ok.isEmpty { out.append(L("\(ok.joined(separator: ", ")) : en ordre.")) }
+        if appState.state(for: .security).result == nil { return L("Analyse de sécurité indisponible.") }
+        return out.joined(separator: " ")
+    }
+
+    var body: some View {
+        let threats = plan.threats.count
+        let settings = plan.settingsToCheck.count
+        CareCard(category: .protection, accent: .blue, symbol: "shield.lefthalf.filled",
+                 big: settings > 0 ? L("\(settings) réglage(s)") : (threats > 0 ? L("\(threats) menace(s)") : L("Tout est en ordre")),
+                 text: text,
+                 onReview: { appState.review(.security) },
+                 trailing: {
+                     if threats > 0 { StatusPill(status: .bad, text: L("\(threats) menace(s)")) }
+                     else { StatusPill(status: .info, text: L("Aucune menace")) }
+                 },
+                 extra: {
+                     if plan.privacyBytes > 0 {
+                         Button { appState.review(.privacy) } label: {
+                             let n = plan.selectedPrivacy.count
+                             Text(n > 0
+                                  ? L("Navigateurs : \(n) élément(s) choisis → Corbeille")
+                                  : L("Données de navigateurs \(ByteFormatter.string(plan.privacyBytes)) — à choisir vous-même →"))
+                                 .font(.system(size: 12.5, weight: .medium)).foregroundColor(Accent.blue.soft)
+                                 .multilineTextAlignment(.leading)
+                         }.buttonStyle(.plain)
+                     }
+                 })
+    }
+}
+
+private struct PerformanceCard: View {
+    @EnvironmentObject var appState: AppState
+    let plan: SmartCarePlan
+
+    var body: some View {
+        let tasks = plan.performanceTasks.filter { $0.kind != .processSnapshot }
+        let names = tasks.prefix(4).map(\.name).joined(separator: ", ")
+        CareCard(category: .performance, accent: .amber, symbol: "bolt.fill",
+                 big: tasks.isEmpty ? L("Tout est fluide") : L("\(tasks.count) tâche(s) recommandée(s)"),
+                 text: tasks.isEmpty
+                     ? L("Aucun élément ne ralentit le démarrage de votre Mac.")
+                     : L("S'ouvrent à chaque démarrage : \(names). Vous pouvez les désactiver depuis le module."),
+                 onReview: { appState.review(.performance) },
+                 trailing: {
+                     if tasks.isEmpty { StatusPill(status: .good, text: L("Rien à faire")) }
+                     else { StatusPill(status: .warn, text: L("À vérifier")) }
+                 },
+                 extra: { EmptyView() })
+    }
+}
+
+private struct ApplicationsCard: View {
+    @EnvironmentObject var appState: AppState
+    let plan: SmartCarePlan
+
+    private func count(_ prefix: String) -> Int { plan.updates.filter { ($0.group ?? "").hasPrefix(prefix) }.count }
+
+    private var text: String {
+        if plan.updates.isEmpty { return L("Toutes vos applications sont à jour.") }
+        var parts: [String] = []
+        let direct = count("Apps · Direct"), store = count("Apps · App Store")
+        let brew = count("Homebrew"), mac = count("macOS")
+        if direct > 0 { parts.append(L("\(direct) app(s) téléchargée(s)")) }
+        if store > 0 { parts.append(L("\(store) app(s) de l'App Store")) }
+        if brew > 0 { parts.append(L("\(brew) paquet(s) Homebrew")) }
+        if mac > 0 { parts.append(L("\(mac) mise(s) à jour macOS")) }
+        var s = parts.joined(separator: " · ") + "."
+        let n = plan.installableUpdates.count
+        if n > 0 { s += " " + L("\(n) peuvent s'installer d'ici (signature vérifiée).") }
+        else { s += " " + L("À installer depuis leur source.") }
+        return s
+    }
+
+    var body: some View {
+        let n = plan.updates.count
+        CareCard(category: .applications, accent: .violet, symbol: "square.grid.2x2.fill",
+                 big: n == 0 ? L("Tout est à jour") : L("\(n) mise(s) à jour"),
+                 text: text,
+                 border: appState.smartCare.includeUpdates && !plan.installableUpdates.isEmpty ? Accent.violet.color : nil,
+                 onReview: { appState.review(.updates) },
+                 trailing: {
+                     if !plan.installableUpdates.isEmpty {
+                         IncludeToggle(isOn: Binding(get: { appState.smartCare.includeUpdates },
+                                                     set: { appState.smartCare.includeUpdates = $0 }),
+                                       accent: .violet, label: L("Mettre à jour"))
+                     } else if n == 0 {
+                         StatusPill(status: .good, text: L("À jour"))
+                     } else {
+                         StatusPill(status: .neutral, text: L("Manuel"))
+                     }
+                 },
+                 extra: { EmptyView() })
+    }
+}
+
+private struct ClutterCard: View {
+    @Environment(\.theme) private var theme
+    @EnvironmentObject var appState: AppState
+    let plan: SmartCarePlan
+
+    var body: some View {
+        let sel = plan.selectedClutter
+        let selBytes = sel.reduce(0) { $0 + $1.size }
+        let dark = theme.dark
+        HStack(alignment: .center, spacing: 18) {
+            IconChip(symbol: "tray.full.fill", accent: .coral, size: 34)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 12) {
+                    Text(SmartCareCategory.clutter.title).font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.text1(dark))
+                    if sel.isEmpty { StatusPill(status: .neutral, text: L("À revoir vous-même"), dot: false) }
+                    else { StatusPill(status: .warn, text: L("\(sel.count) choisi(s)"), dot: false) }
+                }
+                Text(sel.isEmpty
+                     ? L("Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier.")
+                     : L("\(sel.count) fichier(s) choisis (\(ByteFormatter.string(selBytes))) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer."))
+                    .font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 12)
+            VStack(alignment: .trailing, spacing: 8) {
+                Text(plan.clutterBytes > 0 ? ByteFormatter.string(plan.clutterBytes) : L("Rien"))
+                    .font(.figure(28, .bold)).foregroundColor(.text1(dark))
+                Button { appState.review(.files) } label: {
+                    Text(L("Choisir les fichiers →")).font(.system(size: 13.5, weight: .semibold))
+                        .foregroundColor(Accent.coral.soft)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("review-clutter")
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity)
+        .cardSurface(dark: dark, border: sel.isEmpty ? Color(hex: 0x3A3F4C) : Accent.coral.color, dashed: sel.isEmpty)
     }
 }

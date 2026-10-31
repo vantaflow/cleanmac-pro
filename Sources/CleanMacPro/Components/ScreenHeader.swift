@@ -11,21 +11,27 @@ struct ScreenHeader<Trailing: View>: View {
         HStack(alignment: .bottom, spacing: 24) {
             VStack(alignment: .leading, spacing: 6) {
                 if let kicker {
-                    Text(kicker.uppercased()).font(.system(size: 11, weight: .semibold))
-                        .tracking(1).foregroundColor(.text3(theme.dark))
+                    Text(kicker)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.accent.soft)
                 }
-                Text(title).font(.system(size: 30, weight: .bold))
-                    .tracking(-0.5).foregroundColor(.text1(theme.dark))
+                Text(title)
+                    .font(.system(size: 30, weight: .semibold))
+                    .tracking(-0.4)
+                    .foregroundColor(.text1(theme.dark))
                 if let subtitle {
-                    Text(subtitle).font(.system(size: 14))
+                    Text(subtitle)
+                        .font(.system(size: 14.5))
                         .foregroundColor(.text2(theme.dark))
-                        .frame(maxWidth: 560, alignment: .leading)
+                        .lineSpacing(2)
+                        .frame(maxWidth: 620, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer()
+            Spacer(minLength: 12)
             trailing()
         }
-        .padding(.bottom, 22)
+        .padding(.bottom, 20)
     }
 }
 

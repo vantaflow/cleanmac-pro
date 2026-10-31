@@ -1,10 +1,10 @@
 import SwiftUI
 import CleanCore
 
-/// Immersive CleanMyMac 5-style shell: a per-module colored gradient fills the
-/// whole window, a translucent labeled sidebar sits on the left, and the active
-/// module's screen renders directly on the gradient.
+/// Window shell: graphite canvas, sidebar on the left, the active module's
+/// screen on the right.
 struct RootView: View {
+    @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
 
     var body: some View {
@@ -13,7 +13,7 @@ struct RootView: View {
                 IconRail()
                 ContentPane()
             }
-            .moduleBackground(appState.active.theme)
+            .background(Color.canvas(theme.dark).ignoresSafeArea())
 
             if appState.menubarOpen {
                 MenubarWidget()
@@ -29,7 +29,8 @@ struct RootView: View {
         }
         .animation(.easeOut(duration: 0.22), value: appState.menubarOpen)
         .animation(.easeOut(duration: 0.35), value: appState.showOnboarding)
-        .animation(.easeInOut(duration: 0.35), value: appState.active)
+        .onAppear { appState.refreshDisk() }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in appState.refreshDisk() }
     }
 }
 
@@ -55,31 +56,22 @@ private struct ContentPane: View {
                 SmartScanScreen()
             case .cleanup:
                 ScanScreen(module: .cleanup,
-                           subtitle: L("Nettoyez votre système pour profiter de performances optimales et récupérer de l'espace disque."))
-            case .uninstaller:
+                           subtitle: L("Caches, journaux et fichiers temporaires : tout ce que votre Mac et vos apps recréent tout seuls. Supprimés définitivement, l'espace est libéré tout de suite."))
+            case .uninstaller, .updates:
                 ApplicationsScreen()
             case .files, .similarPhotos:
                 FilesScreen()
             case .developer:
                 ScanScreen(module: .developer,
-                           subtitle: L("Libérez l'espace pris par Xcode, les caches de paquets, les node_modules oubliés, Homebrew et Docker. Les dossiers vont à la Corbeille ; les commandes (brew, docker, simctl) se lancent depuis leur ligne."))
+                           subtitle: L("Libérez l'espace pris par Xcode, les caches de paquets, les node_modules oubliés, Homebrew et Docker. Les caches sont supprimés définitivement ; les commandes (brew, docker, simctl) se lancent depuis leur ligne."))
             case .spaceLens:
                 SpaceLensScreen()
-            case .security:
+            case .security, .privacy:
                 ProtectionScreen()
-            case .privacy:
-                ScanScreen(module: .privacy,
-                           subtitle: L("Données de navigation par navigateur. Sélectionne ce qui peut partir."))
-            case .updates:
-                ScanScreen(module: .updates,
-                           subtitle: L("Homebrew + softwareupdate. Pas de mise à jour automatique — c'est toi qui décides."),
-                           supportsClean: false)
-            case .performance:
+            case .performance, .maintenance:
                 PerformanceScreen()
-            case .maintenance:
-                ScanScreen(module: .maintenance,
-                           subtitle: L("Tâches d'entretien — chaque action est documentée."),
-                           supportsClean: false)
+            case .history:
+                HistoryScreen()
             case .result:
                 ResultScreen()
             }
