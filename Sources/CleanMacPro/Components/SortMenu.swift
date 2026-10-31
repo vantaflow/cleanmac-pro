@@ -37,7 +37,7 @@ struct SortMenu: View {
             .font(.system(size: 13, weight: .semibold))
             .padding(.horizontal, 14).frame(height: 36)
             .background(Capsule().fill(Color.inset(theme.dark)))
-            .overlay(Capsule().strokeBorder(Color.cardBorder(theme.dark), lineWidth: 1))
+            .overlay(Capsule().inset(by: 0.5).stroke(Color.cardBorder(theme.dark), lineWidth: 1))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)

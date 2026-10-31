@@ -371,7 +371,6 @@
 "Fichiers volumineux" = "Large files";
 "Filtrer" = "Filter";
 "Gardez l'app ouverte : l'espace libéré est mesuré à la fin." = "Keep the app open: the freed space is measured at the end.";
-"Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Large files, old files and duplicates in Downloads, Documents and Movies. Never handled by “Run”: you choose file by file.";
 "Impeccable" = "Spotless";
 "Inclure" = "Include";
 "Journaux" = "Logs";
@@ -391,7 +390,6 @@
 "MÉMOIRE" = "MEMORY";
 "Même contenu que « %@ » · %@" = "Same content as “%@” · %@";
 "Navigateurs : %lld élément(s) choisis → Corbeille" = "Browsers: %lld item(s) chosen → Trash";
-"Ne plus proposer…" = "Don't suggest again…";
 "Nettoyage : %@…" = "Cleaning: %@…";
 "Nettoyage en cours…" = "Cleaning…";
 "Nettoyage, sécurité, performances, applications" = "Cleanup, security, performance, apps";
@@ -454,3 +452,4 @@
 "À vérifier" = "To check";
 "… et %lld autres, de plus petite taille. « Tout sélectionner » les inclut." = "… and %lld more, smaller ones. “Select all” includes them.";
 "← Résultats" = "← Results";
+"Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Large files, old files and duplicates. Never handled by “Run”: you choose file by file.";

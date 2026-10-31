@@ -371,7 +371,6 @@
 "Fichiers volumineux" = "Archivos grandes";
 "Filtrer" = "Filtrar";
 "Gardez l'app ouverte : l'espace libéré est mesuré à la fin." = "Mantén la app abierta: el espacio liberado se mide al final.";
-"Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Archivos grandes, antiguos y duplicados en Descargas, Documentos y Películas. «Lanzar» nunca los toca: eliges archivo por archivo.";
 "Impeccable" = "Impecable";
 "Inclure" = "Incluir";
 "Journaux" = "Registros";
@@ -391,7 +390,6 @@
 "MÉMOIRE" = "MEMORIA";
 "Même contenu que « %@ » · %@" = "Mismo contenido que «%@» · %@";
 "Navigateurs : %lld élément(s) choisis → Corbeille" = "Navegadores: %lld elemento(s) elegidos → Papelera";
-"Ne plus proposer…" = "No volver a proponer…";
 "Nettoyage : %@…" = "Limpieza: %@…";
 "Nettoyage en cours…" = "Limpieza en curso…";
 "Nettoyage, sécurité, performances, applications" = "Limpieza, seguridad, rendimiento, aplicaciones";
@@ -454,3 +452,4 @@
 "À vérifier" = "Por revisar";
 "… et %lld autres, de plus petite taille. « Tout sélectionner » les inclut." = "… y %lld más, de menor tamaño. «Seleccionar todo» los incluye.";
 "← Résultats" = "← Resultados";
+"Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Archivos grandes, antiguos y duplicados. «Lanzar» nunca los toca: eliges archivo por archivo.";

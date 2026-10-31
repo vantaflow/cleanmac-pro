@@ -111,7 +111,6 @@ private struct SmartCareScanning: View {
                 let s = appState.state(for: m)
                 return ChipModel(id: m.rawValue, title: label(m), done: s.result != nil && !s.isScanning)
             })
-            .frame(maxWidth: 620)
             Btn(kind: .secondary, size: .lg, label: L("Arrêter")) { appState.cancelSmartCare() }
         }
         .padding(48)
@@ -134,6 +133,7 @@ private struct FlowChips: View {
                         .foregroundColor(it.done ? Accent.mint.color : Color.text3(dark))
                     Text(it.title).font(.system(size: 12.5, weight: .medium))
                         .foregroundColor(it.done ? .text1(dark) : .text2(dark))
+                        .lineLimit(1).fixedSize()
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(Capsule().fill(Color.inset(dark)))
@@ -181,21 +181,21 @@ private struct SmartCareResults: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     header(plan)
-                    Grid(horizontalSpacing: 14, verticalSpacing: 14) {
-                        GridRow {
+                    VStack(spacing: 14) {
+                        HStack(spacing: 14) {
                             CleanupCard(plan: plan)
                             ProtectionCard(plan: plan)
                         }
-                        GridRow {
+                        .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 14) {
                             PerformanceCard(plan: plan)
                             ApplicationsCard(plan: plan)
+                            ClutterCard(plan: plan)
                         }
-                        GridRow {
-                            ClutterCard(plan: plan).gridCellColumns(2)
-                        }
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.horizontal, 40).padding(.top, 36).padding(.bottom, 20)
+                .padding(.horizontal, 40).padding(.top, 30).padding(.bottom, 16)
             }
             footer(plan)
                 .background(Color.canvas(dark))
@@ -275,6 +275,8 @@ private struct CareCard<Trailing: View, Extra: View>: View {
     var big: String
     var text: String
     var linkLabel: String = L("Revoir les détails →")
+    var secondLinkLabel: String? = nil
+    var onSecondLink: (() -> Void)? = nil
     var border: Color? = nil
     var dashed: Bool = false
     let onReview: () -> Void
@@ -297,11 +299,19 @@ private struct CareCard<Trailing: View, Extra: View>: View {
                 .lineLimit(4)
             extra()
             Spacer(minLength: 0)
-            Button(action: onReview) {
-                Text(linkLabel).font(.system(size: 13.5, weight: .semibold)).foregroundColor(accent.soft)
+            HStack(spacing: 16) {
+                Button(action: onReview) {
+                    Text(linkLabel).font(.system(size: 13.5, weight: .semibold)).foregroundColor(accent.soft)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("review-\(category.rawValue)")
+                if let secondLinkLabel, let onSecondLink {
+                    Button(action: onSecondLink) {
+                        Text(secondLinkLabel).font(.system(size: 13.5, weight: .semibold)).foregroundColor(accent.soft)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("review-\(category.rawValue)")
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -357,6 +367,8 @@ private struct CleanupCard: View {
         CareCard(category: .cleanup, accent: .mint, symbol: "sparkles",
                  big: plan.regenerableBytes > 0 ? ByteFormatter.string(plan.regenerableBytes) : L("Rien à nettoyer"),
                  text: partial ? detail + " " + L("Sélectionné : \(ByteFormatter.string(plan.selectedRegenerableBytes)).") : detail,
+                 secondLinkLabel: plan.developerCacheBytes > 0 ? L("Voir les caches développeur →") : nil,
+                 onSecondLink: { appState.review(.developer) },
                  border: on ? Accent.mint.color : nil,
                  onReview: { appState.review(.cleanup) },
                  trailing: {
@@ -376,12 +388,6 @@ private struct CleanupCard: View {
                                  Text(L("Vider aussi la Corbeille (\(ByteFormatter.string(plan.trashBytes))) — irréversible"))
                                      .font(.system(size: 12.5)).foregroundColor(.textSoft(theme.dark))
                              }
-                         }
-                         if plan.developerCacheBytes > 0 {
-                             Button { appState.review(.developer) } label: {
-                                 Text(L("Voir les caches développeur →"))
-                                     .font(.system(size: 12.5, weight: .medium)).foregroundColor(Accent.mint.soft)
-                             }.buttonStyle(.plain)
                          }
                      }
                  })
@@ -498,43 +504,25 @@ private struct ApplicationsCard: View {
 }
 
 private struct ClutterCard: View {
-    @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
     let plan: SmartCarePlan
 
     var body: some View {
         let sel = plan.selectedClutter
         let selBytes = sel.reduce(0) { $0 + $1.size }
-        let dark = theme.dark
-        HStack(alignment: .center, spacing: 18) {
-            IconChip(symbol: "tray.full.fill", accent: .coral, size: 34)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 12) {
-                    Text(SmartCareCategory.clutter.title).font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.text1(dark))
-                    if sel.isEmpty { StatusPill(status: .neutral, text: L("À revoir vous-même"), dot: false) }
-                    else { StatusPill(status: .warn, text: L("\(sel.count) choisi(s)"), dot: false) }
-                }
-                Text(sel.isEmpty
-                     ? L("Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier.")
-                     : L("\(sel.count) fichier(s) choisis (\(ByteFormatter.string(selBytes))) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer."))
-                    .font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 12)
-            VStack(alignment: .trailing, spacing: 8) {
-                Text(plan.clutterBytes > 0 ? ByteFormatter.string(plan.clutterBytes) : L("Rien"))
-                    .font(.figure(28, .bold)).foregroundColor(.text1(dark))
-                Button { appState.review(.files) } label: {
-                    Text(L("Choisir les fichiers →")).font(.system(size: 13.5, weight: .semibold))
-                        .foregroundColor(Accent.coral.soft)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("review-clutter")
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity)
-        .cardSurface(dark: dark, border: sel.isEmpty ? Color(hex: 0x3A3F4C) : Accent.coral.color, dashed: sel.isEmpty)
+        CareCard(category: .clutter, accent: .coral, symbol: "tray.full.fill",
+                 big: plan.clutterBytes > 0 ? ByteFormatter.string(plan.clutterBytes) : L("Rien"),
+                 text: sel.isEmpty
+                     ? L("Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier.")
+                     : L("\(sel.count) fichier(s) choisis (\(ByteFormatter.string(selBytes))) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer."),
+                 linkLabel: L("Choisir les fichiers →"),
+                 border: sel.isEmpty ? Color(hex: 0x3A3F4C) : Accent.coral.color,
+                 dashed: sel.isEmpty,
+                 onReview: { appState.review(.files) },
+                 trailing: {
+                     if sel.isEmpty { StatusPill(status: .neutral, text: L("À revoir vous-même"), dot: false) }
+                     else { StatusPill(status: .warn, text: L("\(sel.count) choisi(s)"), dot: false) }
+                 },
+                 extra: { EmptyView() })
     }
 }

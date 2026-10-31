@@ -371,7 +371,6 @@
 "Fichiers volumineux" = "Fichiers volumineux";
 "Filtrer" = "Filtrer";
 "Gardez l'app ouverte : l'espace libéré est mesuré à la fin." = "Gardez l'app ouverte : l'espace libéré est mesuré à la fin.";
-"Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Gros fichiers, anciens fichiers et doublons dans Téléchargements, Documents et Vidéos. Jamais traités par « Lancer » : vous choisissez fichier par fichier.";
 "Impeccable" = "Impeccable";
 "Inclure" = "Inclure";
 "Journaux" = "Journaux";
@@ -391,7 +390,6 @@
 "MÉMOIRE" = "MÉMOIRE";
 "Même contenu que « %@ » · %@" = "Même contenu que « %@ » · %@";
 "Navigateurs : %lld élément(s) choisis → Corbeille" = "Navigateurs : %lld élément(s) choisis → Corbeille";
-"Ne plus proposer…" = "Ne plus proposer…";
 "Nettoyage : %@…" = "Nettoyage : %@…";
 "Nettoyage en cours…" = "Nettoyage en cours…";
 "Nettoyage, sécurité, performances, applications" = "Nettoyage, sécurité, performances, applications";
@@ -454,3 +452,4 @@
 "À vérifier" = "À vérifier";
 "… et %lld autres, de plus petite taille. « Tout sélectionner » les inclut." = "… et %lld autres, de plus petite taille. « Tout sélectionner » les inclut.";
 "← Résultats" = "← Résultats";
+"Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier." = "Gros fichiers, anciens fichiers et doublons. Jamais traités par « Lancer » : vous choisissez fichier par fichier.";

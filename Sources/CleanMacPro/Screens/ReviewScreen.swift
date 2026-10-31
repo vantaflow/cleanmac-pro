@@ -154,18 +154,18 @@ struct ReviewView: View {
             (state.result?.items ?? []).filter { $0.kind == .keeper }.compactMap { k in k.group.map { ($0, k) } },
             uniquingKeysWith: { a, _ in a })
         return VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center, spacing: 12) {
                     Text(cat.title).font(.system(size: 26, weight: .semibold)).tracking(-0.3)
-                        .foregroundColor(.text1(dark))
-                    Text(cat.policyNote).font(.system(size: 13.5)).foregroundColor(.text2(dark))
-                        .fixedSize(horizontal: false, vertical: true)
+                        .foregroundColor(.text1(dark)).lineLimit(1)
+                    Spacer(minLength: 8)
+                    SearchField()
+                    SortMenu(module: module)
                 }
-                Spacer(minLength: 8)
-                SearchField()
-                SortMenu(module: module)
+                Text(cat.policyNote).font(.system(size: 13.5)).foregroundColor(.text2(dark))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 28).padding(.top, 26).padding(.bottom, 14)
+            .padding(.horizontal, 28).padding(.top, 24).padding(.bottom, 14)
 
             if state.lastMeasure != nil {
                 Banner(symbol: "checkmark.circle.fill", text: state.status, accent: Accent.mint.color)
@@ -192,9 +192,9 @@ struct ReviewView: View {
             HStack(spacing: 12) {
                 (Text(ByteFormatter.string(selectedBytes)).fontWeight(.semibold).foregroundColor(.text1(dark))
                  + Text(L(" sélectionnés sur \(ByteFormatter.string(totalBytes))")).foregroundColor(.text2(dark)))
-                    .font(.system(size: 13.5))
-                Spacer()
-                Btn(kind: .secondary, size: .lg, label: L("Ne plus proposer…")) {
+                    .font(.system(size: 13.5)).lineLimit(2)
+                Spacer(minLength: 8)
+                Btn(kind: .secondary, size: .lg, label: L("Ne plus proposer")) {
                     selectedItems.forEach { appState.exclude($0) }
                 }
                 .disabled(selectedItems.isEmpty || state.isCleaning)
@@ -348,6 +348,6 @@ struct SearchField: View {
         }
         .padding(.horizontal, 12).frame(height: 36)
         .background(Capsule().fill(Color.inset(theme.dark)))
-        .overlay(Capsule().strokeBorder(Color.cardBorder(theme.dark), lineWidth: 1))
+        .overlay(Capsule().inset(by: 0.5).stroke(Color.cardBorder(theme.dark), lineWidth: 1))
     }
 }

@@ -13,7 +13,8 @@ struct RootView: View {
                 IconRail()
                 ContentPane()
             }
-            .background(Color.canvas(theme.dark).ignoresSafeArea())
+            .background(Color.canvas(theme.dark))
+            .ignoresSafeArea()
 
             if appState.menubarOpen {
                 MenubarWidget()

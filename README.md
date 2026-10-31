@@ -18,8 +18,9 @@ freemium upsell engines, or opaque tools that delete things you can't see.
 **CleanMac Pro is none of those.**
 
 - **Native** — Swift + SwiftUI, ~4 MB binary, runs cold in under a second.
-- **Transparent** — every byte is shown with its full path before anything moves.
-- **Safe** — cleaning calls `FileManager.trashItem`, never `rm`. Restore is one click.
+- **Transparent** — every byte is shown with its path before anything moves; each row says what will happen to it.
+- **Safe by policy** — regenerable data (caches, logs, temp files, developer caches) is deleted for good, so the space is freed immediately; personal files (large / old files, duplicates, photos) and browser data go to the Trash and can be restored from History. "Smart Care" never touches personal files you did not review.
+- **Honest numbers** — the Result screen shows the free space of the volume measured before and after, not just the sum of file sizes.
 - **Local** — zero network calls outside the optional iTunes Search lookup for App Store updates.
 - **No marketing modals.** Ever.
 
@@ -27,9 +28,8 @@ freemium upsell engines, or opaque tools that delete things you can't see.
 
 | Module          | What it does                                                              |
 |-----------------|---------------------------------------------------------------------------|
-| **Dashboard**   | Health ring · storage sunburst · weekly trend · 9 module shortcuts        |
-| **Smart Scan**  | Runs cleanup + files + security + updates + privacy in parallel           |
-| **Cleanup**     | Caches, logs, trash, temp dirs (`~/Library/Caches`, `~/Library/Logs`, …)  |
+| **Smart Care**  | One analysis (cleanup, developer caches, clutter, browsers, security, performance, updates) → result cards (Nettoyage · Protection · Performances · Applications · Encombrement), each with a tick, a summary and "Revoir" → one big **Lancer** that runs only what is safe and ticked → measured result |
+| **Cleanup**     | Caches (one row per app, real icon), temp files, logs, system caches, Trash — deleted permanently (`~/Library/Caches`, `~/Library/Logs`, …) |
 | **Uninstaller** | Apps + residues across `~/Library/Application Support`, Caches, Containers|
 | **Files**       | Large files (≥ 50 MB) + old files (> 180 d) + SHA-256-verified duplicates |
 | **Similar photos** | Files tab: perceptual dHash (64-bit, BK-tree) groups near-identical photos, keeps the best, trashes the rest |
@@ -40,11 +40,11 @@ freemium upsell engines, or opaque tools that delete things you can't see.
 | **Updates**     | App Store via iTunes Search API · Homebrew formulae + casks · macOS softwareupdate|
 | **Performance** | Login items, LaunchAgents, top RAM consumers — disable from the row        |
 | **Maintenance** | 6 real macOS maintenance commands with native admin prompts                |
-| **Result**      | Mega-number recap, breakdown, confetti                                     |
+| **Result**      | Space really freed (volume free space before → after), permanent vs Trash breakdown, failures |
+| **History**     | Every cleanup; "Restaurer" only for what went to the Trash                  |
 | **Settings**     | Scheduled scans (LaunchAgent, daily/weekly + time) · exclusions (paths, apps; right-click "Ne plus proposer") · cleanup history with one-click restore from the Trash |
 
-Plus: floating **Quick Clean** FAB (⌘⇧K), **menu bar widget** with live
-CPU/RAM/Disk meters, **onboarding** with explicit "what we touch / what we
+Plus: **menu bar panel** (live CPU/RAM/disk, run Smart Care, empty the Trash, scheduled scan), **onboarding** with explicit "what we touch / what we
 don't" transparency screen.
 
 ## Architecture
@@ -53,11 +53,13 @@ don't" transparency screen.
 Sources/
 ├── CleanCore/                # Library — pure, no UI deps
 │   ├── Models.swift          # ScanItem, ScanResult, ModuleID, Severity
-│   ├── Scanner.swift         # FileScanner protocol + Cleaner
+│   ├── Scanner.swift         # FileScanner protocol + Cleaner (policy-aware: permanent vs Trash)
+│   ├── SmartCare.swift       # SmartCarePlan: default selection + what "Lancer" may run
+│   ├── DiskSpace.swift       # free-space snapshots + SpaceMeasure (before / after)
 │   ├── FileSystem.swift      # FS enumeration + ByteFormatter
 │   ├── Shell.swift           # Run system CLIs with timeout
 │   └── Scanners/
-│       ├── CleanupScanner.swift       # caches/logs/trash
+│       ├── CleanupScanner.swift       # caches/logs/temp/trash, one row per app folder
 │       ├── LargeFilesScanner.swift
 │       ├── DuplicatesScanner.swift    # size group + SHA-256
 │       ├── AppUninstaller.swift
@@ -72,11 +74,13 @@ Sources/
 │   ├── App.swift
 │   ├── AppState.swift
 │   ├── DashboardView.swift   # RootView, MainPane
-│   ├── Theme/Tokens.swift    # 4 accents, dark mode, wallpapers
-│   ├── Components/           # GlassPanel, Ring, Sunburst, ModuleCard, MiniStat,
-│   │                         # WeeklyTrend, CategoryRow, SortMenu, ScreenHeader, …
-│   ├── Shell/                # Sidebar, Toolbar, QuickCleanFAB, MenubarWidget, Onboarding
-│   └── Screens/              # Dashboard, SmartScan, ScanScreen (generic), SpaceLens, Result
+│   ├── Theme/Tokens.swift    # design system: palette (canvas, card, border, text), category accents,
+│   │                         # spacing / radius scale, card surface
+│   ├── Components/           # Btn (pill), CmpCheckbox, IconChip, HeroRing, EmptyState, Banner,
+│   │                         # real app / file icons (AppIdentity), SortMenu, ScreenHeader, …
+│   ├── Shell/                # Sidebar (IconRail), MenuBarPanel, Onboarding, Settings, UITestDriver
+│   └── Screens/              # SmartScan (home → results cards → run), ReviewScreen (two-pane review),
+│                             # ScanScreen (generic), Result, History, SpaceLens
 │
 └── CleanMacProSmoke/         # Standalone runner — exercises scanners with no XCTest
 ```
@@ -126,7 +130,7 @@ open Package.swift
 swift run CleanMacProSmoke   # 8 checks against fixture trees
 ```
 
-The CI `ui` job launches the built `.app` with `--ui-test` (skips onboarding, captures every screen to PNG + `report.json`; nothing is deleted).
+The CI `ui` job launches the built `.app` with `--ui-test`: it skips onboarding, captures every screen to PNG + `report.json`, and drives Smart Care end to end on a throw-away fixture tree (analyse → review → tick → **Lancer** → checks on disk: caches gone for good, unreviewed personal files untouched, Trash move restorable). It only ever touches its own fixtures.
 
 XCTest tests live in `Tests/CleanCoreTests/` — they run when you have a full
 Xcode install (Command Line Tools alone can't import `XCTest`).
@@ -150,7 +154,7 @@ Some modules need extra macOS permissions to be fully useful:
 
 | Module       | Permission                              | Effect if missing                       |
 |--------------|------------------------------------------|------------------------------------------|
-| Cleanup      | (none)                                  | Skips unreadable system caches silently  |
+| Cleanup      | (none)                                  | Skips unreadable system caches silently; root-owned ones ask for admin once |
 | Files / Space Lens | **Files and Folders** or Full Disk Access | Some folders show as empty       |
 | Privacy      | Full Disk Access                        | Safari history/cookies invisible         |
 | Performance  | Automation (System Events)              | Login items list is empty                |
