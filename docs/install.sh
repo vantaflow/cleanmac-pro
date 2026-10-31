@@ -28,7 +28,13 @@ else
     api="https://api.github.com/repos/$REPO/releases/latest"
 fi
 say "Recherche de la release…"
-url="$(curl -fsSL "$api" | grep -o '"browser_download_url": *"[^"]*\.zip"' | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')"
+# A token (optional) lifts the 60 requests/hour anonymous API limit.
+if [[ -n "${GH_TOKEN:-}" ]]; then
+    json="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "$api")"
+else
+    json="$(curl -fsSL "$api")"
+fi
+url="$(printf '%s' "$json" | grep -o '"browser_download_url": *"[^"]*\.zip"' | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')"
 [[ -n "$url" ]] || fail "aucun .zip trouvé dans la release ($api)."
 
 tmp="$(mktemp -d)"
