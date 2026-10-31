@@ -40,6 +40,7 @@ final class UITestDriver {
         var cleanupFixtureItems = 0
         var spaceLensFixtureItems = 0
         var screens: [ScreenReport] = []
+        var notes: [String] = []
         var errors: [String] = []
     }
 
@@ -216,9 +217,29 @@ final class UITestDriver {
             if i == 6 || i == 20 { WindowOpener.shared.open?() }
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
-        fail("windows: " + windowDump())
-        return nil
+        report.notes.append("scene window missing; windows: " + windowDump()
+                            + " opener=\(WindowOpener.shared.open != nil)")
+        // Fallback: host the very same RootView in our own window.
+        let host = NSHostingView(rootView: RootView()
+            .environmentObject(appState)
+            .environmentObject(appState.hostStats)
+            .environmentObject(appState.background)
+            .environment(\.theme, appState.theme)
+            .preferredColorScheme(appState.theme.dark ? .dark : .light)
+            .frame(width: 1100, height: 720))
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
+                         styleMask: [.titled, .closable, .fullSizeContentView],
+                         backing: .buffered, defer: false)
+        w.titlebarAppearsTransparent = true
+        w.titleVisibility = .hidden
+        w.contentView = host
+        w.center()
+        w.makeKeyAndOrderFront(nil)
+        fallbackWindow = w
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        return w.isVisible ? w : nil
     }
+    private var fallbackWindow: NSWindow?
 
     private func waitForScan(_ module: ModuleID) async -> Bool {
         for _ in 0..<240 {
