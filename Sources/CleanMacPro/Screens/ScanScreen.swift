@@ -233,6 +233,7 @@ private struct ResultsListing: View {
             }
             .padding(.horizontal, 28).padding(.bottom, 80)
         }
+        .accessibilityIdentifier("results-listing-\(module.rawValue)")
     }
 }
 

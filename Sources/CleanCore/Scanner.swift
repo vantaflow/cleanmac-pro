@@ -11,6 +11,13 @@ public struct CleanReport: Hashable {
     public let failedItems: [URL]
     /// Original path -> Trash path for each item moved to the Trash (history / restore).
     public var trashed: [TrashRecord] = []
+
+    public init(removedCount: Int, freedBytes: Int64, failedItems: [URL], trashed: [TrashRecord] = []) {
+        self.removedCount = removedCount
+        self.freedBytes = freedBytes
+        self.failedItems = failedItems
+        self.trashed = trashed
+    }
 }
 
 public enum Cleaner {

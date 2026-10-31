@@ -25,13 +25,19 @@ final class AppLifecycle {
 /// lifetime of the process — it never vanishes when the window closes.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
+    static weak var current: AppDelegate?
+    private(set) var statusItem: NSStatusItem?
+    private(set) var popover: NSPopover?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(AppState.shared.background.menuBarOnly ? .accessory : .regular)
+        AppDelegate.current = self
         setupStatusItem()
-        AppState.shared.background.activate()
+        if UITestDriver.isEnabled {
+            UITestDriver.shared.start()   // CI UI test mode: no background agent
+        } else {
+            AppState.shared.background.activate()
+        }
     }
 
     // Closing the window must NOT quit the app — it stays alive in the menu bar.
@@ -141,7 +147,7 @@ struct CleanMacProApp: App {
                 .environment(\.theme, appState.theme)
                 .preferredColorScheme(appState.theme.dark ? .dark : .light)
                 .frame(minWidth: 1100, minHeight: 720)
-                .onAppear { appState.background.activate() }
+                .onAppear { if !UITestDriver.isEnabled { appState.background.activate() } }
                 .background(WindowOpenerBridge())
         }
         .windowStyle(.hiddenTitleBar)

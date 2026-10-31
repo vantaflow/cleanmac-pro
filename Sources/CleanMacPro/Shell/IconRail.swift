@@ -186,6 +186,7 @@ private struct SidebarRow: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("nav-\(module?.rawValue ?? "assistant")")
         .onHover { hover = $0 }
     }
 }
