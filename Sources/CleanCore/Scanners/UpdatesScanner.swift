@@ -32,9 +32,11 @@ public struct UpdatesScanner: FileScanner {
         let url: URL
         let name: String
         let version: String
+        let build: String
         let bundleID: String
         let isMAS: Bool
         let isSparkle: Bool
+        let feedURL: URL?
     }
 
     private func discoverApps() -> [AppInfo] {
@@ -56,13 +58,16 @@ public struct UpdatesScanner: FileScanner {
                     ?? (plist["CFBundleName"] as? String)
                     ?? entry.deletingPathExtension().lastPathComponent
                 let version = (plist["CFBundleShortVersionString"] as? String) ?? "?"
+                let build = (plist["CFBundleVersion"] as? String) ?? ""
                 let bundleID = (plist["CFBundleIdentifier"] as? String) ?? ""
                 let masPath = entry.appendingPathComponent("Contents/_MASReceipt").path
                 let sparklePath = entry.appendingPathComponent("Contents/Frameworks/Sparkle.framework").path
+                let feedURL = (plist["SUFeedURL"] as? String).flatMap(URL.init(string:))
                 apps.append(AppInfo(
-                    url: entry, name: name, version: version, bundleID: bundleID,
+                    url: entry, name: name, version: version, build: build, bundleID: bundleID,
                     isMAS: FileManager.default.fileExists(atPath: masPath),
-                    isSparkle: FileManager.default.fileExists(atPath: sparklePath)
+                    isSparkle: FileManager.default.fileExists(atPath: sparklePath) || feedURL != nil,
+                    feedURL: feedURL
                 ))
             }
         }
@@ -71,17 +76,17 @@ public struct UpdatesScanner: FileScanner {
 
     /// Compares "1.2.3" style versions. Returns true if `latest` > `current`.
     private func isNewer(latest: String, than current: String) -> Bool {
-        func ints(_ s: String) -> [Int] {
-            s.split { !$0.isNumber }.map { Int($0) ?? 0 }
-        }
-        let l = ints(latest), c = ints(current)
-        for i in 0..<max(l.count, c.count) {
-            let li = i < l.count ? l[i] : 0
-            let ci = i < c.count ? c[i] : 0
-            if li > ci { return true }
-            if li < ci { return false }
-        }
-        return false
+        SparkleAppcast.isNewer(latest, than: current)
+    }
+
+    /// Downloads and parses a Sparkle appcast. Network with 4s timeout.
+    private func sparkleLatest(feedURL: URL) async -> SparkleRelease? {
+        var req = URLRequest(url: feedURL, timeoutInterval: 4)
+        req.setValue("CleanMacPro/2", forHTTPHeaderField: "User-Agent")
+        guard let (data, response) = try? await URLSession.shared.data(for: req),
+              ((response as? HTTPURLResponse)?.statusCode ?? 200) < 400
+        else { return nil }
+        return SparkleAppcast.latest(from: data)
     }
 
     /// Calls iTunes Search API for an MAS app's latest version. Network with 4s timeout.
@@ -161,7 +166,39 @@ public struct UpdatesScanner: FileScanner {
             }
         }
 
-        // Sparkle / direct apps: we don't fetch feeds (slow + flaky).
+        // Sparkle apps: read the appcast declared in SUFeedURL.
+        if app.isSparkle, let feed = app.feedURL {
+            if let latest = await sparkleLatest(feedURL: feed) {
+                let hasUpdate = SparkleAppcast.hasUpdate(latest, shortVersion: app.version, build: app.build)
+                return ScanItem(
+                    url: app.url,
+                    size: FS.size(of: app.url),
+                    modified: FS.modified(of: app.url),
+                    kind: .updateAvailable,
+                    group: "Apps · \(channel)",
+                    title: hasUpdate ? "\(app.name) — v\(app.version) → v\(latest.displayVersion)"
+                                     : "\(app.name) — v\(app.version)",
+                    detail: hasUpdate ? "Mise à jour disponible · ouvre l'app pour l'installer" : "À jour",
+                    severity: hasUpdate ? .warn : .good,
+                    command: hasUpdate ? "open -a \"\(app.url.path)\"" : nil,
+                    needsAdmin: false
+                )
+            }
+            return ScanItem(
+                url: app.url,
+                size: FS.size(of: app.url),
+                modified: FS.modified(of: app.url),
+                kind: .updateAvailable,
+                group: "Apps · \(channel)",
+                title: "\(app.name) — v\(app.version)",
+                detail: "Flux Sparkle injoignable · vérification dans l'app",
+                severity: .info,
+                command: "open -a \"\(app.url.path)\"",
+                needsAdmin: false
+            )
+        }
+
+        // Direct apps without a feed: nothing to compare against.
         return ScanItem(
             url: app.url,
             size: FS.size(of: app.url),
