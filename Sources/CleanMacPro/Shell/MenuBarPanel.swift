@@ -140,7 +140,7 @@ struct MenuPanelContent: View {
                         .foregroundColor(.white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
-                Text("v 2.0.0").font(.system(size: 10.5)).opacity(0.4)
+                Text("v " + ((Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "dev")).font(.system(size: 10.5)).opacity(0.4)
             }
             .padding(.top, 4)
         }
