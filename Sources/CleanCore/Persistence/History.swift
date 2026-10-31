@@ -69,7 +69,7 @@ public struct RestoreOutcome: Equatable, Sendable {
         if !destinationTaken.isEmpty { parts.append(L("\(destinationTaken.count) non restauré(s) : l'emplacement d'origine est déjà occupé")) }
         if !failed.isEmpty { parts.append(L("\(failed.count) échec(s)")) }
         if parts.isEmpty && permanentlyDeleted > 0 {
-            return L("\(permanentlyDeleted) élément(s) supprimé(s) définitivement : rien à restaurer")
+            return L("\(Int(permanentlyDeleted)) élément(s) supprimé(s) définitivement : rien à restaurer")
         }
         return parts.isEmpty ? L("Rien à restaurer") : parts.joined(separator: " · ")
     }

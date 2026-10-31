@@ -162,7 +162,7 @@ private struct HistorySettings: View {
                             Text(L("\(Self.dateFormat.string(from: e.date)) · \(e.itemCount) élément(s) · \(ByteFormatter.string(e.freedBytes))"))
                                 .font(.caption).foregroundStyle(.secondary)
                             if e.permanentCount > 0 {
-                                Text(L("\(e.permanentCount) supprimé(s) définitivement : non restaurable(s)"))
+                                Text(L("\(Int(e.permanentCount)) supprimé(s) définitivement : non restaurable(s)"))
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }

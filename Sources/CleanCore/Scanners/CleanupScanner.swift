@@ -102,7 +102,7 @@ public struct CleanupScanner: FileScanner {
                     items.append(ScanItem(
                         url: child, size: size, modified: modified, kind: target.kind,
                         group: target.group,
-                        detail: count == 1 ? L("1 fichier") : L("\(count) fichiers"),
+                        detail: count == 1 ? L("1 fichier") : L("\(Int(count)) fichiers"),
                         fileCount: count))
                 } else if v?.isRegularFile == true {
                     let size = FS.size(of: child)

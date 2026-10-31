@@ -89,7 +89,7 @@ struct ResultScreen: View {
             }
             if o.updatesInstalled + o.updatesManual + o.updatesFailed > 0 {
                 Banner(symbol: "arrow.down.circle.fill",
-                       text: L("Mises à jour : \(o.updatesInstalled) installée(s), \(o.updatesManual) à faire à la main, \(o.updatesFailed) en échec."),
+                       text: L("Mises à jour : \(Int(o.updatesInstalled)) installée(s), \(Int(o.updatesManual)) à faire à la main, \(Int(o.updatesFailed)) en échec."),
                        accent: Accent.violet.color)
             }
         }
@@ -121,8 +121,8 @@ struct ResultScreen: View {
 
     private func policyLine(_ r: CleanReport) -> String {
         var parts: [String] = []
-        if r.permanentCount > 0 { parts.append(L("\(r.permanentCount) supprimé(s) définitivement")) }
-        if r.trashedCount > 0 { parts.append(L("\(r.trashedCount) envoyé(s) à la Corbeille")) }
+        if r.permanentCount > 0 { parts.append(L("\(Int(r.permanentCount)) supprimé(s) définitivement")) }
+        if r.trashedCount > 0 { parts.append(L("\(Int(r.trashedCount)) envoyé(s) à la Corbeille")) }
         return parts.joined(separator: " · ")
     }
 }

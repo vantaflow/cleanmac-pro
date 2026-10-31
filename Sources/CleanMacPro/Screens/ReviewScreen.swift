@@ -14,7 +14,7 @@ struct ReviewCategory: Identifiable {
     /// Short line under the title ("38 607 fichiers").
     var subtitle: String {
         let files = items.reduce(0) { $0 + ($1.fileCount ?? 1) }
-        return files == 1 ? L("1 fichier") : L("\(files) fichiers")
+        return files == 1 ? L("1 fichier") : L("\(Int(files)) fichiers")
     }
 
     /// What will happen to the selected rows of this category.
@@ -179,7 +179,7 @@ struct ReviewView: View {
                         Divider().overlay(Color.rowLine(dark))
                     }
                     if sorted.count > limit {
-                        Text(L("… et \(sorted.count - limit) autres, de plus petite taille. « Tout sélectionner » les inclut."))
+                        Text(L("… et \(Int(sorted.count - limit)) autres, de plus petite taille. « Tout sélectionner » les inclut."))
                             .font(.system(size: 12.5)).foregroundColor(.text3(dark))
                             .padding(16)
                     }
@@ -299,7 +299,7 @@ struct ReviewRow: View {
             }
             Spacer(minLength: 8)
             if let n = item.fileCount, n > 1 {
-                Text(L("\(n) fichiers")).font(.system(size: 12)).foregroundColor(.text2(dark))
+                Text(L("\(Int(n)) fichiers")).font(.system(size: 12)).foregroundColor(.text2(dark))
             }
             Text(ByteFormatter.string(item.size)).font(.figure(14))
                 .foregroundColor(.text1(dark)).frame(width: 84, alignment: .trailing)

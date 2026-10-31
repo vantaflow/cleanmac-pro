@@ -58,9 +58,9 @@ struct HistoryScreen: View {
 
     private func policy(_ e: HistoryEntry) -> String {
         var parts: [String] = []
-        if e.permanentCount > 0 { parts.append(L("\(e.permanentCount) supprimé(s) définitivement")) }
+        if e.permanentCount > 0 { parts.append(L("\(Int(e.permanentCount)) supprimé(s) définitivement")) }
         let t = e.itemCount - e.permanentCount
-        if t > 0 { parts.append(L("\(t) dans la Corbeille")) }
+        if t > 0 { parts.append(L("\(Int(t)) dans la Corbeille")) }
         return parts.joined(separator: " · ")
     }
 

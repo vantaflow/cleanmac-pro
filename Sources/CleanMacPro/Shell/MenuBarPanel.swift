@@ -89,7 +89,7 @@ struct MenuPanelContent: View {
                     }
                 }
                 if hasPlan && updatesCount > 0 {
-                    MenuAction(title: L("\(updatesCount) mise(s) à jour"), sub: L("Voir les applications à mettre à jour"), trailing: "›") {
+                    MenuAction(title: L("\(Int(updatesCount)) mise(s) à jour"), sub: L("Voir les applications à mettre à jour"), trailing: "›") {
                         openMain()
                         appState.review(.updates)
                     }

@@ -213,14 +213,14 @@ private struct SmartCareResults: View {
         let title: String
         if bytes > 0 {
             title = points > 0
-                ? L("\(ByteFormatter.string(bytes)) à libérer, \(points) point(s) à vérifier")
+                ? L("\(ByteFormatter.string(bytes)) à libérer, \(Int(points)) point(s) à vérifier")
                 : L("\(ByteFormatter.string(bytes)) à libérer")
         } else {
-            title = points > 0 ? L("\(points) point(s) à vérifier") : L("Votre Mac est impeccable")
+            title = points > 0 ? L("\(Int(points)) point(s) à vérifier") : L("Votre Mac est impeccable")
         }
         let secs = Int(appState.smartCare.scanSeconds.rounded())
         return VStack(alignment: .leading, spacing: 6) {
-            Text(L("Analyse terminée · \(secs) s"))
+            Text(L("Analyse terminée · \(Int(secs)) s"))
                 .font(.system(size: 13, weight: .semibold)).foregroundColor(Accent.mint.soft)
             Text(title)
                 .font(.system(size: 32, weight: .semibold)).tracking(-0.6)
@@ -238,7 +238,7 @@ private struct SmartCareResults: View {
         var parts: [String] = []
         if permanent > 0 { parts.append(L("libérer \(ByteFormatter.string(permanent))")) }
         if toTrash > 0 { parts.append(L("mettre \(ByteFormatter.string(toTrash)) à la Corbeille")) }
-        if installs > 0 { parts.append(L("installer \(installs) mise(s) à jour")) }
+        if installs > 0 { parts.append(L("installer \(Int(installs)) mise(s) à jour")) }
         let summary = parts.isEmpty ? L("Rien de coché pour l'instant") : L("Prévu : ") + parts.joined(separator: " · ")
         let canRun = p.hasWork || installs > 0
         return HStack(spacing: 16) {
@@ -410,11 +410,11 @@ private struct ProtectionCard: View {
         let threats = plan.threats.count
         let settings = plan.settingsToCheck.count
         CareCard(category: .protection, accent: .blue, symbol: "shield.lefthalf.filled",
-                 big: settings > 0 ? L("\(settings) réglage(s)") : (threats > 0 ? L("\(threats) menace(s)") : L("Tout est en ordre")),
+                 big: settings > 0 ? L("\(Int(settings)) réglage(s)") : (threats > 0 ? L("\(Int(threats)) menace(s)") : L("Tout est en ordre")),
                  text: text,
                  onReview: { appState.review(.security) },
                  trailing: {
-                     if threats > 0 { StatusPill(status: .bad, text: L("\(threats) menace(s)")) }
+                     if threats > 0 { StatusPill(status: .bad, text: L("\(Int(threats)) menace(s)")) }
                      else { StatusPill(status: .info, text: L("Aucune menace")) }
                  },
                  extra: {
@@ -422,7 +422,7 @@ private struct ProtectionCard: View {
                          Button { appState.review(.privacy) } label: {
                              let n = plan.selectedPrivacy.count
                              Text(n > 0
-                                  ? L("Navigateurs : \(n) élément(s) choisis → Corbeille")
+                                  ? L("Navigateurs : \(Int(n)) élément(s) choisis → Corbeille")
                                   : L("Données de navigateurs \(ByteFormatter.string(plan.privacyBytes)) — à choisir vous-même →"))
                                  .font(.system(size: 12.5, weight: .medium)).foregroundColor(Accent.blue.soft)
                                  .multilineTextAlignment(.leading)
@@ -464,13 +464,13 @@ private struct ApplicationsCard: View {
         var parts: [String] = []
         let direct = count("Apps · Direct"), store = count("Apps · App Store")
         let brew = count("Homebrew"), mac = count("macOS")
-        if direct > 0 { parts.append(L("\(direct) app(s) téléchargée(s)")) }
-        if store > 0 { parts.append(L("\(store) app(s) de l'App Store")) }
-        if brew > 0 { parts.append(L("\(brew) paquet(s) Homebrew")) }
-        if mac > 0 { parts.append(L("\(mac) mise(s) à jour macOS")) }
+        if direct > 0 { parts.append(L("\(Int(direct)) app(s) téléchargée(s)")) }
+        if store > 0 { parts.append(L("\(Int(store)) app(s) de l'App Store")) }
+        if brew > 0 { parts.append(L("\(Int(brew)) paquet(s) Homebrew")) }
+        if mac > 0 { parts.append(L("\(Int(mac)) mise(s) à jour macOS")) }
         var s = parts.joined(separator: " · ") + "."
         let n = plan.installableUpdates.count
-        if n > 0 { s += " " + L("\(n) peuvent s'installer d'ici (signature vérifiée).") }
+        if n > 0 { s += " " + L("\(Int(n)) peuvent s'installer d'ici (signature vérifiée).") }
         else { s += " " + L("À installer depuis leur source.") }
         return s
     }
@@ -478,7 +478,7 @@ private struct ApplicationsCard: View {
     var body: some View {
         let n = plan.updates.count
         CareCard(category: .applications, accent: .violet, symbol: "square.grid.2x2.fill",
-                 big: n == 0 ? L("Tout est à jour") : L("\(n) mise(s) à jour"),
+                 big: n == 0 ? L("Tout est à jour") : L("\(Int(n)) mise(s) à jour"),
                  text: text,
                  border: appState.smartCare.includeUpdates && !plan.installableUpdates.isEmpty ? Accent.violet.color : nil,
                  onReview: { appState.review(.updates) },
