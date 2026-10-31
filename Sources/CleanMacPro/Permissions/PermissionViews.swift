@@ -147,8 +147,9 @@ struct PermissionBanner: View {
             .foregroundColor(.white)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Capsule().fill(Color.black.opacity(0.28)))
-            .overlay(Capsule().stroke(Color.cmpWarn.opacity(0.5), lineWidth: 0.8))
-            .padding(.horizontal, 28).padding(.top, 12)
+            .overlay(Capsule().strokeBorder(Color.cmpWarn.opacity(0.5), lineWidth: 0.8))
+            .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 6)
+            .zIndex(1)
             .transition(.opacity)
         }
     }

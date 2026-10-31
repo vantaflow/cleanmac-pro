@@ -618,10 +618,10 @@ struct Fixture {
                 }
                 return [
                     f("FileVault", L("Activé — disque chiffré"), .good),
-                    f("Gatekeeper", "Activé", .good),
-                    f("SIP", "Activé", .good),
-                    f("Pare-feu", "Désactivé", .warn),
-                    f("XProtect", "À jour", .good),
+                    f("Gatekeeper", L("Activé"), .good),
+                    f("SIP", L("Activé"), .good),
+                    f(L("Pare-feu"), L("Désactivé"), .warn),
+                    f("XProtect", L("À jour"), .good),
                     f(L("Aucune menace connue détectée"), "", .good, L("Menaces")),
                 ]
             },

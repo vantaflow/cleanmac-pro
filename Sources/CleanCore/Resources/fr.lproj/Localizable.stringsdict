@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld élément(s) restauré(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément restauré</string>
+			<key>other</key>
+			<string>%lld éléments restaurés</string>
+		</dict>
+	</dict>
+	<key>%lld introuvable(s) dans la Corbeille (déjà vidée ?)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld introuvable dans la Corbeille (déjà vidée ?)</string>
+			<key>other</key>
+			<string>%lld introuvables dans la Corbeille (déjà vidée ?)</string>
+		</dict>
+	</dict>
+	<key>%lld non restauré(s) : l'emplacement d'origine est déjà occupé</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld non restauré : l'emplacement d'origine est déjà occupé</string>
+			<key>other</key>
+			<string>%lld non restaurés : les emplacements d'origine sont déjà occupés</string>
+		</dict>
+	</dict>
+	<key>%lld échec(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld échec</string>
+			<key>other</key>
+			<string>%lld échecs</string>
+		</dict>
+	</dict>
+	<key>Supprimer %lld simulateur(s) indisponible(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Supprimer %lld simulateur indisponible</string>
+			<key>other</key>
+			<string>Supprimer %lld simulateurs indisponibles</string>
+		</dict>
+	</dict>
+	<key>%@ · %lld élément(s) · %@</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%@ · %#@n@ · %@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément</string>
+			<key>other</key>
+			<string>%lld éléments</string>
+		</dict>
+	</dict>
+	<key>%@ à libérer, %lld point(s) à vérifier</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%@ à libérer, %#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld point à vérifier</string>
+			<key>other</key>
+			<string>%lld points à vérifier</string>
+		</dict>
+	</dict>
+	<key>%lld app(s) de l'App Store</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld app de l'App Store</string>
+			<key>other</key>
+			<string>%lld apps de l'App Store</string>
+		</dict>
+	</dict>
+	<key>%lld app(s) téléchargée(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld app téléchargée</string>
+			<key>other</key>
+			<string>%lld apps téléchargées</string>
+		</dict>
+	</dict>
+	<key>%lld choisi(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld choisi</string>
+			<key>other</key>
+			<string>%lld choisis</string>
+		</dict>
+	</dict>
+	<key>%lld envoyé(s) à la Corbeille</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld envoyé à la Corbeille</string>
+			<key>other</key>
+			<string>%lld envoyés à la Corbeille</string>
+		</dict>
+	</dict>
+	<key>%lld fichier(s) choisis (%@) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld fichier choisi (%@) ira à la Corbeille avec « Lancer » : vous pourrez le restaurer.</string>
+			<key>other</key>
+			<string>%lld fichiers choisis (%@) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer.</string>
+		</dict>
+	</dict>
+	<key>%lld menace(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld menace</string>
+			<key>other</key>
+			<string>%lld menaces</string>
+		</dict>
+	</dict>
+	<key>%lld mise(s) à jour macOS</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld mise à jour macOS</string>
+			<key>other</key>
+			<string>%lld mises à jour macOS</string>
+		</dict>
+	</dict>
+	<key>%lld mise(s) à jour</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld mise à jour</string>
+			<key>other</key>
+			<string>%lld mises à jour</string>
+		</dict>
+	</dict>
+	<key>%lld paquet(s) Homebrew</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld paquet Homebrew</string>
+			<key>other</key>
+			<string>%lld paquets Homebrew</string>
+		</dict>
+	</dict>
+	<key>%lld point(s) à vérifier</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld point à vérifier</string>
+			<key>other</key>
+			<string>%lld points à vérifier</string>
+		</dict>
+	</dict>
+	<key>%lld réglage(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld réglage</string>
+			<key>other</key>
+			<string>%lld réglages</string>
+		</dict>
+	</dict>
+	<key>%lld supprimé(s) définitivement : non restaurable(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld supprimé définitivement : non restaurable</string>
+			<key>other</key>
+			<string>%lld supprimés définitivement : non restaurables</string>
+		</dict>
+	</dict>
+	<key>%lld supprimé(s) définitivement</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld supprimé définitivement</string>
+			<key>other</key>
+			<string>%lld supprimés définitivement</string>
+		</dict>
+	</dict>
+	<key>%lld tâche(s) recommandée(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld tâche recommandée</string>
+			<key>other</key>
+			<string>%lld tâches recommandées</string>
+		</dict>
+	</dict>
+	<key>%lld élément(s) n'ont pas pu être supprimés (protégés par macOS ou en cours d'utilisation).</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément n'a pas pu être supprimé (protégé par macOS ou en cours d'utilisation).</string>
+			<key>other</key>
+			<string>%lld éléments n'ont pas pu être supprimés (protégés par macOS ou en cours d'utilisation).</string>
+		</dict>
+	</dict>
+	<key>%lld élément(s) supprimé(s) définitivement : rien à restaurer</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément supprimé définitivement : rien à restaurer</string>
+			<key>other</key>
+			<string>%lld éléments supprimés définitivement : rien à restaurer</string>
+		</dict>
+	</dict>
+	<key>%lld élément(s) · %@ seront supprimés définitivement. Cette action est irréversible.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément · %@ sera supprimé définitivement. Cette action est irréversible.</string>
+			<key>other</key>
+			<string>%lld éléments · %@ seront supprimés définitivement. Cette action est irréversible.</string>
+		</dict>
+	</dict>
+	<key>Mises à jour : %lld installée(s), %lld à faire à la main, %lld en échec.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Mises à jour : %#@a@, %#@b@, %#@c@.</string>
+		<key>a</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld installée</string>
+			<key>other</key>
+			<string>%lld installées</string>
+		</dict>
+		<key>b</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld à faire à la main</string>
+			<key>other</key>
+			<string>%lld à faire à la main</string>
+		</dict>
+		<key>c</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld en échec</string>
+			<key>other</key>
+			<string>%lld en échec</string>
+		</dict>
+	</dict>
+	<key>Navigateurs : %lld élément(s) choisis → Corbeille</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Navigateurs : %#@n@ → Corbeille</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld élément choisi</string>
+			<key>other</key>
+			<string>%lld éléments choisis</string>
+		</dict>
+	</dict>
+	<key>installer %lld mise(s) à jour</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>installer %lld mise à jour</string>
+			<key>other</key>
+			<string>installer %lld mises à jour</string>
+		</dict>
+	</dict>
+	<key>Impossible de supprimer %lld élément(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@n@</string>
+		<key>n</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Impossible de supprimer %lld élément</string>
+			<key>other</key>
+			<string>Impossible de supprimer %lld éléments</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

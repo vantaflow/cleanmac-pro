@@ -96,4 +96,60 @@ final class LocalizationTests: XCTestCase {
             XCTAssertFalse(m.title.contains("%"), "unresolved format in title of \(m.rawValue)")
         }
     }
+
+    // MARK: - Plurals (Localizable.stringsdict)
+
+    private func plural(_ lang: String, _ value: String.LocalizationValue) throws -> String {
+        let b = try XCTUnwrap(L10n.bundle(for: lang))
+        return String(localized: value, bundle: b, locale: Locale(identifier: lang))
+    }
+
+    func testStringsdictIsShippedInEveryLanguage() throws {
+        for lang in L10n.supportedLanguages {
+            let b = try XCTUnwrap(L10n.bundle(for: lang))
+            XCTAssertNotNil(b.url(forResource: "Localizable", withExtension: "stringsdict"), "\(lang): stringsdict missing from the bundle")
+        }
+    }
+
+    func testPluralsResolveOneAndOtherInEveryLanguage() throws {
+        let one = 1, three = 3
+        XCTAssertEqual(try plural("fr", "\(one) supprimé(s) définitivement"), "1 supprimé définitivement")
+        XCTAssertEqual(try plural("fr", "\(three) supprimé(s) définitivement"), "3 supprimés définitivement")
+        XCTAssertEqual(try plural("fr", "\(one) élément(s) supprimé(s) définitivement : rien à restaurer"), "1 élément supprimé définitivement : rien à restaurer")
+        XCTAssertEqual(try plural("fr", "\(three) élément(s) supprimé(s) définitivement : rien à restaurer"), "3 éléments supprimés définitivement : rien à restaurer")
+        XCTAssertEqual(try plural("en", "\(one) élément(s) restauré(s)"), "1 item restored")
+        XCTAssertEqual(try plural("en", "\(three) élément(s) restauré(s)"), "3 items restored")
+        XCTAssertEqual(try plural("es", "\(one) élément(s) restauré(s)"), "1 elemento restaurado")
+        XCTAssertEqual(try plural("es", "\(three) élément(s) restauré(s)"), "3 elementos restaurados")
+        XCTAssertEqual(try plural("de", "\(one) mise(s) à jour"), "1 Update")
+        XCTAssertEqual(try plural("de", "\(three) mise(s) à jour"), "3 Updates")
+        XCTAssertEqual(try plural("fr", "\(one) mise(s) à jour"), "1 mise à jour")
+        XCTAssertEqual(try plural("fr", "\(three) mise(s) à jour"), "3 mises à jour")
+    }
+
+    func testPluralsWithSeveralArguments() throws {
+        let size = "5 Mo"
+        XCTAssertEqual(try plural("fr", "\(size) · \(1) élément(s) · \(size)"), "5 Mo · 1 élément · 5 Mo")
+        XCTAssertEqual(try plural("en", "\(size) · \(3) élément(s) · \(size)"), "5 Mo · 3 items · 5 Mo")
+        XCTAssertEqual(try plural("fr", "Mises à jour : \(1) installée(s), \(2) à faire à la main, \(3) en échec."),
+                       "Mises à jour : 1 installée, 2 à faire à la main, 3 en échec.")
+        XCTAssertEqual(try plural("fr", "Mises à jour : \(2) installée(s), \(0) à faire à la main, \(1) en échec."),
+                       "Mises à jour : 2 installées, 0 à faire à la main, 1 en échec.")
+        XCTAssertEqual(try plural("es", "Mises à jour : \(1) installée(s), \(2) à faire à la main, \(3) en échec."),
+                       "Actualizaciones: 1 instalada, 2 por hacer a mano, 3 fallidas.")
+        XCTAssertEqual(try plural("fr", "\(1) fichier(s) choisis (\(size)) iront à la Corbeille avec « Lancer » : vous pourrez les restaurer."),
+                       "1 fichier choisi (5 Mo) ira à la Corbeille avec « Lancer » : vous pourrez le restaurer.")
+    }
+
+    func testNoVisibleStringKeepsTheLegacyPluralMarker() throws {
+        for lang in L10n.supportedLanguages {
+            for n in [0, 1, 2, 5] {
+                let values: [String.LocalizationValue] = ["\(n) menace(s)", "\(n) échec(s)", "\(n) mise(s) à jour"]
+                for v in values {
+                    XCTAssertFalse(try plural(lang, v).contains("(s)"), "\(lang) \(n)")
+                    XCTAssertFalse(try plural(lang, v).contains("(e)"), "\(lang) \(n)")
+                }
+            }
+        }
+    }
 }

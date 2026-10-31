@@ -13,6 +13,7 @@ Usage: python3 Tools/check-localization.py   (exit code 1 on any error)
 """
 import glob
 import os
+import plistlib
 import re
 import sys
 
@@ -113,9 +114,64 @@ def specs(s):
     return sorted(re.sub(r'\d+\$', '', m) for m in re.findall(pat, s))
 
 
+def flatten(entry, form):
+    """Expand %#@var@ with the given plural form ('one' / 'other') of each variable."""
+    fmt = entry['NSStringLocalizedFormatKey']
+    def sub(m):
+        var = entry.get(m.group(1))
+        if not isinstance(var, dict) or form not in var:
+            raise KeyError(m.group(1))
+        return var[form]
+    return re.sub(r'%#@(\w+)@', sub, fmt)
+
+
+def parse_stringsdict(lang):
+    path = os.path.join(RES, lang + '.lproj/Localizable.stringsdict')
+    if not os.path.exists(path):
+        errors.append(f'{lang}.lproj: Localizable.stringsdict missing')
+        return {}
+    with open(path, 'rb') as fh:
+        raw = plistlib.load(fh)
+    out = {}
+    for key, entry in raw.items():
+        try:
+            for var, v in entry.items():
+                if var == 'NSStringLocalizedFormatKey':
+                    continue
+                if v.get('NSStringFormatSpecTypeKey') != 'NSStringPluralRuleType':
+                    errors.append(f'{lang}.stringsdict: "{key[:50]}" variable {var} is not a plural rule')
+                for need in ('one', 'other'):
+                    if not str(v.get(need, '')).strip():
+                        errors.append(f'{lang}.stringsdict: "{key[:50]}" variable {var} lacks "{need}"')
+            one, other = flatten(entry, 'one'), flatten(entry, 'other')
+        except KeyError as e:
+            errors.append(f'{lang}.stringsdict: "{key[:50]}" references undefined variable {e}')
+            continue
+        if specs(one) != specs(other):
+            errors.append(f'{lang}.stringsdict: one/other format specifiers differ for "{key[:50]}"')
+        out[key] = {'one': one, 'other': other}
+    return out
+
+
 errors, warnings = [], []
 tables = {l: parse_strings(os.path.join(RES, l + '.lproj/Localizable.strings')) for l in LANGS}
+dicts = {l: parse_stringsdict(l) for l in LANGS}
+for l in LANGS:
+    for k, forms in dicts[l].items():
+        if k in tables[l]:
+            errors.append(f'{l}: "{k[:60]}" is in both Localizable.strings and .stringsdict')
+        tables[l][k] = forms['other']
+        for f in forms.values():
+            if '(s)' in f or '(e)' in f or '(es)' in f:
+                errors.append(f'{l}.stringsdict: legacy plural marker in "{f[:60]}"')
+    for k, v in tables[l].items():
+        if '(s)' in v:
+            errors.append(f'{l}.lproj: "(s)" left in the value of "{k[:60]}": use the stringsdict')
 fr = tables['fr']
+for l in LANGS:
+    for k, forms in dicts[l].items():
+        if k in dicts['fr'] and specs(forms['one']) != specs(dicts['fr'][k]['one']):
+            errors.append(f'{l}.stringsdict: format specifiers differ from fr for "{k[:60]}"')
 
 used = {}
 for path in sorted(glob.glob(os.path.join(ROOT, 'Sources/**/*.swift'), recursive=True)):

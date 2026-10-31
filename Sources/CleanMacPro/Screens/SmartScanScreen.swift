@@ -291,13 +291,14 @@ private struct CareCard<Trailing: View, Extra: View>: View {
             HStack(spacing: 12) {
                 IconChip(symbol: symbol, accent: accent, size: 34)
                 Text(category.title).font(.system(size: 17, weight: .semibold)).foregroundColor(.text1(dark))
-                    .lineLimit(1)
+                    .lineLimit(1).minimumScaleFactor(0.75)
                 Spacer(minLength: 8)
                 if !compact { trailing() }
             }
             if compact { trailing() }
             Text(big).font(.figure(28, .bold)).tracking(-0.4).foregroundColor(.text1(dark))
-                .lineLimit(1).minimumScaleFactor(0.7)
+                .lineLimit(2).minimumScaleFactor(0.6)
+                .fixedSize(horizontal: false, vertical: true)
             Text(text).font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(4)
