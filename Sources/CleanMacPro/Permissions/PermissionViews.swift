@@ -164,6 +164,7 @@ struct PermissionsSettings: View {
             } footer: {
                 Text(L("L'état se met à jour tout seul quand tu reviens dans l'app. Si l'accès complet au disque n'apparaît pas tout de suite, quitte et relance CleanMac Pro. Après une mise à jour, macOS peut te le redemander : l'app est signée sans certificat d'identité stable, il suffit de le réactiver."))
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
             }
         }
         .formStyle(.grouped)
