@@ -189,7 +189,7 @@ final class UITestDriver {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
             w.isReleasedWhenClosed = false
-            w.title = "Réglages"
+            w.title = L("Réglages")
             w.contentView = host
             w.center()
             w.makeKeyAndOrderFront(nil)
