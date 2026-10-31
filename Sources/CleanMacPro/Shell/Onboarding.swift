@@ -48,7 +48,9 @@ struct OnboardingOverlay: View {
                 }
 
                 HStack(spacing: 10) {
-                    if step > 0 {
+                    if step == 2 {
+                        Btn(kind: .ghost, size: .lg, label: L("Plus tard")) { step += 1 }
+                    } else if step > 0 {
                         Btn(kind: .ghost, label: L("Retour")) { step -= 1 }
                     }
                     Btn(kind: .primary, size: .lg,
@@ -74,7 +76,7 @@ struct OnboardingOverlay: View {
                     .foregroundColor(.white.opacity(0.4))
                 }
             }
-            .frame(maxWidth: 520)
+            .frame(maxWidth: step == 2 ? 680 : 520)
             .padding(40)
         }
         .preferredColorScheme(.dark)
@@ -173,30 +175,21 @@ struct OnboardingOverlay: View {
     }
 
     private var permissionsStep: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
-                Image(systemName: "hand.raised").font(.system(size: 34)).foregroundColor(theme.accent.color)
+        VStack(spacing: 22) {
+            VStack(spacing: 10) {
+                Text(L("Laissez CleanMac Pro voir tout votre Mac"))
+                    .font(.system(size: 32, weight: .semibold)).tracking(-0.6)
+                    .foregroundColor(.white)
+                Text(L("macOS protège certains dossiers. Sans ces autorisations, une partie des caches, de l'historique Safari et des restes d'apps reste invisible. Rien ne quitte votre Mac."))
+                    .font(.system(size: 15)).foregroundColor(.white.opacity(0.65))
+                    .frame(maxWidth: 560)
             }
-            Text(L("Trois autorisations, zéro surprise."))
-                .font(.system(size: 26, weight: .bold)).tracking(-0.6)
-                .foregroundColor(.white)
-            Text(L("Je ne demande que ce qui sert, au bon moment. Rien n'est obligatoire et tu peux tout changer plus tard dans les Réglages."))
-                .font(.system(size: 13.5)).foregroundColor(.white.opacity(0.6))
-                .frame(maxWidth: 440)
-            VStack(spacing: 8) {
-                ForEach(PermissionKind.allCases, id: \.self) { kind in
-                    PermissionRow(kind: kind, onDark: true)
-                        .padding(.horizontal, 12)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
+            VStack(spacing: 10) {
+                ForEach(PermissionKind.allCases, id: \.self) { PermissionRow(kind: $0, card: true) }
             }
-            Text(L("Coche CleanMac Pro dans la liste, puis reviens ici : la vérification est automatique."))
-                .font(.system(size: 11.5)).foregroundColor(.white.opacity(0.45))
+            Text(L("Le bouton ouvre le bon panneau des Réglages Système. Revenez ici : la coche apparaît toute seule."))
+                .font(.system(size: 12.5)).foregroundColor(.white.opacity(0.5))
+                .frame(maxWidth: 520)
         }
         .multilineTextAlignment(.center)
         .onAppear { PermissionCenter.shared.refresh() }

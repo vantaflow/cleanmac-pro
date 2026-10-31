@@ -6,14 +6,14 @@ extension PermissionKind {
         switch self {
         case .fullDiskAccess: return L("Accès complet au disque")
         case .notifications:  return L("Notifications")
-        case .automation:     return L("Automatisation (System Events)")
+        case .automation:     return L("Automatisation (Événements système)")
         }
     }
     var reason: String {
         switch self {
-        case .fullDiskAccess: return L("Pour voir l'historique Safari, Mail et les caches protégés. Sans lui, certains éléments restent invisibles.")
-        case .notifications:  return L("Pour te prévenir quand un scan planifié a trouvé de l'espace à récupérer.")
-        case .automation:     return L("Pour lister les éléments de connexion dans Performances.")
+        case .fullDiskAccess: return L("Caches protégés, Safari, Mail, restes d'apps")
+        case .notifications:  return L("Scans planifiés et apps supprimées détectées")
+        case .automation:     return L("Lister les éléments ouverts au démarrage")
         }
     }
     var symbol: String {
@@ -25,50 +25,99 @@ extension PermissionKind {
     }
 }
 
-/// One line per permission: icon, why, state (green check when granted) and the button
-/// that requests it or opens the right System Settings pane.
+/// Local palette for the permission cards (matches the onboarding mock-up).
+private enum PermPalette {
+    static let card = Color(red: 0x15/255, green: 0x19/255, blue: 0x22/255)
+    static let border = Color(red: 0x23/255, green: 0x27/255, blue: 0x33/255)
+    static let borderGranted = Color(red: 0x1F/255, green: 0x5E/255, blue: 0x54/255)
+    static let accent = Color(red: 0x2B/255, green: 0xC4/255, blue: 0xA9/255)
+    static let accentText = Color(red: 0x7F/255, green: 0xE3/255, blue: 0xD0/255)
+    static let text = Color(red: 0xF2/255, green: 0xF4/255, blue: 0xF8/255)
+    static let muted = Color(red: 0xA9/255, green: 0xB0/255, blue: 0xBE/255)
+    static let pill = Color(red: 0xE8/255, green: 0xEC/255, blue: 0xF3/255)
+    static let ink = Color(red: 0x0D/255, green: 0x0F/255, blue: 0x14/255)
+
+    static func iconBg(_ k: PermissionKind) -> Color {
+        switch k {
+        case .fullDiskAccess: return Color(red: 0x12/255, green: 0x3A/255, blue: 0x35/255)
+        case .notifications:  return Color(red: 0x16/255, green: 0x29/255, blue: 0x4A/255)
+        case .automation:     return Color(red: 0x3A/255, green: 0x2C/255, blue: 0x10/255)
+        }
+    }
+    static func iconFg(_ k: PermissionKind) -> Color {
+        switch k {
+        case .fullDiskAccess: return accent
+        case .notifications:  return Color(red: 0x9E/255, green: 0xC0/255, blue: 0xFF/255)
+        case .automation:     return Color(red: 0xF5/255, green: 0xC4/255, blue: 0x6B/255)
+        }
+    }
+}
+
+/// One permission: icon, why, and either the button that requests it / opens the right
+/// System Settings pane, or a green « Accordé » check. `card` = dark onboarding card style.
 struct PermissionRow: View {
     let kind: PermissionKind
-    var onDark = false
+    var card = false
     @ObservedObject private var center = PermissionCenter.shared
 
     private var status: PermissionStatus { center.status(kind) }
-    private var primary: Color { onDark ? .white : .primary }
-    private var secondary: Color { onDark ? .white.opacity(0.6) : .secondary }
+    private var granted: Bool { status == .granted }
 
     var body: some View {
-        HStack(spacing: 12) {
+        let row = HStack(spacing: 14) {
             Image(systemName: kind.symbol)
-                .font(.system(size: 16))
-                .frame(width: 34, height: 34)
-                .background(Circle().fill(primary.opacity(0.10)))
-                .foregroundColor(primary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(kind.title).font(.system(size: 13, weight: .semibold)).foregroundColor(primary)
-                Text(kind.reason).font(.system(size: 11.5)).foregroundColor(secondary)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: card ? 40 : 34, height: card ? 40 : 34)
+                .background(RoundedRectangle(cornerRadius: 11).fill(card ? PermPalette.iconBg(kind) : Color.primary.opacity(0.10)))
+                .foregroundColor(card ? PermPalette.iconFg(kind) : .primary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(kind.title).font(.system(size: card ? 15 : 13, weight: .semibold))
+                    .foregroundColor(card ? PermPalette.text : .primary)
+                Text(kind.reason).font(.system(size: card ? 13 : 11.5))
+                    .foregroundColor(card ? PermPalette.muted : .secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
-            if status == .granted {
-                Label(L("Accordée"), systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.cmpGood)
+            if granted {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark").font(.system(size: 12, weight: .bold))
+                    Text(L("Accordé")).font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundColor(card ? PermPalette.accentText : .cmpGood)
             } else {
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(status == .denied ? L("Refusée") : L("Pas encore demandée"))
-                        .font(.system(size: 11)).foregroundColor(status == .denied ? .cmpBad : secondary)
-                    Button(buttonLabel) { center.act(on: kind) }
-                        .controlSize(.small)
+                    if status == .denied {
+                        Text(L("Refusée")).font(.system(size: 11)).foregroundColor(.cmpBad)
+                    }
+                    if card {
+                        Button(action: { center.act(on: kind) }) {
+                            Text(buttonLabel)
+                                .font(.system(size: 13.5, weight: .bold))
+                                .padding(.horizontal, 16).frame(height: 38)
+                                .background(Capsule().fill(PermPalette.pill))
+                                .foregroundColor(PermPalette.ink)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button(buttonLabel) { center.act(on: kind) }.controlSize(.small)
+                    }
                 }
             }
         }
-        .padding(.vertical, 6)
+        if card {
+            row.padding(.horizontal, 18).padding(.vertical, 16)
+                .background(RoundedRectangle(cornerRadius: 14).fill(PermPalette.card))
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .stroke(granted ? PermPalette.borderGranted : PermPalette.border, lineWidth: 1))
+        } else {
+            row.padding(.vertical, 6)
+        }
     }
 
     private var buttonLabel: String {
         switch (kind, status) {
         case (.notifications, .notDetermined), (.automation, .notDetermined): return L("Autoriser")
-        default: return L("Ouvrir les Réglages Système")
+        default: return L("Ouvrir les Réglages")
         }
     }
 }

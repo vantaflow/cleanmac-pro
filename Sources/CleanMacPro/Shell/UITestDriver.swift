@@ -208,7 +208,7 @@ final class UITestDriver {
         for (id, file, size, root) in [
             ("settings-permissions", "screen-settings-permissions.png", NSSize(width: 560, height: 420),
              AnyView(SettingsView(initialTab: .permissions).environmentObject(appState).environment(\.theme, appState.theme))),
-            ("onboarding-permissions", "screen-onboarding-permissions.png", NSSize(width: 900, height: 720),
+            ("onboarding-permissions", "screen-onboarding-permissions.png", NSSize(width: 1000, height: 800),
              AnyView(OnboardingOverlay(initialStep: 2).environmentObject(appState).environment(\.theme, appState.theme))),
         ] {
             let w = NSWindow(contentRect: NSRect(origin: .zero, size: size),
