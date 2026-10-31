@@ -129,7 +129,7 @@ Some modules need extra macOS permissions to be fully useful:
 ## Roadmap
 
 - [ ] Notarized signed distribution
-- [x] Sparkle feed checks for direct-download apps
+- [x] Sparkle feed checks for direct-download apps, with in-place update (zip/dmg, codesign + EdDSA verified)
 - [ ] Optional Claude API integration for the AI assistant overlay
 - [ ] Schedule scans via LaunchAgent
 - [ ] Locales: EN / ES / DE / DE

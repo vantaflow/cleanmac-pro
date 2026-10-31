@@ -4,17 +4,24 @@ import FoundationXML
 #endif
 
 /// A release advertised by a Sparkle appcast feed (`SUFeedURL`).
-public struct SparkleRelease: Equatable {
+public struct SparkleRelease: Equatable, Hashable {
     /// `sparkle:shortVersionString` — the marketing version ("2.4.1").
     public let shortVersion: String?
     /// `sparkle:version` — the build number Sparkle compares to `CFBundleVersion`.
     public let build: String?
     public let downloadURL: URL?
+    /// `sparkle:edSignature` (base64 EdDSA signature of the archive), when provided.
+    public let edSignature: String?
+    /// Archive size in bytes (`length` attribute), when provided.
+    public let length: Int64?
 
-    public init(shortVersion: String?, build: String?, downloadURL: URL?) {
+    public init(shortVersion: String?, build: String?, downloadURL: URL?,
+                edSignature: String? = nil, length: Int64? = nil) {
         self.shortVersion = shortVersion
         self.build = build
         self.downloadURL = downloadURL
+        self.edSignature = edSignature
+        self.length = length
     }
 
     public var displayVersion: String { shortVersion ?? build ?? "?" }
@@ -42,7 +49,8 @@ public enum SparkleAppcast {
             return item.build != nil || item.shortVersion != nil
         }
         return candidates
-            .map { SparkleRelease(shortVersion: $0.shortVersion, build: $0.build, downloadURL: $0.url) }
+            .map { SparkleRelease(shortVersion: $0.shortVersion, build: $0.build, downloadURL: $0.url,
+                                        edSignature: $0.edSignature, length: $0.length) }
             .max { a, b in isNewer(sortKey(b), than: sortKey(a)) }
     }
 
@@ -83,6 +91,8 @@ private final class AppcastDelegate: NSObject, XMLParserDelegate {
         var shortVersion: String?
         var build: String?
         var url: URL?
+        var edSignature: String?
+        var length: Int64?
         var channel: String?
         var minimumSystemVersion: String?
     }
@@ -104,6 +114,8 @@ private final class AppcastDelegate: NSObject, XMLParserDelegate {
                 current?.shortVersion = v
             }
             if let u = attributes["url"] { current?.url = URL(string: u) }
+            if let sig = attributes["sparkle:edSignature"], !sig.isEmpty { current?.edSignature = sig }
+            if let l = attributes["length"], let n = Int64(l) { current?.length = n }
         default:
             break
         }

@@ -178,10 +178,11 @@ public struct UpdatesScanner: FileScanner {
                     group: "Apps · \(channel)",
                     title: hasUpdate ? "\(app.name) — v\(app.version) → v\(latest.displayVersion)"
                                      : "\(app.name) — v\(app.version)",
-                    detail: hasUpdate ? "Mise à jour disponible · ouvre l'app pour l'installer" : "À jour",
+                    detail: hasUpdate ? "Mise à jour disponible · installation automatique possible" : "À jour",
                     severity: hasUpdate ? .warn : .good,
                     command: hasUpdate ? "open -a \"\(app.url.path)\"" : nil,
-                    needsAdmin: false
+                    needsAdmin: false,
+                    sparkleRelease: hasUpdate ? latest : nil
                 )
             }
             return ScanItem(

@@ -286,7 +286,8 @@ private struct ItemRow: View {
                 Btn(kind: .secondary, size: .sm,
                     icon: item.needsAdmin ? "lock" : "play",
                     label: runLabel) {
-                    appState.runMaintenance(item: item)
+                    if item.sparkleRelease != nil { appState.installSparkleUpdate(item: item) }
+                    else { appState.runMaintenance(item: item) }
                 }
                 .padding(.trailing, 8)
             }
