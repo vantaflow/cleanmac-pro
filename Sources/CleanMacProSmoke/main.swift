@@ -119,6 +119,14 @@ func runLiveSparkleChecks() async {
                             "\(name) compared against its appcast (got: \(item.detail ?? ""))")
             }
         }
+        // `CLEANMAC_EXPECT_UPDATE` names apps made outdated on purpose: they must be flagged.
+        let outdated = (ProcessInfo.processInfo.environment["CLEANMAC_EXPECT_UPDATE"] ?? "")
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        for name in outdated where !name.isEmpty {
+            let item = sparkle.first { ($0.title ?? "").hasPrefix(name) }
+            Smoke.check(item?.severity == .warn && (item?.title ?? "").contains("→"),
+                        "\(name) flagged as outdated (got: \(item?.title ?? "absent"))")
+        }
     } catch {
         Smoke.failures.append("✗ UpdatesScanner threw: \(error)")
     }

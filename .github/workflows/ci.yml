@@ -22,3 +22,12 @@ jobs:
         run: |
           brew install --cask iterm2 rectangle
           swift run CleanMacProSmoke
+      - name: Live Sparkle check (outdated app)
+        env:
+          CLEANMAC_LIVE: "1"
+          CLEANMAC_EXPECT_UPDATE: "Rectangle"
+        run: |
+          plist=/Applications/Rectangle.app/Contents/Info.plist
+          plutil -replace CFBundleShortVersionString -string 1.0 "$plist"
+          plutil -replace CFBundleVersion -string 1 "$plist"
+          swift run CleanMacProSmoke
