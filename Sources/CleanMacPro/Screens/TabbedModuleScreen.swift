@@ -115,6 +115,8 @@ struct PerformanceScreen: View {
                   subtitle: L("Tâches d'entretien — chaque action est documentée."),
                   supportsClean: false)
         ])
+        // Login items need System Events: ask only now that the user opened Performances.
+        .onAppear { if !UITestDriver.isEnabled { PermissionCenter.shared.requestAutomationIfNeeded() } }
     }
 }
 

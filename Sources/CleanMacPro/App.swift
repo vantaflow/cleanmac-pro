@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(AppState.shared.background.menuBarOnly ? .accessory : .regular)
         AppDelegate.current = self
         setupStatusItem()
+        PermissionCenter.shared.start()   // silent probe + re-check on app activation; never prompts
         if UITestDriver.isEnabled {
             UITestDriver.shared.start()   // CI UI test mode: no background agent
         } else {

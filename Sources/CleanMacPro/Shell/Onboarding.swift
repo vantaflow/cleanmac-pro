@@ -4,7 +4,10 @@ import CleanCore
 struct OnboardingOverlay: View {
     @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
-    @State private var step: Int = 0
+    @State private var step: Int
+    private let lastStep = 3
+
+    init(initialStep: Int = 0) { _step = State(initialValue: initialStep) }
 
     var body: some View {
         ZStack {
@@ -27,6 +30,7 @@ struct OnboardingOverlay: View {
                     switch step {
                     case 0: welcomeStep
                     case 1: transparencyStep
+                    case 2: permissionsStep
                     default: readyStep
                     }
                 }
@@ -35,7 +39,7 @@ struct OnboardingOverlay: View {
 
                 // Stepper dots
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
+                    ForEach(0..<4) { i in
                         Capsule()
                             .fill(i <= step ? theme.accent.color : Color.white.opacity(0.2))
                             .frame(width: i == step ? 24 : 6, height: 6)
@@ -44,14 +48,16 @@ struct OnboardingOverlay: View {
                 }
 
                 HStack(spacing: 10) {
-                    if step > 0 {
+                    if step == 2 {
+                        Btn(kind: .ghost, size: .lg, label: L("Plus tard")) { step += 1 }
+                    } else if step > 0 {
                         Btn(kind: .ghost, label: L("Retour")) { step -= 1 }
                     }
                     Btn(kind: .primary, size: .lg,
-                        icon: step == 2 ? "scan" : nil,
+                        icon: step == lastStep ? "scan" : nil,
                         label: step == 0 ? L("Continuer") : step == 1 ? L("C'est noté")
-                                                                   : L("Lancer le premier scan")) {
-                        if step < 2 { step += 1 }
+                             : step == 2 ? L("Continuer") : L("Lancer le premier scan")) {
+                        if step < lastStep { step += 1 }
                         else {
                             appState.dismissOnboarding()
                             appState.active = .smartScan
@@ -61,7 +67,7 @@ struct OnboardingOverlay: View {
                     }
                 }
 
-                if step < 2 {
+                if step < lastStep {
                     Button(L("Passer l'intro")) {
                         appState.dismissOnboarding()
                     }
@@ -70,7 +76,7 @@ struct OnboardingOverlay: View {
                     .foregroundColor(.white.opacity(0.4))
                 }
             }
-            .frame(maxWidth: 520)
+            .frame(maxWidth: step == 2 ? 680 : 520)
             .padding(40)
         }
         .preferredColorScheme(.dark)
@@ -166,6 +172,27 @@ struct OnboardingOverlay: View {
             }
         }
         .multilineTextAlignment(.center)
+    }
+
+    private var permissionsStep: some View {
+        VStack(spacing: 22) {
+            VStack(spacing: 10) {
+                Text(L("Laissez CleanMac Pro voir tout votre Mac"))
+                    .font(.system(size: 32, weight: .semibold)).tracking(-0.6)
+                    .foregroundColor(.white)
+                Text(L("macOS protège certains dossiers. Sans ces autorisations, une partie des caches, de l'historique Safari et des restes d'apps reste invisible. Rien ne quitte votre Mac."))
+                    .font(.system(size: 15)).foregroundColor(.white.opacity(0.65))
+                    .frame(maxWidth: 560)
+            }
+            VStack(spacing: 10) {
+                ForEach(PermissionKind.allCases, id: \.self) { PermissionRow(kind: $0, card: true) }
+            }
+            Text(L("Le bouton ouvre le bon panneau des Réglages Système. Revenez ici : la coche apparaît toute seule."))
+                .font(.system(size: 12.5)).foregroundColor(.white.opacity(0.5))
+                .frame(maxWidth: 520)
+        }
+        .multilineTextAlignment(.center)
+        .onAppear { PermissionCenter.shared.refresh() }
     }
 
     private var readyStep: some View {

@@ -160,6 +160,22 @@ Some modules need extra macOS permissions to be fully useful:
 | Performance  | Automation (System Events)              | Login items list is empty                |
 | Maintenance  | Native admin prompt at run time          | sudo tasks fail otherwise                |
 
+CleanMac Pro has a built-in permission center: an onboarding step, a **Permissions**
+tab in Settings (⌘,) and a discreet banner in Privacy / Cleanup / Files when Full Disk
+Access is missing. Detection never shows a system dialog: Full Disk Access is probed by
+trying to read a TCC-protected file (`~/Library/Safari/Bookmarks.plist`, `~/Library/Mail`…),
+Notifications through `UNUserNotificationCenter`, Automation through
+`AEDeterminePermissionToAutomateTarget`. Statuses are re-checked automatically whenever
+the app becomes active again. Notifications are requested when you enable scheduled
+scans, and Automation when you open Performance, never at launch.
+
+> **Updates and TCC.** The installed app is signed **ad hoc** (no stable identity), so
+> macOS may treat each new version as a different app and ask again for Full Disk Access
+> (and Automation) after an update. Just re-enable it in System Settings, then quit and
+> relaunch the app if the status doesn't turn green. Running `Tools/make-signing-cert.sh`
+> once on your Mac creates a stable self-signed identity that `Tools/build-app.sh` uses
+> automatically, so a permission granted once survives rebuilds.
+
 ## Roadmap
 
 - [ ] Notarized signed distribution

@@ -109,6 +109,8 @@ final class UITestDriver {
         fixtureRoot = fx
         appState.scannerOverrides = fx.scanners(lensRoot: lensRoot)
         appState.showOnboarding = false   // not persisted
+        // Deterministic permission states (no system probing, no dialogs) so the banner is captured.
+        PermissionCenter.shared.forced = [.fullDiskAccess: .denied, .notifications: .notDetermined, .automation: .granted]
 
         // 1. Main window.
         guard let main = await waitForMainWindow() else {
@@ -179,6 +181,24 @@ final class UITestDriver {
             record(window: settings, id: "settings", title: "Réglages",
                    file: "screen-settings.png", distinct: false)
             settings.close()
+        }
+
+        // 5b. Permissions: Settings tab + onboarding step (hosted windows, forced states).
+        for (id, file, size, root) in [
+            ("settings-permissions", "screen-settings-permissions.png", NSSize(width: 560, height: 420),
+             AnyView(SettingsView(initialTab: .permissions).environmentObject(appState).environment(\.theme, appState.theme))),
+            ("onboarding-permissions", "screen-onboarding-permissions.png", NSSize(width: 1000, height: 800),
+             AnyView(OnboardingOverlay(initialStep: 2).environmentObject(appState).environment(\.theme, appState.theme))),
+        ] {
+            let w = NSWindow(contentRect: NSRect(origin: .zero, size: size),
+                             styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            w.isReleasedWhenClosed = false
+            w.contentView = NSHostingView(rootView: root.frame(width: size.width, height: size.height))
+            w.center()
+            w.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            record(window: w, id: id, title: id, file: file, distinct: false)
+            w.close()
         }
 
         log("popover")

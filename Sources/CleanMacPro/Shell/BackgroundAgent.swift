@@ -14,6 +14,7 @@ final class BackgroundAgent: ObservableObject {
     @Published var scheduledScanEnabled: Bool {
         didSet {
             UserDefaults.standard.set(scheduledScanEnabled, forKey: Keys.scheduled)
+            if scheduledScanEnabled { requestNotificationAuthIfPossible() }
             reschedule()
         }
     }
@@ -76,7 +77,8 @@ final class BackgroundAgent: ObservableObject {
         guard !activated else { return }
         activated = true
         applyActivationPolicy()
-        requestNotificationAuthIfPossible()
+        // Notification rights are asked when the user enables scheduled scans, not at launch.
+        if scheduledScanEnabled { requestNotificationAuthIfPossible() }
         reschedule()
     }
 
@@ -123,8 +125,7 @@ final class BackgroundAgent: ObservableObject {
     /// Ask once; safe no-op when running without a bundle id (e.g. `swift run`),
     /// where `UNUserNotificationCenter.current()` would trap.
     func requestNotificationAuthIfPossible() {
-        guard Bundle.main.bundleIdentifier != nil else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        PermissionCenter.shared.requestNotifications()
     }
 
     private func postNotification(bytes: Int64) {
