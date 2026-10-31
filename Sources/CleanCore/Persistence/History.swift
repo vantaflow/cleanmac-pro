@@ -21,7 +21,7 @@ public struct HistoryEntry: Codable, Identifiable, Hashable, Sendable {
     public init(id: UUID = UUID(), date: Date = Date(), module: String,
                 itemCount: Int, freedBytes: Int64, records: [TrashRecord]) {
         self.id = id
-        self.date = date
+        self.date = Date(timeIntervalSince1970: date.timeIntervalSince1970.rounded(.down))  // ISO-8601 JSON keeps whole seconds
         self.module = module
         self.itemCount = itemCount
         self.freedBytes = freedBytes
