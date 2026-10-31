@@ -75,19 +75,19 @@ struct SmartScanScreen: View {
     }
 
     private var headline: String {
-        if anyScanning { return "Analyse en cours…" }
-        if scanned { return reclaimable > 0 ? "\(ByteFormatter.string(reclaimable)) à récupérer" : "Votre Mac est impeccable." }
-        return "Heureux de vous revoir !"
+        if anyScanning { return L("Analyse en cours…") }
+        if scanned { return reclaimable > 0 ? L("\(ByteFormatter.string(reclaimable)) à récupérer") : L("Votre Mac est impeccable.") }
+        return L("Heureux de vous revoir !")
     }
     private var subline: String {
-        if anyScanning { return "Nettoyage, fichiers, protection, mises à jour et confidentialité." }
-        if scanned { return reclaimable > 0 ? "Passez en revue puis lancez le nettoyage en un clic." : "Rien à nettoyer pour le moment. Revenez plus tard." }
-        return "Pour commencer, lancez une analyse rapide et complète de votre Mac."
+        if anyScanning { return L("Nettoyage, fichiers, protection, mises à jour et confidentialité.") }
+        if scanned { return reclaimable > 0 ? L("Passez en revue puis lancez le nettoyage en un clic.") : L("Rien à nettoyer pour le moment. Revenez plus tard.") }
+        return L("Pour commencer, lancez une analyse rapide et complète de votre Mac.")
     }
     private var actionLabel: String {
-        if anyScanning { return "Arrêter" }
-        if scanned && reclaimable > 0 { return "Nettoyer" }
-        return "Analyser"
+        if anyScanning { return L("Arrêter") }
+        if scanned && reclaimable > 0 { return L("Nettoyer") }
+        return L("Analyser")
     }
 
     private func primaryAction() {

@@ -18,7 +18,7 @@ public struct DuplicatesScanner: FileScanner {
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         // Step 1: group files by size (cheap filter)
-        progress(0.05, "Indexing files…")
+        progress(0.05, L("Indexing files…"))
         var bySize: [Int64: [URL]] = [:]
         for root in roots {
             guard FileManager.default.fileExists(atPath: root.path) else { continue }
@@ -37,7 +37,7 @@ public struct DuplicatesScanner: FileScanner {
         // Step 2: hash candidates
         var byHash: [String: [(URL, Int64)]] = [:]
         for (idx, (size, urls)) in candidates.enumerated() {
-            progress(0.1 + 0.9 * Double(idx) / Double(total), "Hashing duplicates…")
+            progress(0.1 + 0.9 * Double(idx) / Double(total), L("Hashing duplicates…"))
             for url in urls {
                 if Task.isCancelled { throw ScanError.cancelled }
                 guard let h = hash(url: url) else { continue }
@@ -60,7 +60,7 @@ public struct DuplicatesScanner: FileScanner {
             }
         }
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .files, items: items)
     }
 

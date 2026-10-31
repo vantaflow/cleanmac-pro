@@ -11,12 +11,12 @@ public struct CleanupScanner: FileScanner {
     private var defaultTargets: [(URL, String, ItemKind)] {
         let home = FS.home
         return [
-            (home.appendingPathComponent("Library/Caches"),    "User Caches",     .cache),
-            (home.appendingPathComponent("Library/Logs"),      "User Logs",       .log),
-            (URL(fileURLWithPath: "/Library/Caches"),          "System Caches",   .cache),
-            (URL(fileURLWithPath: "/Library/Logs"),            "System Logs",     .log),
-            (home.appendingPathComponent(".Trash"),            "Trash",           .trash),
-            (URL(fileURLWithPath: "/private/var/folders"),     "Temp Files",      .tempFile),
+            (home.appendingPathComponent("Library/Caches"),    L("User Caches"),     .cache),
+            (home.appendingPathComponent("Library/Logs"),      L("User Logs"),       .log),
+            (URL(fileURLWithPath: "/Library/Caches"),          L("System Caches"),   .cache),
+            (URL(fileURLWithPath: "/Library/Logs"),            L("System Logs"),     .log),
+            (home.appendingPathComponent(".Trash"),            L("Trash"),           .trash),
+            (URL(fileURLWithPath: "/private/var/folders"),     L("Temp Files"),      .tempFile),
         ]
     }
 
@@ -33,7 +33,7 @@ public struct CleanupScanner: FileScanner {
         let fm = FileManager.default
 
         for (idx, (url, label, kind)) in targets.enumerated() {
-            progress(Double(idx) / total, "Scanning \(label)…")
+            progress(Double(idx) / total, L("Scanning \(label)…"))
             guard fm.fileExists(atPath: url.path) else { continue }
 
             for file in FS.enumerate(url, skipHidden: false) {
@@ -49,7 +49,7 @@ public struct CleanupScanner: FileScanner {
                 ))
             }
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .cleanup, items: items)
     }
 }

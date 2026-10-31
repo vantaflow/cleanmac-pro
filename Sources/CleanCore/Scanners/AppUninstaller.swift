@@ -28,7 +28,7 @@ public struct AppUninstaller: FileScanner {
 
         for (idx, app) in apps.enumerated() {
             if Task.isCancelled { throw ScanError.cancelled }
-            progress(Double(idx) / total, "Analyzing \(app.lastPathComponent)…")
+            progress(Double(idx) / total, L("Analyzing \(app.lastPathComponent)…"))
             let bundle = analyze(appURL: app)
             // Add bundle itself
             items.append(ScanItem(
@@ -40,7 +40,7 @@ public struct AppUninstaller: FileScanner {
             // Add residues
             items.append(contentsOf: bundle.residues)
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .uninstaller, items: items)
     }
 

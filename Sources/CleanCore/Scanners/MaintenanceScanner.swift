@@ -9,30 +9,30 @@ public struct MaintenanceScanner: FileScanner {
     public init() {}
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
-        progress(0.5, "Inventaire des tâches…")
+        progress(0.5, L("Inventaire des tâches…"))
         let tasks: [(title: String, detail: String, command: String, admin: Bool)] = [
-            ("Vider le cache DNS",
-             "Résout les soucis de résolution de noms",
+            (L("Vider le cache DNS"),
+             L("Résout les soucis de résolution de noms"),
              "dscacheutil -flushcache && killall -HUP mDNSResponder",
              true),
-            ("Reconstruire l'index Spotlight",
-             "Réindexe le disque — Spotlight redevient rapide",
+            (L("Reconstruire l'index Spotlight"),
+             L("Réindexe le disque — Spotlight redevient rapide"),
              "mdutil -E /",
              true),
-            ("Réparer les permissions utilisateur",
-             "Corrige des erreurs d'accès aux fichiers personnels",
+            (L("Réparer les permissions utilisateur"),
+             L("Corrige des erreurs d'accès aux fichiers personnels"),
              "diskutil resetUserPermissions / $(id -u)",
              false),
-            ("Forcer une sauvegarde Time Machine",
-             "Lance une sauvegarde immédiate",
+            (L("Forcer une sauvegarde Time Machine"),
+             L("Lance une sauvegarde immédiate"),
              "tmutil startbackup --auto",
              false),
-            ("Purger la mémoire vive inactive",
-             "Libère la RAM mise en cache (peut prendre 30 s)",
+            (L("Purger la mémoire vive inactive"),
+             L("Libère la RAM mise en cache (peut prendre 30 s)"),
              "purge",
              true),
-            ("Vider la corbeille",
-             "Demande confirmation au Finder",
+            (L("Vider la corbeille"),
+             L("Demande confirmation au Finder"),
              "osascript -e 'tell application \"Finder\" to empty the trash'",
              false),
         ]
@@ -42,7 +42,7 @@ public struct MaintenanceScanner: FileScanner {
                 url: URL(fileURLWithPath: "/Maintenance/\(idx)"),
                 size: 0,
                 kind: .maintenanceTask,
-                group: "Tâches",
+                group: L("Tâches"),
                 title: t.title,
                 detail: t.detail,
                 severity: .info,
@@ -50,7 +50,7 @@ public struct MaintenanceScanner: FileScanner {
                 needsAdmin: t.admin
             )
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .maintenance, items: items)
     }
 

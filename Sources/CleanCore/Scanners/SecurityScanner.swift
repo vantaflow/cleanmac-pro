@@ -19,16 +19,16 @@ public struct SecurityScanner: FileScanner {
         progress(0.30, "SIP…")
         items.append(sipCheck())
 
-        progress(0.45, "Pare-feu…")
+        progress(0.45, L("Pare-feu…"))
         items.append(firewallCheck())
 
         progress(0.55, "XProtect…")
         items.append(xprotectCheck())
 
-        progress(0.70, "Recherche de menaces connues…")
+        progress(0.70, L("Recherche de menaces connues…"))
         items.append(contentsOf: knownThreats())
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .security, items: items)
     }
 
@@ -39,9 +39,9 @@ public struct SecurityScanner: FileScanner {
             url: URL(fileURLWithPath: "/System/FileVault"),
             size: 0,
             kind: .securityFinding,
-            group: "Système",
+            group: L("Système"),
             title: "FileVault",
-            detail: enabled ? "Activé — disque chiffré" : "Désactivé — disque non chiffré",
+            detail: enabled ? L("Activé — disque chiffré") : L("Désactivé — disque non chiffré"),
             severity: enabled ? .good : .bad
         )
     }
@@ -53,9 +53,9 @@ public struct SecurityScanner: FileScanner {
             url: URL(fileURLWithPath: "/System/Gatekeeper"),
             size: 0,
             kind: .securityFinding,
-            group: "Système",
+            group: L("Système"),
             title: "Gatekeeper",
-            detail: enabled ? "Activé — apps signées vérifiées" : "Désactivé",
+            detail: enabled ? L("Activé — apps signées vérifiées") : L("Désactivé"),
             severity: enabled ? .good : .warn
         )
     }
@@ -67,9 +67,9 @@ public struct SecurityScanner: FileScanner {
             url: URL(fileURLWithPath: "/System/SIP"),
             size: 0,
             kind: .securityFinding,
-            group: "Système",
+            group: L("Système"),
             title: "System Integrity Protection",
-            detail: enabled ? "Activé" : "Désactivé — protections systèmes affaiblies",
+            detail: enabled ? L("Activé") : L("Désactivé — protections systèmes affaiblies"),
             severity: enabled ? .good : .bad
         )
     }
@@ -84,9 +84,9 @@ public struct SecurityScanner: FileScanner {
             url: URL(fileURLWithPath: "/System/Firewall"),
             size: 0,
             kind: .securityFinding,
-            group: "Système",
-            title: "Pare-feu",
-            detail: enabled ? "Activé" : "Désactivé",
+            group: L("Système"),
+            title: L("Pare-feu"),
+            detail: enabled ? L("Activé") : L("Désactivé"),
             severity: enabled ? .good : .warn
         )
     }
@@ -94,7 +94,7 @@ public struct SecurityScanner: FileScanner {
     private func xprotectCheck() -> ScanItem {
         let path = "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Info.plist"
         let exists = FileManager.default.fileExists(atPath: path)
-        var version = "inconnue"
+        var version = L("inconnue")
         if exists,
            let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
            let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
@@ -105,9 +105,9 @@ public struct SecurityScanner: FileScanner {
             url: URL(fileURLWithPath: path),
             size: 0,
             kind: .securityFinding,
-            group: "Système",
+            group: L("Système"),
             title: "XProtect",
-            detail: exists ? "Actif · version \(version)" : "Introuvable",
+            detail: exists ? L("Actif · version \(version)") : L("Introuvable"),
             severity: exists ? .good : .warn
         )
     }
@@ -136,9 +136,9 @@ public struct SecurityScanner: FileScanner {
                         url: entry,
                         size: FS.size(of: entry),
                         kind: .securityFinding,
-                        group: "Menaces",
+                        group: L("Menaces"),
                         title: entry.lastPathComponent,
-                        detail: "Persistance suspecte dans \(root.lastPathComponent)",
+                        detail: L("Persistance suspecte dans \(root.lastPathComponent)"),
                         severity: .bad
                     ))
                 }
@@ -149,9 +149,9 @@ public struct SecurityScanner: FileScanner {
                 url: URL(fileURLWithPath: "/"),
                 size: 0,
                 kind: .securityFinding,
-                group: "Menaces",
-                title: "Aucune menace connue détectée",
-                detail: "Les chemins LaunchAgents/LaunchDaemons sont propres",
+                group: L("Menaces"),
+                title: L("Aucune menace connue détectée"),
+                detail: L("Les chemins LaunchAgents/LaunchDaemons sont propres"),
                 severity: .good
             ))
         }

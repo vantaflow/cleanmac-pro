@@ -34,8 +34,8 @@ struct MenuPanelContent: View {
         // Prefer a fresh in-session scan, else the last remembered total.
         let live = appState.state(for: .cleanup).result?.totalSize ?? 0
         let bytes = live > 0 ? live : agent.lastRecoverableBytes
-        if agent.isScanning { return "Analyse en cours…" }
-        return bytes == 0 ? "Lance un scan" : "\(ByteFormatter.string(bytes)) récupérables"
+        if agent.isScanning { return L("Analyse en cours…") }
+        return bytes == 0 ? L("Lance un scan") : L("\(ByteFormatter.string(bytes)) récupérables")
     }
 
     var body: some View {
@@ -44,7 +44,7 @@ struct MenuPanelContent: View {
                 CmpLogo(size: 22, accent: theme.accent.color)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("CleanMac Pro").font(.system(size: 12.5, weight: .semibold))
-                    Text("Veille active · \(recoverableLabel)")
+                    Text(L("Veille active · \(recoverableLabel)"))
                         .font(.system(size: 10.5)).opacity(0.55)
                 }
                 Spacer()
@@ -62,15 +62,15 @@ struct MenuPanelContent: View {
 
             HStack(spacing: 8) {
                 MenuMeter(label: "CPU", value: stats.cpuPct, max: 100, unit: "%", color: .cmpInfo)
-                MenuMeter(label: "RAM", value: stats.ramUsedGB, max: stats.ramTotalGB, unit: "Go", color: .cmpViolet)
-                MenuMeter(label: "Disque", value: stats.diskUsedGB, max: stats.diskTotalGB, unit: "Go", color: theme.accent.color)
+                MenuMeter(label: "RAM", value: stats.ramUsedGB, max: stats.ramTotalGB, unit: L("Go"), color: .cmpViolet)
+                MenuMeter(label: L("Disque"), value: stats.diskUsedGB, max: stats.diskTotalGB, unit: L("Go"), color: theme.accent.color)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Activité système").font(.system(size: 11, weight: .semibold)).opacity(0.7)
+                    Text(L("Activité système")).font(.system(size: 11, weight: .semibold)).opacity(0.7)
                     Spacer()
-                    Text("CPU \(Int(stats.cpuPct))% · RAM \(String(format: "%.1f", stats.ramUsedGB)) Go")
+                    Text(verbatim: "CPU \(Int(stats.cpuPct))% · RAM \(String(format: "%.1f", stats.ramUsedGB)) " + L("Go"))
                         .font(.system(size: 11, design: .monospaced)).opacity(0.5)
                 }
                 MenuSpark(samples: stats.cpuHistory, accent: theme.accent.color)
@@ -81,18 +81,18 @@ struct MenuPanelContent: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(spacing: 2) {
-                MenuQuickAction(icon: "scan", label: "Lancer Smart Scan",
-                                sub: "Tout vérifier", accent: true) {
+                MenuQuickAction(icon: "scan", label: L("Lancer Smart Scan"),
+                                sub: L("Tout vérifier"), accent: true) {
                     openMain()
                     appState.active = .smartScan
                     [.cleanup, .files, .security, .updates, .privacy].forEach { appState.startScan(module: $0) }
                 }
-                MenuQuickAction(icon: "ram", label: "Libérer la RAM",
-                                sub: "\(String(format: "%.1f", stats.ramUsedGB)) / \(String(format: "%.0f", stats.ramTotalGB)) Go utilisés") {
+                MenuQuickAction(icon: "ram", label: L("Libérer la RAM"),
+                                sub: String(format: LK("%@ / %@ Go utilisés"), String(format: "%.1f", stats.ramUsedGB), String(format: "%.0f", stats.ramTotalGB))) {
                     Task.detached(priority: .utility) { _ = Shell.run("/usr/sbin/purge", []) }
                 }
-                MenuQuickAction(icon: "trash", label: "Vider la corbeille",
-                                sub: "Demande confirmation système") {
+                MenuQuickAction(icon: "trash", label: L("Vider la corbeille"),
+                                sub: L("Demande confirmation système")) {
                     Task.detached(priority: .utility) {
                         _ = Shell.run("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty the trash"])
                     }
@@ -102,13 +102,13 @@ struct MenuPanelContent: View {
             Divider().background(Color.white.opacity(0.1))
 
             HStack(spacing: 8) {
-                MenuToggle(icon: "clock.arrow.circlepath", label: "Scan auto",
+                MenuToggle(icon: "clock.arrow.circlepath", label: L("Scan auto"),
                            isOn: $agent.scheduledScanEnabled, accent: theme.accent.color)
-                MenuToggle(icon: "menubar.rectangle", label: "Barre seule",
+                MenuToggle(icon: "menubar.rectangle", label: L("Barre seule"),
                            isOn: $agent.menuBarOnly, accent: theme.accent.color)
             }
             HStack(spacing: 8) {
-                MenuToggle(icon: "power", label: "Démarrage",
+                MenuToggle(icon: "power", label: L("Démarrage"),
                            isOn: $agent.launchAtLogin, accent: theme.accent.color)
             }
 
@@ -119,7 +119,7 @@ struct MenuPanelContent: View {
                     openMain()
                     appState.active = .dashboard
                 } label: {
-                    Text("Ouvrir CleanMac Pro →")
+                    Text(L("Ouvrir CleanMac Pro →"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(theme.accent.color)
                 }
@@ -129,13 +129,13 @@ struct MenuPanelContent: View {
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 } label: {
-                    Text("Réglages")
+                    Text(L("Réglages"))
                         .font(.system(size: 11.5))
                         .foregroundColor(.white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
                 Button { AppLifecycle.shared.quit() } label: {
-                    Text("Quitter")
+                    Text(L("Quitter"))
                         .font(.system(size: 11.5))
                         .foregroundColor(.white.opacity(0.5))
                 }

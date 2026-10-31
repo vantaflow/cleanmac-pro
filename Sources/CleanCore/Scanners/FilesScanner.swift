@@ -18,10 +18,10 @@ public struct FilesScanner: FileScanner {
     }
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
-        progress(0.0, "Gros fichiers & anciens…")
+        progress(0.0, L("Gros fichiers & anciens…"))
         let largeResult = try await large.scan { p, msg in progress(p * 0.5, msg) }
 
-        progress(0.5, "Recherche de doublons…")
+        progress(0.5, L("Recherche de doublons…"))
         let dupResult = try await duplicates.scan { p, msg in progress(0.5 + p * 0.5, msg) }
 
         // Merge, de-duplicating by URL so a file that is both large and a
@@ -31,7 +31,7 @@ public struct FilesScanner: FileScanner {
         let seen = Set(items.map(\.url))
         items.append(contentsOf: dupResult.items.filter { !seen.contains($0.url) })
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .files, items: items)
     }
 }

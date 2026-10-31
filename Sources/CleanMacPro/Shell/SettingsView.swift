@@ -8,11 +8,11 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             ScheduleSettings()
-                .tabItem { Label("Planification", systemImage: "clock.arrow.circlepath") }
+                .tabItem { Label(L("Planification"), systemImage: "clock.arrow.circlepath") }
             ExclusionsSettings()
-                .tabItem { Label("Exclusions", systemImage: "nosign") }
+                .tabItem { Label(L("Exclusions"), systemImage: "nosign") }
             HistorySettings()
-                .tabItem { Label("Historique", systemImage: "clock") }
+                .tabItem { Label(L("Historique"), systemImage: "clock") }
         }
         .frame(width: 560, height: 420)
     }
@@ -34,28 +34,28 @@ private struct ScheduleSettings: View {
                 appState.setSchedule(s)
             })
     }
-    private let days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+    private let days = [L("Lundi"), L("Mardi"), L("Mercredi"), L("Jeudi"), L("Vendredi"), L("Samedi"), L("Dimanche")]
 
     var body: some View {
         Form {
             Section {
-                Picker("Fréquence", selection: Binding(
+                Picker(L("Fréquence"), selection: Binding(
                     get: { appState.schedule.frequency },
                     set: { f in var s = appState.schedule; s.frequency = f; appState.setSchedule(s) })) {
                     ForEach(ScheduleFrequency.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
                 if appState.schedule.frequency != .off {
                     if appState.schedule.frequency == .weekly {
-                        Picker("Jour", selection: Binding(
+                        Picker(L("Jour"), selection: Binding(
                             get: { appState.schedule.weekday },
                             set: { d in var s = appState.schedule; s.weekday = d; appState.setSchedule(s) })) {
                             ForEach(1...7, id: \.self) { Text(days[$0 - 1]).tag($0) }
                         }
                     }
-                    DatePicker("Heure", selection: time, displayedComponents: .hourAndMinute)
+                    DatePicker(L("Heure"), selection: time, displayedComponents: .hourAndMinute)
                 }
             } footer: {
-                Text("Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles et Volumineux & doublons), puis notification « X Go récupérables ». Rien n'est supprimé.")
+                Text(L("Un LaunchAgent lance CleanMac Pro en arrière-plan à l'heure choisie : scan silencieux (Fichiers inutiles et Volumineux & doublons), puis notification « X Go récupérables ». Rien n'est supprimé."))
             }
         }
         .formStyle(.grouped)
@@ -68,34 +68,34 @@ private struct ExclusionsSettings: View {
 
     var body: some View {
         Form {
-            Section("Chemins ignorés") {
-                if appState.exclusions.paths.isEmpty { Text("Aucun").foregroundStyle(.secondary) }
+            Section(L("Chemins ignorés")) {
+                if appState.exclusions.paths.isEmpty { Text(L("Aucun")).foregroundStyle(.secondary) }
                 ForEach(appState.exclusions.paths, id: \.self) { p in
                     HStack {
                         Text(p).lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        Button("Retirer") { appState.removeExclusion(path: p) }
+                        Button(L("Retirer")) { appState.removeExclusion(path: p) }
                     }
                 }
-                Button("Ajouter un dossier ou un fichier…") { pick() }
+                Button(L("Ajouter un dossier ou un fichier…")) { pick() }
             }
-            Section("Apps ignorées (identifiant)") {
-                if appState.exclusions.appIDs.isEmpty { Text("Aucune").foregroundStyle(.secondary) }
+            Section(L("Apps ignorées (identifiant)")) {
+                if appState.exclusions.appIDs.isEmpty { Text(L("Aucune")).foregroundStyle(.secondary) }
                 ForEach(appState.exclusions.appIDs, id: \.self) { id in
                     HStack {
                         Text(id)
                         Spacer()
-                        Button("Retirer") { appState.removeExclusion(appID: id) }
+                        Button(L("Retirer")) { appState.removeExclusion(appID: id) }
                     }
                 }
                 HStack {
                     TextField("com.exemple.app", text: $newAppID)
-                    Button("Ajouter") {
+                    Button(L("Ajouter")) {
                         appState.addExclusion(appID: newAppID)
                         newAppID = ""
                     }
                     .disabled(newAppID.trimmingCharacters(in: .whitespaces).isEmpty)
-                    Button("Choisir une app…") { pickApp() }
+                    Button(L("Choisir une app…")) { pickApp() }
                 }
             }
         }
@@ -107,7 +107,7 @@ private struct ExclusionsSettings: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Ne plus proposer"
+        panel.prompt = L("Ne plus proposer")
         if panel.runModal() == .OK { panel.urls.forEach { appState.addExclusion(path: $0.path) } }
     }
 
@@ -129,7 +129,7 @@ private struct HistorySettings: View {
 
     private static let dateFormat: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "fr_FR")
+        f.locale = Locale(identifier: L10n.languageCode)
         f.dateStyle = .medium
         f.timeStyle = .short
         return f
@@ -140,16 +140,16 @@ private struct HistorySettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Total libéré : \(ByteFormatter.string(appState.history.totalFreedBytes))")
+                Text(L("Total libéré : \(ByteFormatter.string(appState.history.totalFreedBytes))"))
                     .font(.headline)
                 Spacer()
-                Button("Effacer l'historique") { appState.clearHistory() }
+                Button(L("Effacer l'historique")) { appState.clearHistory() }
                     .disabled(appState.history.entries.isEmpty)
             }
             if let message { Text(message).font(.callout).foregroundStyle(.secondary) }
             if appState.history.entries.isEmpty {
                 Spacer()
-                Text("Aucun nettoyage enregistré pour l'instant.")
+                Text(L("Aucun nettoyage enregistré pour l'instant."))
                     .frame(maxWidth: .infinity).foregroundStyle(.secondary)
                 Spacer()
             } else {
@@ -157,14 +157,14 @@ private struct HistorySettings: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(moduleTitle(e.module)).fontWeight(.semibold)
-                            Text("\(Self.dateFormat.string(from: e.date)) · \(e.itemCount) élément(s) · \(ByteFormatter.string(e.freedBytes))")
+                            Text(L("\(Self.dateFormat.string(from: e.date)) · \(e.itemCount) élément(s) · \(ByteFormatter.string(e.freedBytes))"))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("Restaurer") { message = appState.restore(e).message }
+                        Button(L("Restaurer")) { message = appState.restore(e).message }
                     }
                     .contextMenu {
-                        Button("Supprimer de l'historique") { appState.removeHistoryEntry(e) }
+                        Button(L("Supprimer de l'historique")) { appState.removeHistoryEntry(e) }
                     }
                 }
             }

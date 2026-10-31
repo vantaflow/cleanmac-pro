@@ -5,9 +5,9 @@ public enum ScheduleFrequency: String, Codable, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .off: return "Désactivé"
-        case .daily: return "Quotidien"
-        case .weekly: return "Hebdomadaire"
+        case .off: return L("Désactivé")
+        case .daily: return L("Quotidien")
+        case .weekly: return L("Hebdomadaire")
         }
     }
 }

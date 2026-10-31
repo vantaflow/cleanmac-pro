@@ -13,16 +13,16 @@ public struct UpdatesScanner: FileScanner {
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         var items: [ScanItem] = []
 
-        progress(0.05, "Inventaire des apps installées…")
+        progress(0.05, L("Inventaire des apps installées…"))
         items.append(contentsOf: await installedAppsWithUpdateCheck(progress: progress))
 
-        progress(0.75, "Vérification Homebrew…")
+        progress(0.75, L("Vérification Homebrew…"))
         items.append(contentsOf: brewOutdated())
 
-        progress(0.92, "Vérification macOS…")
+        progress(0.92, L("Vérification macOS…"))
         items.append(contentsOf: macOSUpdates())
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .updates, items: items)
     }
 
@@ -115,7 +115,7 @@ public struct UpdatesScanner: FileScanner {
         await withTaskGroup(of: ScanItem?.self) { group in
             for (idx, app) in apps.enumerated() {
                 group.addTask { [self] in
-                    progress(0.1 + 0.6 * Double(idx) / total, "Vérifie \(app.name)…")
+                    progress(0.1 + 0.6 * Double(idx) / total, L("Vérifie \(app.name)…"))
                     return await self.buildItem(for: app)
                 }
             }
@@ -147,7 +147,7 @@ public struct UpdatesScanner: FileScanner {
                     kind: .updateAvailable,
                     group: "Apps · \(channel)",
                     title: "\(app.name) — v\(app.version) → v\(latest.version)",
-                    detail: "Mise à jour disponible · ouvre l'App Store",
+                    detail: L("Mise à jour disponible · ouvre l'App Store"),
                     severity: .warn,
                     command: upgradeCmd,
                     needsAdmin: false
@@ -160,7 +160,7 @@ public struct UpdatesScanner: FileScanner {
                     kind: .updateAvailable,
                     group: "Apps · \(channel)",
                     title: "\(app.name) — v\(app.version)",
-                    detail: "À jour",
+                    detail: L("À jour"),
                     severity: .good
                 )
             }
@@ -178,7 +178,7 @@ public struct UpdatesScanner: FileScanner {
                     group: "Apps · \(channel)",
                     title: hasUpdate ? "\(app.name) — v\(app.version) → v\(latest.displayVersion)"
                                      : "\(app.name) — v\(app.version)",
-                    detail: hasUpdate ? "Mise à jour disponible · installation automatique possible" : "À jour",
+                    detail: hasUpdate ? L("Mise à jour disponible · installation automatique possible") : L("À jour"),
                     severity: hasUpdate ? .warn : .good,
                     command: hasUpdate ? "open -a \"\(app.url.path)\"" : nil,
                     needsAdmin: false,
@@ -192,7 +192,7 @@ public struct UpdatesScanner: FileScanner {
                 kind: .updateAvailable,
                 group: "Apps · \(channel)",
                 title: "\(app.name) — v\(app.version)",
-                detail: "Flux Sparkle injoignable · vérification dans l'app",
+                detail: L("Flux Sparkle injoignable · vérification dans l'app"),
                 severity: .info,
                 command: "open -a \"\(app.url.path)\"",
                 needsAdmin: false
@@ -207,8 +207,8 @@ public struct UpdatesScanner: FileScanner {
             kind: .updateAvailable,
             group: "Apps · \(channel)",
             title: "\(app.name) — v\(app.version)",
-            detail: app.isSparkle ? "Vérification via Sparkle dans l'app"
-                                  : "Vérification manuelle · \(app.bundleID)",
+            detail: app.isSparkle ? L("Vérification via Sparkle dans l'app")
+                                  : L("Vérification manuelle · \(app.bundleID)"),
             severity: .info,
             command: "open -a \"\(app.url.path)\"",
             needsAdmin: false
@@ -268,8 +268,8 @@ public struct UpdatesScanner: FileScanner {
                 url: URL(fileURLWithPath: "/Homebrew/up-to-date"),
                 size: 0, kind: .updateAvailable,
                 group: "Homebrew",
-                title: "Homebrew à jour",
-                detail: "Aucun paquet obsolète", severity: .good
+                title: L("Homebrew à jour"),
+                detail: L("Aucun paquet obsolète"), severity: .good
             ))
         }
         return items
@@ -290,7 +290,7 @@ public struct UpdatesScanner: FileScanner {
                     size: 0, kind: .updateAvailable,
                     group: "macOS",
                     title: label,
-                    detail: "Mise à jour système disponible",
+                    detail: L("Mise à jour système disponible"),
                     severity: line.lowercased().contains("security") ? .bad : .warn
                 ))
             }
@@ -300,8 +300,8 @@ public struct UpdatesScanner: FileScanner {
                 url: URL(fileURLWithPath: "/macOS/up-to-date"),
                 size: 0, kind: .updateAvailable,
                 group: "macOS",
-                title: "macOS à jour",
-                detail: "Aucune mise à jour disponible",
+                title: L("macOS à jour"),
+                detail: L("Aucune mise à jour disponible"),
                 severity: .good
             ))
         }

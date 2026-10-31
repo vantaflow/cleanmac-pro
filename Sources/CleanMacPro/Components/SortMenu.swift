@@ -28,14 +28,14 @@ struct SortMenu: View {
             Button {
                 appState.update(module) { $0.sortDescending.toggle() }
             } label: {
-                Label(state.sortDescending ? "Ordre décroissant ✓" : "Ordre croissant ✓",
+                Label(state.sortDescending ? L("Ordre décroissant ✓") : L("Ordre croissant ✓"),
                       systemImage: "arrow.up.arrow.down")
             }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: state.sortDescending ? "arrow.down" : "arrow.up")
                     .font(.system(size: 11, weight: .semibold))
-                Text("Trier · \(state.sortKey.label)")
+                Text(L("Trier · \(state.sortKey.label)"))
                     .font(.system(size: 12.5, weight: .semibold))
             }
             .padding(.horizontal, 12).frame(height: 34)

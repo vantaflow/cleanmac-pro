@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "CleanMacPro",
+    defaultLocalization: "fr",
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "CleanMacPro", targets: ["CleanMacPro"]),
@@ -28,7 +29,8 @@ let package = Package(
         ),
         .target(
             name: "CleanCore",
-            path: "Sources/CleanCore"
+            path: "Sources/CleanCore",
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "CleanCoreTests",

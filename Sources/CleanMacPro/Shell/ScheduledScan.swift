@@ -64,7 +64,7 @@ enum ScheduledScan {
         guard granted else { return }
         let content = UNMutableNotificationContent()
         content.title = "CleanMac Pro"
-        content.body = "\(ByteFormatter.string(bytes)) récupérables sur ton Mac."
+        content.body = L("\(ByteFormatter.string(bytes)) récupérables sur ton Mac.")
         content.sound = .default
         try? await center.add(UNNotificationRequest(identifier: "cmp.scheduled", content: content, trigger: nil))
         try? await Task.sleep(nanoseconds: 1_500_000_000)   // let the notification be delivered

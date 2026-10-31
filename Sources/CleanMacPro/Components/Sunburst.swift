@@ -24,9 +24,9 @@ struct StorageSunburst: View {
         let s = hovered ?? slices.first { $0.key == defaultKey } ?? slices.first
         if let s {
             let pct = s.value / max(total, 1) * 100
-            return (s.label.uppercased(), String(format: "%.1f Go", s.value), String(format: "%.1f%% du disque", pct))
+            return (s.label.uppercased(), String(format: LK("%.1f Go"), s.value), String(format: "%.1f%% ", pct) + L("du disque"))
         }
-        return ("STOCKAGE", String(format: "%.0f Go", used), "de \(Int(total)) Go")
+        return (L("STOCKAGE"), String(format: LK("%.0f Go"), used), L("de \(Int(total)) Go"))
     }
 
     var body: some View {
@@ -108,7 +108,7 @@ struct SunburstLegend: View {
                     Circle().fill(slice.color).frame(width: 8, height: 8)
                     Text(slice.label).font(.system(size: 11.5)).foregroundColor(.text2(theme.dark))
                     Spacer()
-                    Text(String(format: "%.1f Go", slice.value))
+                    Text(String(format: LK("%.1f Go"), slice.value))
                         .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
                         .foregroundColor(.text1(theme.dark))
                 }

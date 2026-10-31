@@ -9,7 +9,7 @@ struct DayValue: Identifiable {
 struct WeeklyTrend: View {
     @Environment(\.theme) private var theme
     var data: [DayValue]
-    var subtitle: String = "+ 38% vs la sem. passée"
+    var subtitle: String = LK("+ 38% vs la sem. passée")
 
     private var maxValue: Double { max(data.map(\.value).max() ?? 1, 1) }
     private var total: Double { data.reduce(0) { $0 + $1.value } }
@@ -19,16 +19,16 @@ struct WeeklyTrend: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("CETTE SEMAINE")
+                        Text(L("CETTE SEMAINE"))
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(0.7)
                             .foregroundColor(.text3(theme.dark))
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(String(format: "%.1f Go", total))
+                            Text(String(format: LK("%.1f Go"), total))
                                 .font(.system(size: 20, weight: .bold))
                                 .tracking(-0.4)
                                 .foregroundColor(theme.accent.color)
-                            Text("récupérés en 7 jours")
+                            Text(L("récupérés en 7 jours"))
                                 .font(.system(size: 13))
                                 .foregroundColor(.text2(theme.dark))
                         }

@@ -148,7 +148,7 @@ struct CleanMacProApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(after: .appInfo) {
-                Button("Rechercher des mises à jour…") { AppUpdater.shared.checkForUpdates() }
+                Button(L("Rechercher des mises à jour…")) { AppUpdater.shared.checkForUpdates() }
                     .disabled(!AppUpdater.shared.isConfigured)
             }
         }

@@ -84,7 +84,7 @@ public struct SimilarPhotosScanner: FileScanner {
     }
 
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
-        progress(0.02, "Recherche d'images…")
+        progress(0.02, L("Recherche d'images…"))
         var candidates: [Record] = []
         for root in roots where FileManager.default.fileExists(atPath: root.path) {
             for file in FS.enumerate(root, skipHidden: true) {
@@ -125,12 +125,12 @@ public struct SimilarPhotosScanner: FileScanner {
             records += done
             start += slice.count
             progress(0.05 + 0.85 * Double(start) / Double(max(candidates.count, 1)),
-                     "Empreintes perceptuelles \(start)/\(candidates.count)…")
+                     L("Empreintes perceptuelles \(start)/\(candidates.count)…"))
         }
         records.sort { $0.url.path < $1.url.path }   // deterministic
 
         // Cluster with a BK-tree + union-find.
-        progress(0.92, "Regroupement…")
+        progress(0.92, L("Regroupement…"))
         var tree = BKTree()
         for (i, r) in records.enumerated() { tree.insert(hash: r.hash, index: i) }
         var parent = Array(0..<records.count)
@@ -163,19 +163,19 @@ public struct SimilarPhotosScanner: FileScanner {
         var items: [ScanItem] = []
         for (n, g) in groups.enumerated() {
             let best = g[0]
-            let label = "Groupe \(n + 1) · \(best.url.lastPathComponent)"
+            let label = L("Groupe \(n + 1) · \(best.url.lastPathComponent)")
             items.append(ScanItem(
                 url: best.url, size: 0, modified: best.modified, kind: .keeper, group: label,
-                detail: "À garder — meilleure version · \(best.width)×\(best.height) · \(ByteFormatter.string(best.size))",
+                detail: L("À garder — meilleure version · \(best.width)×\(best.height) · \(ByteFormatter.string(best.size))"),
                 severity: .good))
             for r in g.dropFirst() {
                 let d = (r.hash ^ best.hash).nonzeroBitCount
                 items.append(ScanItem(
                     url: r.url, size: r.size, modified: r.modified, kind: .duplicate, group: label,
-                    detail: "Similaire · \(r.width)×\(r.height) · écart \(d)/64"))
+                    detail: L("Similaire · \(r.width)×\(r.height) · écart \(d)/64")))
             }
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .similarPhotos, items: items)
     }
 

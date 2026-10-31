@@ -9,16 +9,16 @@ public struct PerformanceScanner: FileScanner {
     public func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
         var items: [ScanItem] = []
 
-        progress(0.1, "Éléments de connexion…")
+        progress(0.1, L("Éléments de connexion…"))
         items.append(contentsOf: loginItems())
 
-        progress(0.4, "Launch agents…")
+        progress(0.4, L("Launch agents…"))
         items.append(contentsOf: launchAgents())
 
-        progress(0.7, "Top processus…")
+        progress(0.7, L("Top processus…"))
         items.append(contentsOf: topProcesses())
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .performance, items: items)
     }
 
@@ -49,9 +49,9 @@ public struct PerformanceScanner: FileScanner {
                 url: URL(fileURLWithPath: "/LoginItems/none"),
                 size: 0,
                 kind: .loginItem,
-                group: "Éléments de connexion",
-                title: "Aucun élément au démarrage",
-                detail: "Bon point pour la rapidité de démarrage",
+                group: L("Éléments de connexion"),
+                title: L("Aucun élément au démarrage"),
+                detail: L("Bon point pour la rapidité de démarrage"),
                 severity: .good
             )]
         }
@@ -62,9 +62,9 @@ public struct PerformanceScanner: FileScanner {
                 url: URL(fileURLWithPath: "/LoginItems/\(name)"),
                 size: 0,
                 kind: .loginItem,
-                group: "Éléments de connexion",
+                group: L("Éléments de connexion"),
                 title: name,
-                detail: "S'ouvre à chaque démarrage — clique pour désactiver",
+                detail: L("S'ouvre à chaque démarrage — clique pour désactiver"),
                 severity: .info,
                 command: "osascript -e 'tell application \"System Events\" to delete login item \"\(escaped)\"'",
                 needsAdmin: false
@@ -74,8 +74,8 @@ public struct PerformanceScanner: FileScanner {
 
     private func launchAgents() -> [ScanItem] {
         let roots: [(URL, String)] = [
-            (FS.home.appendingPathComponent("Library/LaunchAgents"), "Utilisateur"),
-            (URL(fileURLWithPath: "/Library/LaunchAgents"),         "Système"),
+            (FS.home.appendingPathComponent("Library/LaunchAgents"), L("Utilisateur")),
+            (URL(fileURLWithPath: "/Library/LaunchAgents"),         L("Système")),
         ]
         var out: [ScanItem] = []
         for (root, label) in roots {
@@ -93,9 +93,9 @@ public struct PerformanceScanner: FileScanner {
                     url: entry,
                     size: FS.size(of: entry),
                     kind: .launchAgent,
-                    group: "Launch agents — \(label)",
+                    group: L("Launch agents — \(label)"),
                     title: name,
-                    detail: "\(entry.path) — clique pour décharger",
+                    detail: L("\(entry.path) — clique pour décharger"),
                     severity: .info,
                     command: unloadCommand,
                     needsAdmin: needsAdmin
@@ -125,7 +125,7 @@ public struct PerformanceScanner: FileScanner {
                 url: URL(fileURLWithPath: comm),
                 size: rssKB * 1024,
                 kind: .processSnapshot,
-                group: "Top mémoire vive",
+                group: L("Top mémoire vive"),
                 title: label,
                 detail: "CPU \(cpu) %",
                 severity: rssKB > 500_000 ? .warn : .info

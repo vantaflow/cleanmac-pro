@@ -21,28 +21,28 @@ public struct PrivacyScanner: FileScanner {
     private var browsers: [BrowserSpec] {
         [
             .init(name: "Safari", targets: [
-                .init(label: "Historique",            path: "~/Library/Safari/History.db"),
-                .init(label: "Téléchargements",       path: "~/Library/Safari/Downloads.plist"),
-                .init(label: "Cache",                 path: "~/Library/Caches/com.apple.Safari"),
-                .init(label: "Cookies",               path: "~/Library/Cookies/Cookies.binarycookies"),
+                .init(label: L("Historique"),            path: "~/Library/Safari/History.db"),
+                .init(label: L("Téléchargements"),      path: "~/Library/Safari/Downloads.plist"),
+                .init(label: L("Cache"),                 path: "~/Library/Caches/com.apple.Safari"),
+                .init(label: L("Cookies"),               path: "~/Library/Cookies/Cookies.binarycookies"),
             ]),
             .init(name: "Chrome", targets: [
-                .init(label: "Cookies",               path: "~/Library/Application Support/Google/Chrome/Default/Cookies"),
-                .init(label: "Historique",            path: "~/Library/Application Support/Google/Chrome/Default/History"),
-                .init(label: "Cache profil",          path: "~/Library/Application Support/Google/Chrome/Default/Cache"),
-                .init(label: "Cache global",          path: "~/Library/Caches/Google/Chrome"),
+                .init(label: L("Cookies"),               path: "~/Library/Application Support/Google/Chrome/Default/Cookies"),
+                .init(label: L("Historique"),            path: "~/Library/Application Support/Google/Chrome/Default/History"),
+                .init(label: L("Cache profil"),         path: "~/Library/Application Support/Google/Chrome/Default/Cache"),
+                .init(label: L("Cache global"),         path: "~/Library/Caches/Google/Chrome"),
             ]),
             .init(name: "Firefox", targets: [
-                .init(label: "Profils",               path: "~/Library/Application Support/Firefox/Profiles"),
-                .init(label: "Cache",                 path: "~/Library/Caches/Firefox"),
+                .init(label: L("Profils"),               path: "~/Library/Application Support/Firefox/Profiles"),
+                .init(label: L("Cache"),                 path: "~/Library/Caches/Firefox"),
             ]),
             .init(name: "Brave", targets: [
-                .init(label: "Cookies",               path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies"),
-                .init(label: "Cache",                 path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache"),
+                .init(label: L("Cookies"),               path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies"),
+                .init(label: L("Cache"),                 path: "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cache"),
             ]),
             .init(name: "Arc", targets: [
-                .init(label: "Données",               path: "~/Library/Application Support/Arc"),
-                .init(label: "Cache",                 path: "~/Library/Caches/Company.ThePersistantNonsenseUnknownInc.Arc"),
+                .init(label: L("Données"),               path: "~/Library/Application Support/Arc"),
+                .init(label: L("Cache"),                 path: "~/Library/Caches/Company.ThePersistantNonsenseUnknownInc.Arc"),
             ]),
         ]
     }
@@ -52,7 +52,7 @@ public struct PrivacyScanner: FileScanner {
         let total = Double(browsers.count)
 
         for (idx, browser) in browsers.enumerated() {
-            progress(Double(idx) / total, "Analyse \(browser.name)…")
+            progress(Double(idx) / total, L("Analyse \(browser.name)…"))
             for target in browser.targets {
                 let url = FS.expand(target.path)
                 guard FileManager.default.fileExists(atPath: url.path) else { continue }
@@ -73,7 +73,7 @@ public struct PrivacyScanner: FileScanner {
                 ))
             }
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .privacy, items: items)
     }
 }

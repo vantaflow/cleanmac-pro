@@ -131,7 +131,7 @@ final class BackgroundAgent: ObservableObject {
         guard Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()
         content.title = "CleanMac Pro"
-        content.body = "\(ByteFormatter.string(bytes)) récupérables sur ton Mac."
+        content.body = L("\(ByteFormatter.string(bytes)) récupérables sur ton Mac.")
         content.sound = .default
         let req = UNNotificationRequest(identifier: "cmp.recoverable",
                                         content: content, trigger: nil)

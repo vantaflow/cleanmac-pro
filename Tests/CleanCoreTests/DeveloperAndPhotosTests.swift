@@ -63,10 +63,10 @@ final class DeveloperAndPhotosTests: XCTestCase {
 
         XCTAssertEqual(items("Xcode · DerivedData").count, 1)
         XCTAssertEqual(items("Xcode · DeviceSupport").count, 1)
-        let archives = items("Xcode · Archives anciennes")
+        let archives = items(L("Xcode · Archives anciennes"))
         XCTAssertEqual(archives.count, 1)
         XCTAssertEqual(archives.first?.url.lastPathComponent, "Old.xcarchive")
-        XCTAssertEqual(items("Xcode · Simulateurs").count, 1)
+        XCTAssertEqual(items(L("Xcode · Simulateurs")).count, 1)
         XCTAssertEqual(items("Caches de paquets").count, 2)
 
         let nm = items("node_modules").map { $0.url.deletingLastPathComponent().lastPathComponent }.sorted()

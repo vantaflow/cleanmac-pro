@@ -58,16 +58,16 @@ public struct DeveloperScanner: FileScanner {
         }
 
         // 1. Xcode
-        progress(0.05, "Xcode : DerivedData…")
+        progress(0.05, L("Xcode : DerivedData…"))
         for child in children(xcode.appendingPathComponent("DerivedData")) where isDir(child) {
             if Task.isCancelled { throw ScanError.cancelled }
             if let it = dirItem(child, group: "Xcode · DerivedData", kind: .cache,
-                                detail: "Produits de compilation — recréés au prochain build") {
+                                detail: L("Produits de compilation — recréés au prochain build")) {
                 items.append(it)
             }
         }
 
-        progress(0.12, "Xcode : archives anciennes…")
+        progress(0.12, L("Xcode : archives anciennes…"))
         let archivesRoot = xcode.appendingPathComponent("Archives")
         var archives: [URL] = []
         for entry in children(archivesRoot) {
@@ -77,47 +77,47 @@ public struct DeveloperScanner: FileScanner {
         for archive in archives where now.timeIntervalSince(FS.modified(of: archive)) > staleAfter {
             if Task.isCancelled { throw ScanError.cancelled }
             let days = Int(now.timeIntervalSince(FS.modified(of: archive)) / 86_400)
-            if let it = dirItem(archive, group: "Xcode · Archives anciennes", kind: .oldFile,
-                                detail: "Archive vieille de \(days) jours") {
+            if let it = dirItem(archive, group: L("Xcode · Archives anciennes"), kind: .oldFile,
+                                detail: L("Archive vieille de \(days) jours")) {
                 items.append(it)
             }
         }
 
-        progress(0.2, "Xcode : DeviceSupport…")
+        progress(0.2, L("Xcode : DeviceSupport…"))
         for platform in ["iOS", "watchOS", "tvOS"] {
             for child in children(xcode.appendingPathComponent("\(platform) DeviceSupport")) where isDir(child) {
                 if Task.isCancelled { throw ScanError.cancelled }
                 if let it = dirItem(child, group: "Xcode · DeviceSupport", kind: .cache,
                                     title: "\(platform) \(child.lastPathComponent)",
-                                    detail: "Symboles d'appareil — retéléchargés à la prochaine connexion") {
+                                    detail: L("Symboles d'appareil — retéléchargés à la prochaine connexion")) {
                     items.append(it)
                 }
             }
         }
 
-        progress(0.28, "Simulateurs…")
+        progress(0.28, L("Simulateurs…"))
         let simCaches = home.appendingPathComponent("Library/Developer/CoreSimulator/Caches")
-        if isDir(simCaches), let it = dirItem(simCaches, group: "Xcode · Simulateurs", kind: .cache,
-                                              title: "Caches des simulateurs") {
+        if isDir(simCaches), let it = dirItem(simCaches, group: L("Xcode · Simulateurs"), kind: .cache,
+                                              title: L("Caches des simulateurs")) {
             items.append(it)
         }
 
         // 2. Package-manager caches
-        progress(0.4, "Caches de paquets…")
+        progress(0.4, L("Caches de paquets…"))
         let caches: [(String, String)] = [
-            ("Library/Caches/org.swift.swiftpm", "Cache SwiftPM"),
-            (".gradle/caches", "Cache Gradle"),
-            (".npm", "Cache npm"),
-            ("Library/Caches/Yarn", "Cache Yarn"),
-            (".yarn/berry/cache", "Cache Yarn (berry)"),
-            ("Library/pnpm/store", "Store pnpm"),
-            (".local/share/pnpm/store", "Store pnpm"),
-            ("Library/Caches/CocoaPods", "Cache CocoaPods"),
+            ("Library/Caches/org.swift.swiftpm", L("Cache SwiftPM")),
+            (".gradle/caches", L("Cache Gradle")),
+            (".npm", L("Cache npm")),
+            ("Library/Caches/Yarn", L("Cache Yarn")),
+            (".yarn/berry/cache", L("Cache Yarn (berry)")),
+            ("Library/pnpm/store", L("Store pnpm")),
+            (".local/share/pnpm/store", L("Store pnpm")),
+            ("Library/Caches/CocoaPods", L("Cache CocoaPods")),
         ]
         for (rel, label) in caches {
             if Task.isCancelled { throw ScanError.cancelled }
             let url = home.appendingPathComponent(rel)
-            if isDir(url), let it = dirItem(url, group: "Caches de paquets", kind: .cache,
+            if isDir(url), let it = dirItem(url, group: L("Caches de paquets"), kind: .cache,
                                             title: label, detail: "~/\(rel)") {
                 items.append(it)
             }
@@ -139,9 +139,9 @@ public struct DeveloperScanner: FileScanner {
             let age = now.timeIntervalSince(ref)
             let detail: String
             if !hasPkg {
-                detail = "Orphelin — aucun package.json dans \(project.lastPathComponent)"
+                detail = L("Orphelin — aucun package.json dans \(project.lastPathComponent)")
             } else if age > staleAfter {
-                detail = "Projet inactif depuis \(Int(age / 86_400)) jours"
+                detail = L("Projet inactif depuis \(Int(age / 86_400)) jours")
             } else {
                 continue
             }
@@ -153,7 +153,7 @@ public struct DeveloperScanner: FileScanner {
 
         // 4. External tools
         if includeTools {
-            progress(0.7, "Simulateurs indisponibles…")
+            progress(0.7, L("Simulateurs indisponibles…"))
             items += unavailableSimulatorItem()
             if Task.isCancelled { throw ScanError.cancelled }
             progress(0.8, "Homebrew…")
@@ -163,7 +163,7 @@ public struct DeveloperScanner: FileScanner {
             items += dockerItem()
         }
 
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .developer, items: items)
     }
 
@@ -199,8 +199,8 @@ public struct DeveloperScanner: FileScanner {
         }
         return [ScanItem(
             url: URL(fileURLWithPath: "/Developer/simulateurs-indisponibles"),
-            size: size, kind: .maintenanceTask, group: "Xcode · Simulateurs",
-            title: "Supprimer \(sims.count) simulateur(s) indisponible(s)",
+            size: size, kind: .maintenanceTask, group: L("Xcode · Simulateurs"),
+            title: L("Supprimer \(sims.count) simulateur(s) indisponible(s)"),
             detail: sims.prefix(3).map(\.name).joined(separator: ", "),
             severity: .info,
             command: "/usr/bin/xcrun simctl delete unavailable")]
@@ -213,7 +213,7 @@ public struct DeveloperScanner: FileScanner {
         return [ScanItem(
             url: URL(fileURLWithPath: "/Developer/homebrew-cleanup"),
             size: bytes, kind: .maintenanceTask, group: "Homebrew",
-            title: "brew cleanup", detail: "Anciennes versions et cache téléchargé (estimation)",
+            title: "brew cleanup", detail: L("Anciennes versions et cache téléchargé (estimation)"),
             severity: .info, command: "\(Self.shellQuote(brew)) cleanup")]
     }
 
@@ -225,7 +225,7 @@ public struct DeveloperScanner: FileScanner {
             url: URL(fileURLWithPath: "/Developer/docker-prune"),
             size: bytes, kind: .maintenanceTask, group: "Docker",
             title: "docker system prune",
-            detail: "Conteneurs arrêtés, images et réseaux inutilisés (estimation) — confirmation demandée",
+            detail: L("Conteneurs arrêtés, images et réseaux inutilisés (estimation) — confirmation demandée"),
             severity: .warn, command: "\(Self.shellQuote(docker)) system prune -f")]
     }
 

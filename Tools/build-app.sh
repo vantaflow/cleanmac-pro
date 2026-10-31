@@ -28,6 +28,20 @@ cp "$ICON"  "$APP/Contents/Resources/AppIcon.icns"
 cp "$PLIST" "$APP/Contents/Info.plist"
 chmod +x "$APP/Contents/MacOS/CleanMacPro"
 
+# SwiftPM resource bundles (CleanMacPro_CleanCore.bundle holds the fr/en/es/de
+# Localizable.strings). Bundle.module / L10n.bundle looks for them in Contents/Resources.
+BUNDLE_DIR="$(dirname "$BIN")"
+shopt -s nullglob
+BUNDLES=("$BUNDLE_DIR"/CleanMacPro_*.bundle)
+shopt -u nullglob
+if [[ ${#BUNDLES[@]} -eq 0 ]]; then
+    echo "No CleanMacPro_*.bundle next to $BIN — run: swift build -c release"
+    exit 1
+fi
+for b in "${BUNDLES[@]}"; do
+    ditto "$b" "$APP/Contents/Resources/$(basename "$b")"
+done
+
 # Optional version injection (used by the release workflow).
 if [[ -n "${APP_VERSION:-}" ]]; then
     plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$APP/Contents/Info.plist"

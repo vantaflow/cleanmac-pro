@@ -88,39 +88,39 @@ public enum ModuleID: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .dashboard:   return "Vue d'ensemble"
-        case .smartScan:   return "Smart Scan"
-        case .cleanup:     return "Fichiers inutiles"
-        case .uninstaller: return "Désinstalleur"
-        case .files:       return "Volumineux & doublons"
-        case .similarPhotos: return "Photos similaires"
-        case .developer:   return "Développeur"
-        case .spaceLens:   return "Space Lens"
-        case .security:    return "Sécurité"
-        case .privacy:     return "Confidentialité"
-        case .updates:     return "Mises à jour"
-        case .performance: return "Performance"
-        case .maintenance: return "Maintenance"
-        case .result:      return "Nettoyage terminé"
+        case .dashboard:   return L("Vue d'ensemble")
+        case .smartScan:   return L("Smart Scan")
+        case .cleanup:     return L("Fichiers inutiles")
+        case .uninstaller: return L("Désinstalleur")
+        case .files:       return L("Volumineux & doublons")
+        case .similarPhotos: return L("Photos similaires")
+        case .developer:   return L("Développeur")
+        case .spaceLens:   return L("Space Lens")
+        case .security:    return L("Sécurité")
+        case .privacy:     return L("Confidentialité")
+        case .updates:     return L("Mises à jour")
+        case .performance: return L("Performance")
+        case .maintenance: return L("Maintenance")
+        case .result:      return L("Nettoyage terminé")
         }
     }
 
     public var subtitle: String {
         switch self {
-        case .dashboard:   return "Santé du Mac"
-        case .smartScan:   return "Scan complet"
-        case .cleanup:     return "Caches, logs, corbeilles"
-        case .uninstaller: return "Apps + résidus"
-        case .files:       return "Gros fichiers & doublons"
-        case .similarPhotos: return "Images quasi identiques"
-        case .developer:   return "Xcode, node_modules, caches"
-        case .spaceLens:   return "Carte interactive du disque"
-        case .security:    return "Anti-malware, FileVault"
-        case .privacy:     return "Cookies, traceurs"
-        case .updates:     return "Apps obsolètes"
-        case .performance: return "Démarrage, agents"
-        case .maintenance: return "Reindex, scripts"
-        case .result:      return "Récap après nettoyage"
+        case .dashboard:   return L("Santé du Mac")
+        case .smartScan:   return L("Scan complet")
+        case .cleanup:     return L("Caches, logs, corbeilles")
+        case .uninstaller: return L("Apps + résidus")
+        case .files:       return L("Gros fichiers & doublons")
+        case .similarPhotos: return L("Images quasi identiques")
+        case .developer:   return L("Xcode, node_modules, caches")
+        case .spaceLens:   return L("Carte interactive du disque")
+        case .security:    return L("Anti-malware, FileVault")
+        case .privacy:     return L("Cookies, traceurs")
+        case .updates:     return L("Apps obsolètes")
+        case .performance: return L("Démarrage, agents")
+        case .maintenance: return L("Reindex, scripts")
+        case .result:      return L("Récap après nettoyage")
         }
     }
 

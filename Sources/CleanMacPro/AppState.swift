@@ -68,20 +68,20 @@ final class AppState: ObservableObject {
         // Destructive tool commands (Docker prune) ask for confirmation first.
         if command.contains("system prune") {
             let alert = NSAlert()
-            alert.messageText = "Lancer « \(item.title ?? "docker system prune") » ?"
-            alert.informativeText = "Supprime les conteneurs arrêtés, les réseaux et les images inutilisés. Cette action est irréversible."
-            alert.addButton(withTitle: "Supprimer")
-            alert.addButton(withTitle: "Annuler")
+            alert.messageText = L("Lancer « \(item.title ?? "docker system prune") » ?")
+            alert.informativeText = L("Supprime les conteneurs arrêtés, les réseaux et les images inutilisés. Cette action est irréversible.")
+            alert.addButton(withTitle: L("Supprimer"))
+            alert.addButton(withTitle: L("Annuler"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
-        update(module) { $0.status = "Exécution de « \(item.title ?? "tâche") »…" }
+        update(module) { $0.status = L("Exécution de « \(item.title ?? L("tâche")) »…") }
         Task.detached(priority: .utility) { [weak self] in
             let (status, output) = MaintenanceScanner.execute(item)
             await MainActor.run { [weak self] in
                 self?.update(module) { s in
                     s.status = status == 0
-                        ? "✓ « \(item.title ?? "tâche") » terminée"
-                        : "⚠ Échec — \(output.prefix(120))"
+                        ? L("✓ « \(item.title ?? L("tâche")) » terminée")
+                        : L("⚠ Échec — \(String(output.prefix(120)))")
                 }
             }
         }
@@ -92,13 +92,13 @@ final class AppState: ObservableObject {
         guard let release = item.sparkleRelease else { return runMaintenance(item: item, module: .updates) }
         let name = item.url.deletingPathExtension().lastPathComponent
         let alert = NSAlert()
-        alert.messageText = "Mettre à jour \(name) ?"
-        alert.informativeText = "\(item.title ?? name)\n\nLa mise à jour est téléchargée, vérifiée (signature), puis remplace l'app ; l'ancienne version va à la Corbeille. \(name) doit être fermée."
-        alert.addButton(withTitle: "Mettre à jour")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = L("Mettre à jour \(name) ?")
+        alert.informativeText = L("\(item.title ?? name)\n\nLa mise à jour est téléchargée, vérifiée (signature), puis remplace l'app ; l'ancienne version va à la Corbeille. \(name) doit être fermée.")
+        alert.addButton(withTitle: L("Mettre à jour"))
+        alert.addButton(withTitle: L("Annuler"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
-        update(.updates) { $0.status = "Mise à jour de \(name)…" }
+        update(.updates) { $0.status = L("Mise à jour de \(name)…") }
         Task { [weak self] in
             let outcome = await SparkleInstaller.install(appURL: item.url, release: release) { step in
                 Task { @MainActor [weak self] in self?.update(.updates) { $0.status = step } }
@@ -107,19 +107,19 @@ final class AppState: ObservableObject {
             let done = NSAlert()
             switch outcome {
             case .installed:
-                done.messageText = "\(name) est à jour"
+                done.messageText = L("\(name) est à jour")
                 done.informativeText = outcome.message
-                self.update(.updates) { $0.status = "✓ \(name) mis à jour" }
+                self.update(.updates) { $0.status = L("✓ \(name) mis à jour") }
                 self.startScan(module: .updates)
             case .manual:
-                done.messageText = "Installation manuelle nécessaire"
-                done.informativeText = outcome.message + "\n\nL'app va être ouverte pour que tu la mettes à jour."
-                self.update(.updates) { $0.status = "⚠ \(name) : installation manuelle" }
+                done.messageText = L("Installation manuelle nécessaire")
+                done.informativeText = outcome.message + L("\n\nL'app va être ouverte pour que tu la mettes à jour.")
+                self.update(.updates) { $0.status = L("⚠ \(name) : installation manuelle") }
                 self.runMaintenance(item: item, module: .updates)
             case .failed:
-                done.messageText = "Échec de la mise à jour de \(name)"
+                done.messageText = L("Échec de la mise à jour de \(name)")
                 done.informativeText = outcome.message
-                self.update(.updates) { $0.status = "⚠ Échec — \(outcome.message.prefix(120))" }
+                self.update(.updates) { $0.status = L("⚠ Échec — \(String(outcome.message.prefix(120)))") }
             }
             done.runModal()
         }
@@ -177,7 +177,7 @@ final class AppState: ObservableObject {
         update(module) { s in
             s.isScanning = true
             s.progress = 0
-            s.status = "Démarrage…"
+            s.status = L("Démarrage…")
             s.result = nil
             s.selection.removeAll()
         }
@@ -196,14 +196,14 @@ final class AppState: ObservableObject {
                     self?.update(module) { s in
                         s.isScanning = false
                         s.result = result
-                        s.status = "\(result.count) éléments · \(ByteFormatter.string(result.totalSize))"
+                        s.status = L("\(result.count) éléments · \(ByteFormatter.string(result.totalSize))")
                     }
                 }
             } catch {
                 await MainActor.run { [weak self] in
                     self?.update(module) { s in
                         s.isScanning = false
-                        s.status = "Annulé"
+                        s.status = L("Annulé")
                     }
                 }
             }
@@ -276,7 +276,7 @@ final class AppState: ObservableObject {
         moduleStates[module]?.currentTask?.cancel()
         update(module) { s in
             s.isScanning = false
-            s.status = "Annulé"
+            s.status = L("Annulé")
         }
     }
 
@@ -298,7 +298,7 @@ final class AppState: ObservableObject {
         // freeze during authentication.
         let needAdmin = toClean.filter { report.failedItems.contains($0.url) }
         guard !needAdmin.isEmpty else { return }
-        update(module) { $0.status = "Authentification requise pour \(needAdmin.count) élément(s)…" }
+        update(module) { $0.status = L("Authentification requise pour \(needAdmin.count) élément(s)…") }
         Task.detached(priority: .userInitiated) { [weak self] in
             let adminReport = permanent
                 ? Cleaner.deleteWithAdmin(items: needAdmin)
@@ -320,9 +320,9 @@ final class AppState: ObservableObject {
             let freed = report.freedBytes + appendFreed
             if report.failedItems.isEmpty {
                 s.selection.removeAll()
-                s.status = "Libéré \(ByteFormatter.string(freed))"
+                s.status = L("Libéré \(ByteFormatter.string(freed))")
             } else {
-                s.status = "Libéré \(ByteFormatter.string(freed)) · \(report.failedItems.count) échec(s)"
+                s.status = L("Libéré \(ByteFormatter.string(freed)) · \(report.failedItems.count) échec(s)")
             }
         }
     }
@@ -331,7 +331,7 @@ final class AppState: ObservableObject {
 struct ModuleState {
     var isScanning: Bool = false
     var progress: Double = 0
-    var status: String = "Prêt"
+    var status: String = L("Prêt")
     var result: ScanResult? = nil
     var selection: Set<UUID> = []
     var lastReport: CleanReport? = nil
@@ -345,9 +345,9 @@ enum SortKey: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .size: return "Taille"
-        case .name: return "Nom"
-        case .modified: return "Date"
+        case .size: return L("Taille")
+        case .name: return L("Nom")
+        case .modified: return L("Date")
         }
     }
     var symbol: String {

@@ -45,12 +45,12 @@ struct OnboardingOverlay: View {
 
                 HStack(spacing: 10) {
                     if step > 0 {
-                        Btn(kind: .ghost, label: "Retour") { step -= 1 }
+                        Btn(kind: .ghost, label: L("Retour")) { step -= 1 }
                     }
                     Btn(kind: .primary, size: .lg,
                         icon: step == 2 ? "scan" : nil,
-                        label: step == 0 ? "Continuer" : step == 1 ? "C'est noté"
-                                                                   : "Lancer le premier scan") {
+                        label: step == 0 ? L("Continuer") : step == 1 ? L("C'est noté")
+                                                                   : L("Lancer le premier scan")) {
                         if step < 2 { step += 1 }
                         else {
                             appState.dismissOnboarding()
@@ -62,7 +62,7 @@ struct OnboardingOverlay: View {
                 }
 
                 if step < 2 {
-                    Button("Passer l'intro") {
+                    Button(L("Passer l'intro")) {
                         appState.dismissOnboarding()
                     }
                     .buttonStyle(.plain)
@@ -94,12 +94,12 @@ struct OnboardingOverlay: View {
                 CmpLogo(size: 88, accent: theme.accent.color)
             }
 
-            Text("Salut. Je suis ").font(.system(size: 34, weight: .bold)).tracking(-1)
+            Text(L("Salut. Je suis ")).font(.system(size: 34, weight: .bold)).tracking(-1)
             + Text("CleanMac Pro").font(.system(size: 34, weight: .bold))
                 .tracking(-1).foregroundColor(theme.accent.color)
             + Text(".").font(.system(size: 34, weight: .bold)).tracking(-1)
 
-            Text("Je libère de l'espace, je tue les apps fantômes et je supprime les traces. Sans pop-ups marketing. Sans paniquer.")
+            Text(L("Je libère de l'espace, je tue les apps fantômes et je supprime les traces. Sans pop-ups marketing. Sans paniquer."))
                 .font(.system(size: 15))
                 .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -115,12 +115,12 @@ struct OnboardingOverlay: View {
         let label: String
     }
     private let transparency: [TransparencyItem] = [
-        .init(ok: true,  label: "Caches, logs, anciens .dmg, corbeilles"),
-        .init(ok: true,  label: "Apps non ouvertes depuis 6+ mois"),
-        .init(ok: true,  label: "Cookies tiers et traceurs"),
-        .init(ok: false, label: "Tes documents, photos, iCloud"),
-        .init(ok: false, label: "Mots de passe, clés, données chiffrées"),
-        .init(ok: false, label: "Aucune télémétrie. Tout reste local."),
+        .init(ok: true,  label: L("Caches, logs, anciens .dmg, corbeilles")),
+        .init(ok: true,  label: L("Apps non ouvertes depuis 6+ mois")),
+        .init(ok: true,  label: L("Cookies tiers et traceurs")),
+        .init(ok: false, label: L("Tes documents, photos, iCloud")),
+        .init(ok: false, label: L("Mots de passe, clés, données chiffrées")),
+        .init(ok: false, label: L("Aucune télémétrie. Tout reste local.")),
     ]
 
     private var transparencyStep: some View {
@@ -134,14 +134,14 @@ struct OnboardingOverlay: View {
             }
 
             VStack(spacing: 6) {
-                Text("Ce que je touche.").font(.system(size: 28, weight: .bold)).tracking(-0.7)
-                Text("Ce que je ne touche jamais.")
+                Text(L("Ce que je touche.")).font(.system(size: 28, weight: .bold)).tracking(-0.7)
+                Text(L("Ce que je ne touche jamais."))
                     .font(.system(size: 28, weight: .bold)).tracking(-0.7)
                     .underline(true, color: theme.accent.color)
             }
             .foregroundColor(.white)
 
-            Text("Aucune ambiguïté. Promis.")
+            Text(L("Aucune ambiguïté. Promis."))
                 .font(.system(size: 13.5)).foregroundColor(.white.opacity(0.55))
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
@@ -171,12 +171,12 @@ struct OnboardingOverlay: View {
     private var readyStep: some View {
         VStack(spacing: 22) {
             ScanVisualMini(accent: theme.accent.color)
-            Text("Premier scan. ")
+            Text(L("Premier scan. "))
                 .font(.system(size: 30, weight: .bold)).tracking(-0.6)
-            + Text("~30 secondes.")
+            + Text(L("~30 secondes."))
                 .font(.system(size: 30, weight: .bold)).tracking(-0.6)
                 .foregroundColor(theme.accent.color)
-            Text("Je regarde partout où macOS et tes apps stockent des trucs temporaires. Tu choisis ce qui part — rien n'est supprimé sans toi.")
+            Text(L("Je regarde partout où macOS et tes apps stockent des trucs temporaires. Tu choisis ce qui part — rien n'est supprimé sans toi."))
                 .font(.system(size: 14.5))
                 .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)

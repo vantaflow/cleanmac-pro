@@ -39,11 +39,11 @@ public struct RestoreOutcome: Equatable, Sendable {
     /// Short French message for the UI.
     public var message: String {
         var parts: [String] = []
-        if !restored.isEmpty { parts.append("\(restored.count) élément(s) restauré(s)") }
-        if !missingFromTrash.isEmpty { parts.append("\(missingFromTrash.count) introuvable(s) dans la Corbeille (déjà vidée ?)") }
-        if !destinationTaken.isEmpty { parts.append("\(destinationTaken.count) non restauré(s) : l'emplacement d'origine est déjà occupé") }
-        if !failed.isEmpty { parts.append("\(failed.count) échec(s)") }
-        return parts.isEmpty ? "Rien à restaurer" : parts.joined(separator: " · ")
+        if !restored.isEmpty { parts.append(L("\(restored.count) élément(s) restauré(s)")) }
+        if !missingFromTrash.isEmpty { parts.append(L("\(missingFromTrash.count) introuvable(s) dans la Corbeille (déjà vidée ?)")) }
+        if !destinationTaken.isEmpty { parts.append(L("\(destinationTaken.count) non restauré(s) : l'emplacement d'origine est déjà occupé")) }
+        if !failed.isEmpty { parts.append(L("\(failed.count) échec(s)")) }
+        return parts.isEmpty ? L("Rien à restaurer") : parts.joined(separator: " · ")
     }
 }
 

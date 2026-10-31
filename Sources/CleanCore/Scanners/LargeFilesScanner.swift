@@ -27,7 +27,7 @@ public struct LargeFilesScanner: FileScanner {
         let now = Date()
 
         for (idx, root) in roots.enumerated() {
-            progress(Double(idx) / total, "Scanning \(root.lastPathComponent)…")
+            progress(Double(idx) / total, L("Scanning \(root.lastPathComponent)…"))
             guard FileManager.default.fileExists(atPath: root.path) else { continue }
 
             for file in FS.enumerate(root) {
@@ -49,7 +49,7 @@ public struct LargeFilesScanner: FileScanner {
                 }
             }
         }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         items.sort { $0.size > $1.size }
         return ScanResult(module: .files, items: items)
     }

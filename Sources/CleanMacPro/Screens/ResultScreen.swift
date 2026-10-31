@@ -33,7 +33,7 @@ struct ResultScreen: View {
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(Color(red: 15/255, green: 138/255, blue: 55/255))
-                        Text(freedBytes == 0 ? "Aucun nettoyage récent" : "Nettoyage terminé")
+                        Text(freedBytes == 0 ? L("Aucun nettoyage récent") : L("Nettoyage terminé"))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(Color(red: 15/255, green: 138/255, blue: 55/255))
                     }
@@ -52,7 +52,7 @@ struct ResultScreen: View {
                             Text(String(format: "%.1f", freedGB))
                                 .font(.system(size: 96, weight: .heavy))
                                 .tracking(-4.5)
-                            Text("Go")
+                            Text(L("Go"))
                                 .font(.system(size: 56, weight: .heavy))
                                 .tracking(-2)
                                 .foregroundColor(.text2(theme.dark))
@@ -70,8 +70,8 @@ struct ResultScreen: View {
                         .lineLimit(1).minimumScaleFactor(0.6)
 
                         Text(freedBytes == 0
-                             ? "Lance un scan pour récupérer de l'espace."
-                             : "récupérés. Ton Mac respire.")
+                             ? L("Lance un scan pour récupérer de l'espace.")
+                             : L("récupérés. Ton Mac respire."))
                             .font(.system(size: 18))
                             .foregroundColor(.text2(theme.dark))
 
@@ -93,15 +93,15 @@ struct ResultScreen: View {
                     HStack(spacing: 12) {
                         suggestionCard(
                             icon: "sparkle", color: theme.accent.color,
-                            title: "Pendant qu'on y est",
-                            body: "Tu peux relancer un Smart Scan : caches récents, traceurs accumulés, mises à jour."
+                            title: L("Pendant qu'on y est"),
+                            body: L("Tu peux relancer un Smart Scan : caches récents, traceurs accumulés, mises à jour.")
                         ) {
                             appState.active = .smartScan
                         }
                         suggestionCard(
                             icon: "wrench", color: .cmpViolet,
-                            title: "Maintenance",
-                            body: "Vider le cache DNS, réindexer Spotlight, purger la RAM en quelques secondes."
+                            title: L("Maintenance"),
+                            body: L("Vider le cache DNS, réindexer Spotlight, purger la RAM en quelques secondes.")
                         ) {
                             appState.active = .maintenance
                         }
@@ -109,7 +109,7 @@ struct ResultScreen: View {
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 24)
 
-                    Btn(kind: .ghost, label: "Retour à la vue d'ensemble") {
+                    Btn(kind: .ghost, label: L("Retour à la vue d'ensemble")) {
                         appState.active = .dashboard
                     }
                     .padding(.top, 8)
@@ -132,7 +132,7 @@ struct ResultScreen: View {
     private var breakdownPanel: some View {
         GlassPanel(radius: 14, padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("DÉTAIL").font(.system(size: 11, weight: .semibold))
+                Text(L("DÉTAIL")).font(.system(size: 11, weight: .semibold))
                     .tracking(0.7).foregroundColor(.text3(theme.dark))
                 ForEach(Array(breakdown.enumerated()), id: \.offset) { idx, pair in
                     HStack(spacing: 14) {
@@ -147,7 +147,7 @@ struct ResultScreen: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(pair.0.title).font(.system(size: 13.5, weight: .semibold))
                                 .foregroundColor(.text1(theme.dark))
-                            Text("\(pair.1.removedCount) éléments envoyés à la Corbeille")
+                            Text(L("\(pair.1.removedCount) éléments envoyés à la Corbeille"))
                                 .font(.system(size: 11.5))
                                 .foregroundColor(.text3(theme.dark))
                         }
@@ -175,7 +175,7 @@ struct ResultScreen: View {
                 Text(body).font(.system(size: 12.5))
                     .foregroundColor(.text2(theme.dark))
                     .fixedSize(horizontal: false, vertical: true)
-                Btn(kind: .secondary, size: .sm, label: "Y aller", action: action)
+                Btn(kind: .secondary, size: .sm, label: L("Y aller"), action: action)
             }
         }
     }
@@ -183,7 +183,9 @@ struct ResultScreen: View {
     private func approxLine(_ gb: Double) -> String {
         let photos = Int(gb * 1000 / 4)        // ~4 MB / photo
         let films = Int(gb / 8)                // ~8 GB / 4K film
-        return "Soit ~ \(photos.formatted()) photos · \(films) film\(films > 1 ? "s" : "") 4K"
+        let photosText = photos.formatted()
+        return films > 1 ? L("Soit ~ \(photosText) photos · \(films) films 4K")
+                         : L("Soit ~ \(photosText) photos · \(films) film 4K")
     }
 }
 

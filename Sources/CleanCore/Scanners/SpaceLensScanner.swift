@@ -39,7 +39,7 @@ public struct SpaceLensScanner: FileScanner {
 
         for (idx, root) in roots.enumerated() {
             if Task.isCancelled { throw ScanError.cancelled }
-            progress(Double(idx) / total, "Analyse \(root.lastPathComponent)…")
+            progress(Double(idx) / total, L("Analyse \(root.lastPathComponent)…"))
 
             guard fm.fileExists(atPath: root.path) else { continue }
 
@@ -49,9 +49,9 @@ public struct SpaceLensScanner: FileScanner {
             guard size > 0 else { continue }
 
             let group: String
-            if root.path.hasPrefix("/Applications") { group = "Système" }
+            if root.path.hasPrefix("/Applications") { group = L("Système") }
             else if root.path.contains("/Library/")  { group = "~/Library" }
-            else                                     { group = "Utilisateur" }
+            else                                     { group = L("Utilisateur") }
 
             items.append(ScanItem(
                 url: root,
@@ -66,16 +66,16 @@ public struct SpaceLensScanner: FileScanner {
         }
 
         items.sort { $0.size > $1.size }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
 
         if items.isEmpty {
             // Nothing readable — surface a single informative item so the UI isn't blank.
             return ScanResult(module: .spaceLens, items: [
                 ScanItem(
                     url: FS.home, size: 0, kind: .spaceFolder,
-                    group: "Permissions",
-                    title: "Lecture refusée",
-                    detail: "Donne à CleanMac Pro l'accès « Fichiers et dossiers » dans Réglages → Confidentialité → Fichiers et dossiers.",
+                    group: L("Permissions"),
+                    title: L("Lecture refusée"),
+                    detail: L("Donne à CleanMac Pro l'accès « Fichiers et dossiers » dans Réglages → Confidentialité → Fichiers et dossiers."),
                     severity: .warn
                 )
             ])
@@ -118,7 +118,7 @@ public struct SpaceLensScanner: FileScanner {
                 size: size,
                 modified: FS.modified(of: url),
                 kind: .spaceFolder,
-                group: isDir.boolValue ? "Dossier" : "Fichier",
+                group: isDir.boolValue ? L("Dossier") : L("Fichier"),
                 title: url.lastPathComponent,
                 detail: path,
                 severity: .info

@@ -10,10 +10,18 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Localization lint
+        run: python3 Tools/check-localization.py
       - name: Build
         run: swift build
       - name: Test
         run: swift test
+      - name: Assemble .app (localized resources)
+        run: |
+          swift build -c release
+          ./Tools/build-app.sh
+          ls "build/CleanMac Pro.app/Contents/Resources/CleanMacPro_CleanCore.bundle"
+          for l in fr en es de; do test -f "build/CleanMac Pro.app/Contents/Resources/CleanMacPro_CleanCore.bundle/$l.lproj/Localizable.strings"; done
       - name: Smoke + live Sparkle check
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"

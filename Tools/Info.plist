@@ -6,6 +6,15 @@
     <string>CleanMac Pro</string>
     <key>CFBundleDisplayName</key>
     <string>CleanMac Pro</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>fr</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>fr</string>
+        <string>en</string>
+        <string>es</string>
+        <string>de</string>
+    </array>
     <key>CFBundleIdentifier</key>
     <string>ai.turkeycode.cleanmacpro</string>
     <key>CFBundleVersion</key>

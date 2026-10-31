@@ -55,30 +55,30 @@ private struct ContentPane: View {
                 SmartScanScreen()
             case .cleanup:
                 ScanScreen(module: .cleanup,
-                           subtitle: "Nettoyez votre système pour profiter de performances optimales et récupérer de l'espace disque.")
+                           subtitle: L("Nettoyez votre système pour profiter de performances optimales et récupérer de l'espace disque."))
             case .uninstaller:
                 ApplicationsScreen()
             case .files, .similarPhotos:
                 FilesScreen()
             case .developer:
                 ScanScreen(module: .developer,
-                           subtitle: "Libérez l'espace pris par Xcode, les caches de paquets, les node_modules oubliés, Homebrew et Docker. Les dossiers vont à la Corbeille ; les commandes (brew, docker, simctl) se lancent depuis leur ligne.")
+                           subtitle: L("Libérez l'espace pris par Xcode, les caches de paquets, les node_modules oubliés, Homebrew et Docker. Les dossiers vont à la Corbeille ; les commandes (brew, docker, simctl) se lancent depuis leur ligne."))
             case .spaceLens:
                 SpaceLensScreen()
             case .security:
                 ProtectionScreen()
             case .privacy:
                 ScanScreen(module: .privacy,
-                           subtitle: "Données de navigation par navigateur. Sélectionne ce qui peut partir.")
+                           subtitle: L("Données de navigation par navigateur. Sélectionne ce qui peut partir."))
             case .updates:
                 ScanScreen(module: .updates,
-                           subtitle: "Homebrew + softwareupdate. Pas de mise à jour automatique — c'est toi qui décides.",
+                           subtitle: L("Homebrew + softwareupdate. Pas de mise à jour automatique — c'est toi qui décides."),
                            supportsClean: false)
             case .performance:
                 PerformanceScreen()
             case .maintenance:
                 ScanScreen(module: .maintenance,
-                           subtitle: "Tâches d'entretien — chaque action est documentée.",
+                           subtitle: L("Tâches d'entretien — chaque action est documentée."),
                            supportsClean: false)
             case .result:
                 ResultScreen()

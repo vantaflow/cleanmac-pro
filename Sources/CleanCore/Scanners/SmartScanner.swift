@@ -49,7 +49,7 @@ public struct SmartScanner: FileScanner {
         let roots = fingerprintRoots
 
         if useCache, let cached = await ScanCache.shared.cached(.smartScan, roots: roots, maxAge: maxCacheAge) {
-            progress(1.0, "À jour (cache)")
+            progress(1.0, L("À jour (cache)"))
             return ScanResult(module: .smartScan, items: cached)
         }
 
@@ -85,13 +85,13 @@ public struct SmartScanner: FileScanner {
             for try await result in group {
                 let done = counter.increment()
                 progress(Double(done) / Double(total),
-                         "Smart Scan — \(result.module.title) (\(done)/\(total))")
+                         L("Smart Scan — \(result.module.title) (\(done)/\(total))"))
                 merged.append(contentsOf: result.items)
             }
         }
 
         if useCache { await ScanCache.shared.save(.smartScan, roots: roots, items: merged) }
-        progress(1.0, "Done")
+        progress(1.0, L("Done"))
         return ScanResult(module: .smartScan, items: merged)
     }
 }

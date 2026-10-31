@@ -68,12 +68,12 @@ struct ApplicationsScreen: View {
     var body: some View {
         TabbedModuleScreen(tabs: [
             .init(module: .uninstaller,
-                  label: "Désinstalleur",
-                  subtitle: "Prenez le contrôle de vos applications. Désinstallez-les complètement, résidus compris — suppression définitive, indétectable par les autres nettoyeurs.",
+                  label: L("Désinstalleur"),
+                  subtitle: L("Prenez le contrôle de vos applications. Désinstallez-les complètement, résidus compris — suppression définitive, indétectable par les autres nettoyeurs."),
                   supportsClean: true, permanentDelete: true),
             .init(module: .updates,
-                  label: "Mises à jour",
-                  subtitle: "Applications obsolètes détectées via Homebrew et l'App Store. Pas de mise à jour automatique — c'est vous qui décidez.",
+                  label: L("Mises à jour"),
+                  subtitle: L("Applications obsolètes détectées via Homebrew et l'App Store. Pas de mise à jour automatique — c'est vous qui décidez."),
                   supportsClean: false)
         ])
     }
@@ -83,12 +83,12 @@ struct ProtectionScreen: View {
     var body: some View {
         TabbedModuleScreen(tabs: [
             .init(module: .security,
-                  label: "Analyse",
-                  subtitle: "Analysez votre Mac pour détecter toutes sortes de menaces et de failles. FileVault, Gatekeeper, SIP, pare-feu, XProtect.",
+                  label: L("Analyse"),
+                  subtitle: L("Analysez votre Mac pour détecter toutes sortes de menaces et de failles. FileVault, Gatekeeper, SIP, pare-feu, XProtect."),
                   supportsClean: false),
             .init(module: .privacy,
-                  label: "Confidentialité",
-                  subtitle: "Données de navigation par navigateur. Sélectionnez ce qui peut partir.",
+                  label: L("Confidentialité"),
+                  subtitle: L("Données de navigation par navigateur. Sélectionnez ce qui peut partir."),
                   supportsClean: true)
         ])
     }
@@ -98,12 +98,12 @@ struct PerformanceScreen: View {
     var body: some View {
         TabbedModuleScreen(tabs: [
             .init(module: .performance,
-                  label: "Optimisation",
-                  subtitle: "Exécutez les tâches d'entretien recommandées pour optimiser les performances de votre Mac.",
+                  label: L("Optimisation"),
+                  subtitle: L("Exécutez les tâches d'entretien recommandées pour optimiser les performances de votre Mac."),
                   supportsClean: false),
             .init(module: .maintenance,
-                  label: "Maintenance",
-                  subtitle: "Tâches d'entretien — chaque action est documentée.",
+                  label: L("Maintenance"),
+                  subtitle: L("Tâches d'entretien — chaque action est documentée."),
                   supportsClean: false)
         ])
     }
@@ -113,11 +113,11 @@ struct FilesScreen: View {
     var body: some View {
         TabbedModuleScreen(tabs: [
             .init(module: .files,
-                  label: "Volumineux & doublons",
-                  subtitle: "Examinez votre espace de stockage pour supprimer les fichiers dont vous n'avez pas besoin et désencombrer votre disque."),
+                  label: L("Volumineux & doublons"),
+                  subtitle: L("Examinez votre espace de stockage pour supprimer les fichiers dont vous n'avez pas besoin et désencombrer votre disque.")),
             .init(module: .similarPhotos,
-                  label: "Photos similaires",
-                  subtitle: "Retrouve les photos quasi identiques (recadrées, redimensionnées, recompressées) dans Images, Téléchargements et Bureau. La meilleure de chaque groupe est conservée ; les autres vont à la Corbeille.")
+                  label: L("Photos similaires"),
+                  subtitle: L("Retrouve les photos quasi identiques (recadrées, redimensionnées, recompressées) dans Images, Téléchargements et Bureau. La meilleure de chaque groupe est conservée ; les autres vont à la Corbeille."))
         ])
     }
 }

@@ -9,7 +9,7 @@ struct ScanScreen: View {
     @EnvironmentObject var appState: AppState
     let module: ModuleID
     var subtitle: String
-    var primaryActionLabel: String = "Nettoyer la sélection"
+    var primaryActionLabel: String = L("Nettoyer la sélection")
     var supportsClean: Bool = true
     /// Uninstaller: remove permanently (no Trash) so nothing lingers for other
     /// cleaners to detect.
@@ -34,13 +34,13 @@ struct ScanScreen: View {
                         SortMenu(module: module)
                     }
                     if state.isScanning {
-                        Btn(kind: .secondary, icon: "pause", label: "Annuler") {
+                        Btn(kind: .secondary, icon: "pause", label: L("Annuler")) {
                             appState.cancelScan(module: module)
                         }
                     } else if let result = state.result, !result.items.isEmpty, supportsClean {
                         let selected = state.selection.count
                         Btn(kind: .primary, size: .lg, icon: "trash",
-                            label: selected == 0 ? "Tout sélectionner" : "\(primaryActionLabel) (\(selected))") {
+                            label: selected == 0 ? L("Tout sélectionner") : "\(primaryActionLabel) (\(selected))") {
                             if selected == 0 {
                                 appState.update(module) { s in
                                     s.selection = Set(result.items.filter { $0.kind != .keeper }.map(\.id))
@@ -61,7 +61,7 @@ struct ScanScreen: View {
                     .padding(.horizontal, 28).padding(.bottom, 28)
             } else if let result = state.result {
                 if result.items.isEmpty {
-                    EmptyResultsView(message: "Aucun élément à signaler.")
+                    EmptyResultsView(message: L("Aucun élément à signaler."))
                 } else {
                     ResultsListing(module: module, result: result)
                 }
@@ -84,11 +84,11 @@ private struct ScanningView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     CmpIcon(name: "scan", size: 18, color: theme.accent.color)
-                    Text("Scan en cours")
+                    Text(L("Scan en cours"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.text1(theme.dark))
                     Spacer()
-                    Text("\(Int(progress * 100)) %")
+                    Text(verbatim: "\(Int(progress * 100)) %")
                         .font(.system(size: 14, weight: .semibold, design: .monospaced))
                         .foregroundColor(.text2(theme.dark))
                 }
@@ -122,7 +122,7 @@ private struct EmptyScanView: View {
                 .frame(maxWidth: 560)
                 .padding(.top, 12)
             Spacer()
-            RoundScanButton(label: "Analyser", accent: module.theme.accent, action: action)
+            RoundScanButton(label: L("Analyser"), accent: module.theme.accent, action: action)
                 .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -178,7 +178,7 @@ private struct ResultsListing: View {
     }
     private var visibleItems: [ScanItem] { appState.filter(result.items) }
     private var grouped: [(String, [ScanItem])] {
-        Dictionary(grouping: visibleItems, by: { $0.group ?? "Autres" })
+        Dictionary(grouping: visibleItems, by: { $0.group ?? L("Autres") })
             .map { ($0.key, $0.value.sorted(by: compare)) }
             .sorted(by: compareGroups)
     }
@@ -195,7 +195,7 @@ private struct ResultsListing: View {
         VStack(spacing: 10) {
             Spacer()
             CmpIcon(name: "search", size: 40, color: .text3(theme.dark))
-            Text("Aucun résultat pour « \(appState.searchText) »")
+            Text(L("Aucun résultat pour « \(appState.searchText) »"))
                 .font(.system(size: 14)).foregroundColor(.text2(theme.dark))
             Spacer()
         }
@@ -212,7 +212,7 @@ private struct ResultsListing: View {
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.text1(theme.dark))
                             Spacer()
-                            Text("\(items.count) · \(ByteFormatter.string(items.reduce(0) { $0 + $1.size }))")
+                            Text(verbatim: "\(items.count) · \(ByteFormatter.string(items.reduce(0) { $0 + $1.size }))")
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundColor(.text2(theme.dark))
                         }
@@ -252,11 +252,11 @@ private struct ItemRow: View {
     }
     private var runLabel: String {
         switch item.kind {
-        case .loginItem:        return item.needsAdmin ? "Désactiver (admin)" : "Désactiver"
-        case .launchAgent:      return item.needsAdmin ? "Décharger (admin)" : "Décharger"
-        case .updateAvailable:  return "Mettre à jour"
-        case .maintenanceTask:  return item.needsAdmin ? "Exécuter (admin)" : "Exécuter"
-        default:                return "Exécuter"
+        case .loginItem:        return item.needsAdmin ? L("Désactiver (admin)") : L("Désactiver")
+        case .launchAgent:      return item.needsAdmin ? L("Décharger (admin)") : L("Décharger")
+        case .updateAvailable:  return L("Mettre à jour")
+        case .maintenanceTask:  return item.needsAdmin ? L("Exécuter (admin)") : L("Exécuter")
+        default:                return L("Exécuter")
         }
     }
     private var checked: Bool { appState.state(for: module).selection.contains(item.id) }
@@ -294,9 +294,9 @@ private struct ItemRow: View {
         }
         .padding(.horizontal, 4)
         .contextMenu {
-            Button("Ne plus proposer ce chemin") { appState.exclude(item) }
+            Button(L("Ne plus proposer ce chemin")) { appState.exclude(item) }
             if item.kind == .app {
-                Button("Ne plus proposer cette app") { appState.exclude(item, asApp: true) }
+                Button(L("Ne plus proposer cette app")) { appState.exclude(item, asApp: true) }
             }
         }
     }
@@ -375,10 +375,10 @@ private struct ItemRow: View {
     private var severityLabel: some View {
         let text: String
         switch item.severity {
-        case .good: text = "OK"
-        case .warn: text = "Attention"
-        case .bad:  text = "Critique"
-        case .info: text = "Info"
+        case .good: text = L("OK")
+        case .warn: text = L("Attention")
+        case .bad:  text = L("Critique")
+        case .info: text = L("Info")
         }
         return StatusPill(status: pillStatus, text: text)
     }

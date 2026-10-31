@@ -24,20 +24,20 @@ struct SpaceLensScreen: View {
         let state = appState.state(for: .spaceLens)
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(
-                kicker: "Space Lens",
-                title: "Où vont tes Go.",
-                subtitle: "Carte du disque en taille réelle. Survol → détail. Clic → explore le dossier."
+                kicker: L("Space Lens"),
+                title: L("Où vont tes Go."),
+                subtitle: L("Carte du disque en taille réelle. Survol → détail. Clic → explore le dossier.")
             ) {
                 if state.isScanning {
-                    Btn(kind: .secondary, icon: "pause", label: "Annuler") {
+                    Btn(kind: .secondary, icon: "pause", label: L("Annuler")) {
                         appState.cancelScan(module: .spaceLens)
                     }
                 } else if state.result == nil || (state.result?.items.isEmpty ?? true) {
-                    Btn(kind: .primary, size: .lg, icon: "scan", label: "Scanner mon disque") {
+                    Btn(kind: .primary, size: .lg, icon: "scan", label: L("Scanner mon disque")) {
                         appState.startScan(module: .spaceLens)
                     }
                 } else {
-                    Btn(kind: .secondary, icon: "scan", label: "Re-scanner") {
+                    Btn(kind: .secondary, icon: "scan", label: L("Re-scanner")) {
                         appState.startScan(module: .spaceLens)
                     }
                 }
@@ -47,7 +47,7 @@ struct SpaceLensScreen: View {
             if state.isScanning {
                 GlassPanel(radius: 14, padding: 24) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Indexation \(state.status)").font(.system(size: 13))
+                        Text(L("Indexation \(state.status)")).font(.system(size: 13))
                             .foregroundColor(.text2(theme.dark))
                         ProgressView(value: state.progress).tint(theme.accent.color)
                     }
@@ -65,9 +65,9 @@ struct SpaceLensScreen: View {
         VStack(spacing: 14) {
             Spacer()
             CmpIcon(name: "disk", size: 56, color: .text3(theme.dark))
-            Text("Lance un scan pour cartographier ton disque")
+            Text(L("Lance un scan pour cartographier ton disque"))
                 .font(.system(size: 14)).foregroundColor(.text2(theme.dark))
-            Text("Le scan utilise `du` — quelques secondes pour ton dossier utilisateur.")
+            Text(L("Le scan utilise `du` — quelques secondes pour ton dossier utilisateur."))
                 .font(.system(size: 12)).foregroundColor(.text3(theme.dark))
             Spacer()
         }
@@ -92,7 +92,7 @@ struct SpaceLensScreen: View {
                     }
                 }
                 Spacer()
-                Text("\(items.count) éléments · \(ByteFormatter.string(total))")
+                Text(L("\(items.count) éléments · \(ByteFormatter.string(total))"))
                     .font(.system(size: 12)).foregroundColor(.text3(theme.dark))
             }
             .padding(.horizontal, 28)
@@ -109,7 +109,7 @@ struct SpaceLensScreen: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .background(.ultraThinMaterial)
                             } else if items.isEmpty {
-                                Text("Dossier vide ou illisible")
+                                Text(L("Dossier vide ou illisible"))
                                     .font(.system(size: 13)).foregroundColor(.text3(theme.dark))
                             }
                         }
@@ -119,7 +119,7 @@ struct SpaceLensScreen: View {
 
                 GlassPanel(radius: 12, padding: 14) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("LÉGENDE").font(.system(size: 11, weight: .semibold))
+                        Text(L("LÉGENDE")).font(.system(size: 11, weight: .semibold))
                             .tracking(0.6).foregroundColor(.text3(theme.dark))
 
                         ScrollView {
@@ -216,8 +216,8 @@ private struct Treemap: View {
                         .onHover { hovered = $0 ? item.id : nil }
                         .onTapGesture { onDrill(item) }
                         .contextMenu {
-                            Button("Explorer") { onDrill(item) }
-                            Button("Révéler dans le Finder") { onReveal(item) }
+                            Button(L("Explorer")) { onDrill(item) }
+                            Button(L("Révéler dans le Finder")) { onReveal(item) }
                         }
                 }
             }
@@ -301,8 +301,8 @@ private struct LegendRow: View {
         .buttonStyle(.plain)
         .onHover(perform: onHover)
         .contextMenu {
-            Button("Explorer") { onDrill() }
-            Button("Révéler dans le Finder") { onReveal() }
+            Button(L("Explorer")) { onDrill() }
+            Button(L("Révéler dans le Finder")) { onReveal() }
         }
     }
 }

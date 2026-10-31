@@ -6,18 +6,18 @@ extension ModuleID {
     /// Display name used in the sidebar + big screen title.
     var railTitle: String {
         switch self {
-        case .smartScan:   return "Entretien intelligent"
-        case .cleanup:     return "Nettoyage"
-        case .security:    return "Protection"
-        case .performance: return "Performances"
-        case .uninstaller: return "Applications"
-        case .files:       return "Mes fichiers inutiles"
-        case .similarPhotos: return "Photos similaires"
-        case .developer:   return "Développeur"
-        case .spaceLens:   return "Télescope"
-        case .privacy:     return "Confidentialité"
-        case .updates:     return "Mises à jour"
-        case .maintenance: return "Maintenance"
+        case .smartScan:   return L("Entretien intelligent")
+        case .cleanup:     return L("Nettoyage")
+        case .security:    return L("Protection")
+        case .performance: return L("Performances")
+        case .uninstaller: return L("Applications")
+        case .files:       return L("Mes fichiers inutiles")
+        case .similarPhotos: return L("Photos similaires")
+        case .developer:   return L("Développeur")
+        case .spaceLens:   return L("Télescope")
+        case .privacy:     return L("Confidentialité")
+        case .updates:     return L("Mises à jour")
+        case .maintenance: return L("Maintenance")
         default:           return title
         }
     }
@@ -128,7 +128,7 @@ struct IconRail: View {
             Spacer()
 
             // Assistant / settings row (opens the live menu-bar panel).
-            SidebarRow(module: nil, icon: "bubbles.and.sparkles.fill", label: "Assistant",
+            SidebarRow(module: nil, icon: "bubbles.and.sparkles.fill", label: L("Assistant"),
                        selected: false, badge: false,
                        action: { appState.menubarOpen.toggle() })
                 .padding(.horizontal, 12)
