@@ -7,10 +7,11 @@ import CleanCore
 /// screen (all `ModuleID` cases, the settings window, the menu-bar popover),
 /// writes one PNG per screen plus `report.json`, then quits.
 ///
-/// Safety: it never calls `clean(...)`, never runs maintenance commands and
-/// never asks for admin rights. Scans only read a throw-away fixture tree
-/// created inside the output directory (the Result screen is fed a synthetic
-/// report, nothing is removed).
+/// Safety: it only ever cleans a throw-away fixture tree created inside the
+/// output directory (every scanner is replaced by a fixture), never runs
+/// maintenance commands, never asks for admin rights and never touches the
+/// user's own files. It also drives the Smart Care flow end to end ("Lancer")
+/// and checks the outcome on disk.
 @MainActor
 final class UITestDriver {
     static let argument = "--ui-test"
@@ -101,17 +102,12 @@ final class UITestDriver {
     // MARK: Run
 
     private func run() async {
-        // Fixture trees (inside the output dir; read-only for the scanners).
+        // Fixture trees (inside the output dir). Everything cleaned below lives here.
         let fixture = outDir.appendingPathComponent("fixture", isDirectory: true)
-        let cleanupRoot = fixture.appendingPathComponent("Caches", isDirectory: true)
         let lensRoot = fixture.appendingPathComponent("Lens", isDirectory: true)
-        makeFixture(cleanupRoot: cleanupRoot, lensRoot: lensRoot)
-
-        appState.scannerOverrides = [
-            .cleanup: CleanupScanner(rootOverrides: [cleanupRoot]),
-            .smartScan: SmartScanner(rootOverrides: [cleanupRoot]),
-            .spaceLens: SpaceLensScanner(roots: [lensRoot]),
-        ]
+        let fx = makeFixture(lensRoot: lensRoot)
+        fixtureRoot = fx
+        appState.scannerOverrides = fx.scanners(lensRoot: lensRoot)
         appState.showOnboarding = false   // not persisted
 
         // 1. Main window.
@@ -137,24 +133,12 @@ final class UITestDriver {
         // 3. Every module screen (idle state).
         for module in ModuleID.allCases {
             appState.active = module
-            if module == .result { seedResult() }
             try? await Task.sleep(nanoseconds: 1_300_000_000)
             record(window: main, id: module.rawValue, title: module.title,
                    file: "screen-\(module.rawValue).png", distinct: module != .dashboard)
         }
 
-        // 4. Real scans on fixtures: Cleanup, Space Lens, Smart Scan.
-        appState.active = .cleanup
-        appState.startScan(module: .cleanup)
-        if await waitForScan(.cleanup) {
-            let n = appState.state(for: .cleanup).result?.items.count ?? 0
-            report.cleanupFixtureItems = n
-            if n == 0 { fail("cleanup scan on fixture returned no rows") }
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            record(window: main, id: "cleanup-scanned", title: "Nettoyage (scan fixture)",
-                   file: "screen-cleanup-scanned.png", distinct: true)
-        }
-
+        // 4. Space Lens on its fixture.
         appState.active = .spaceLens
         appState.startScan(module: .spaceLens)
         if await waitForScan(.spaceLens) {
@@ -166,13 +150,8 @@ final class UITestDriver {
                    file: "screen-spaceLens-scanned.png", distinct: true)
         }
 
-        appState.active = .smartScan
-        appState.startScan(module: .smartScan)
-        if await waitForScan(.smartScan) {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            record(window: main, id: "smartScan-scanned", title: "Smart Scan (scan fixture)",
-                   file: "screen-smartScan-scanned.png", distinct: false)
-        }
+        // 5. Smart Care, end to end on the fixtures.
+        await smartCareFlow(main: main, fx: fx)
 
         log("settings")
         // 5. Settings window (scene first, hosted fallback if the scene does not open).
@@ -272,26 +251,116 @@ final class UITestDriver {
         return false
     }
 
-    private func makeFixture(cleanupRoot: URL, lensRoot: URL) {
-        let fm = FileManager.default
-        try? fm.removeItem(at: outDir.appendingPathComponent("fixture"))
-        func write(_ dir: URL, _ name: String, kb: Int) {
-            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-            try? Data(repeating: 0x41, count: kb * 1024).write(to: dir.appendingPathComponent(name))
-        }
-        for app in ["com.example.alpha", "com.example.beta", "com.example.gamma"] {
-            for i in 1...4 { write(cleanupRoot.appendingPathComponent(app), "cache-\(i).bin", kb: 40 * i) }
-        }
-        for (dir, kb) in [("Videos", 900), ("Photos", 600), ("Docs", 250), ("Archive", 120)] {
-            for i in 1...3 { write(lensRoot.appendingPathComponent(dir), "file-\(i).dat", kb: kb) }
-        }
+    private var fixtureRoot: Fixture?
+
+    private func check(_ ok: Bool, _ what: String) {
+        if ok { report.notes.append("ok: " + what) } else { fail("check failed: " + what) }
     }
 
-    /// Synthetic "cleanup done" report so the Result screen has content.
-    /// Nothing is deleted: only in-memory state changes.
-    private func seedResult() {
-        let r = CleanReport(removedCount: 42, freedBytes: 3_400_000_000, failedItems: [])
-        appState.update(.cleanup) { $0.lastReport = r }
+    private func waitFor(_ what: String, seconds: Int = 120, _ cond: () -> Bool) async -> Bool {
+        for _ in 0..<(seconds * 4) {
+            if cond() { return true }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        fail("timeout waiting for \(what)")
+        return false
+    }
+
+    /// Smart Care: analyse → results cards → review screens → explicit selection →
+    /// "Lancer" → real deletion checked on disk → Result → History → restore.
+    private func smartCareFlow(main: NSWindow, fx: Fixture) async {
+        let fm = FileManager.default
+        appState.navigate(to: .smartScan)
+        appState.startSmartCare()
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        record(window: main, id: "smartcare-scanning", title: "Smart Care (analyse)",
+               file: "screen-smartcare-scanning.png", distinct: false)
+        guard await waitFor("Smart Care analysis", { appState.smartCare.phase == .results }) else { return }
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        record(window: main, id: "smartcare-results", title: "Smart Care (résultats)",
+               file: "screen-smartcare-results.png", distinct: false)
+
+        // Default selection: only regenerable items; personal files / browser data / Trash untouched.
+        let plan = appState.smartCarePlan
+        check(plan.regenerableBytes > 0, "analysis found regenerable data")
+        check(!plan.runnableItems.isEmpty && plan.runnableItems.allSatisfy { $0.kind.isRegenerable },
+              "default run contains only caches / logs / temp files")
+        check(plan.selectedClutter.isEmpty && plan.selectedPrivacy.isEmpty && !plan.trashSelected,
+              "personal files, browser data and the Trash are not selected by default")
+        check(plan.clutterBytes > 0 && plan.privacyBytes > 0 && plan.trashBytes > 0 && !plan.updates.isEmpty,
+              "every card has data")
+
+        // Review screens opened from the cards.
+        for (module, id) in [(ModuleID.cleanup, "review-cleanup"), (.developer, "review-developer"),
+                             (.files, "review-files"), (.privacy, "review-privacy"),
+                             (.security, "review-security"), (.updates, "review-updates"),
+                             (.performance, "review-performance")] {
+            appState.review(module)
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            record(window: main, id: id, title: "Revue \(module.rawValue)", file: "screen-\(id).png", distinct: false)
+        }
+
+        // Explicit review: the user picks one duplicate and ticks the Trash.
+        appState.backToSmartCare()
+        let dup = appState.state(for: .files).result?.items.first { $0.kind == .duplicate }
+        check(dup != nil, "files fixture contains a duplicate")
+        if let dup { appState.update(.files) { $0.selection.insert(dup.id) } }
+        appState.setTrashIncluded(true)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        record(window: main, id: "smartcare-results-selected", title: "Smart Care (sélection)",
+               file: "screen-smartcare-results-selected.png", distinct: false)
+
+        let run = appState.smartCarePlan
+        let cacheURLs = run.regenerableItems.map(\.url)
+        check(run.runnableItems.contains { $0.kind == .duplicate } && run.runnableItems.contains { $0.kind == .trash },
+              "explicit selection is part of the run")
+        check(run.runnableItems.allSatisfy { fx.owns($0.url) }, "everything about to be cleaned is inside the fixture")
+        let keeperURL = appState.state(for: .files).result?.items.first { $0.kind == .keeper }?.url
+        let largeURL = appState.state(for: .files).result?.items.first { $0.kind == .largeFile }?.url
+        let totalBefore = appState.history.entries.count
+
+        appState.runSmartCare()
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        record(window: main, id: "smartcare-running", title: "Smart Care (nettoyage)",
+               file: "screen-smartcare-running.png", distinct: false)
+        guard await waitFor("Smart Care run", { appState.lastOutcome != nil && appState.smartCare.phase == .results }) else { return }
+        try? await Task.sleep(nanoseconds: 1_800_000_000)
+
+        // Result on disk.
+        check(cacheURLs.allSatisfy { !fm.fileExists(atPath: $0.path) }, "caches, logs and temp files were deleted for good")
+        check(dup.map { !fm.fileExists(atPath: $0.url.path) } ?? false, "the chosen duplicate left its folder")
+        check(keeperURL.map { fm.fileExists(atPath: $0.path) } ?? false, "the kept original is untouched")
+        check(largeURL.map { fm.fileExists(atPath: $0.path) } ?? false, "unselected personal files are untouched")
+        check(fx.trashItems.allSatisfy { !fm.fileExists(atPath: $0.path) }, "the ticked Trash was emptied")
+        if let o = appState.lastOutcome {
+            check(o.report.failedItems.isEmpty, "no failed item")
+            check(o.measure.before != nil && o.measure.after != nil, "free space measured before and after")
+            check(o.report.permanentCount > 0 && o.report.trashedCount >= 1, "report splits permanent deletions and Trash moves")
+            check(appState.history.entries.count > totalBefore, "history entries were recorded")
+        }
+        check(appState.active == .result, "Result screen shown after the run")
+        record(window: main, id: "result-after-run", title: "Résultat (nettoyage réel)",
+               file: "screen-result-after-run.png", distinct: false)
+
+        // History: the Trash move is restorable, the permanent deletions are not.
+        appState.navigate(to: .history)
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        record(window: main, id: "history-after-run", title: "Historique", file: "screen-history-after-run.png", distinct: false)
+        let restorable = appState.history.entries.first { $0.canRestore }
+        check(restorable != nil, "a restorable history entry exists")
+        check(appState.history.entries.contains { !$0.canRestore && $0.permanentCount > 0 },
+              "permanent deletions are recorded without a restore button")
+        if let e = restorable, let dup {
+            _ = appState.restore(e)
+            check(fm.fileExists(atPath: dup.url.path), "Restaurer brings the duplicate back")
+        }
+
+        // The Smart Care screen after the run: remaining cards, nothing left to run.
+        appState.navigate(to: .smartScan)
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        record(window: main, id: "smartcare-after-run", title: "Smart Care (après nettoyage)",
+               file: "screen-smartcare-after-run.png", distinct: false)
+        check(!appState.smartCarePlan.hasWork, "nothing left to run")
     }
 
     private func record(window: NSWindow, id: String, title: String, file: String, distinct: Bool) {
@@ -316,9 +385,9 @@ final class UITestDriver {
             try? png.write(to: outDir.appendingPathComponent(file))
             s.png = file
         }
-        // Content area: skip the 264 pt sidebar for the main window.
+        // Content area: skip the 232 pt sidebar for the main window.
         let isMain = window.frame.width >= 900
-        s.edgePixels = edgePixels(rep, skipLeft: isMain ? 264 : 0)
+        s.edgePixels = edgePixels(rep, skipLeft: isMain ? 232 : 0)
         let digest = pixelDigest(rep)
 
         var problems: [String] = []
@@ -385,5 +454,160 @@ final class UITestDriver {
             y += 37
         }
         return hasher.finalize()
+    }
+}
+
+// MARK: — Fixtures
+
+/// A scanner that reports what currently exists in the fixture tree, after a
+/// short pause so progress animations are visible in the screenshots.
+private struct FixtureScanner: FileScanner {
+    let module: ModuleID
+    let build: @Sendable () -> [ScanItem]
+    func scan(progress: @escaping (Double, String) -> Void) async throws -> ScanResult {
+        progress(0.4, "…")
+        try await Task.sleep(nanoseconds: 700_000_000)
+        progress(1, "Done")
+        return ScanResult(module: module, items: build())
+    }
+}
+
+private func fixtureDirItem(_ url: URL, kind: ItemKind, group: String, title: String? = nil) -> ScanItem? {
+    var size: Int64 = 0, count = 0
+    for f in FS.enumerate(url) { size += FS.size(of: f); count += 1 }
+    guard size > 0 else { return nil }
+    return ScanItem(url: url, size: size, modified: FS.modified(of: url), kind: kind, group: group, title: title,
+                    detail: count == 1 ? L("1 fichier") : L("\(Int(count)) fichiers"), fileCount: count)
+}
+
+private func fixtureChildren(_ dir: URL) -> [URL] {
+    ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+}
+
+struct Fixture {
+    let root: URL
+    var trashItems: [URL]
+
+    func owns(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(root.standardizedFileURL.path + "/") }
+
+    func scanners(lensRoot: URL) -> [ModuleID: any FileScanner] {
+        let root = self.root
+        let caches = root.appendingPathComponent("Caches")
+        let logs = root.appendingPathComponent("Logs")
+        let temp = root.appendingPathComponent("Temp")
+        let trash = root.appendingPathComponent("Trash")
+        let browsers = root.appendingPathComponent("Browsers")
+        let downloads = root.appendingPathComponent("Downloads")
+        let devHome = root.appendingPathComponent("DevHome")
+        let release = SparkleRelease(shortVersion: "2.0.2", build: "202",
+                                     downloadURL: URL(string: "https://example.invalid/app.zip"))
+        return [
+            .cleanup: FixtureScanner(module: .cleanup) {
+                var items: [ScanItem] = []
+                for d in fixtureChildren(caches) {
+                    if let i = fixtureDirItem(d, kind: .cache, group: CleanupScanner.Group.appCaches) { items.append(i) }
+                }
+                for d in fixtureChildren(temp) {
+                    if let i = fixtureDirItem(d, kind: .tempFile, group: CleanupScanner.Group.temp) { items.append(i) }
+                }
+                for d in fixtureChildren(logs) {
+                    if let i = fixtureDirItem(d, kind: .log, group: CleanupScanner.Group.logs) { items.append(i) }
+                }
+                for f in fixtureChildren(trash) {
+                    items.append(ScanItem(url: f, size: FS.size(of: f), modified: FS.modified(of: f), kind: .trash,
+                                          group: CleanupScanner.Group.trash))
+                }
+                return items
+            },
+            .developer: DeveloperScanner(home: devHome, projectRoots: [], includeTools: false),
+            .files: FilesScanner(large: LargeFilesScanner(roots: [downloads], minSize: 600 * 1024),
+                                 duplicates: DuplicatesScanner(roots: [downloads], minSize: 100 * 1024)),
+            .privacy: FixtureScanner(module: .privacy) {
+                fixtureChildren(browsers).compactMap {
+                    fixtureDirItem($0, kind: .privacyData, group: $0.lastPathComponent, title: $0.lastPathComponent)
+                }
+            },
+            .security: FixtureScanner(module: .security) {
+                func f(_ t: String, _ d: String, _ sev: Severity, _ g: String = L("Système")) -> ScanItem {
+                    ScanItem(url: URL(fileURLWithPath: "/System/\(t)"), size: 0, kind: .securityFinding,
+                             group: g, title: t, detail: d, severity: sev)
+                }
+                return [
+                    f("FileVault", L("Activé — disque chiffré"), .good),
+                    f("Gatekeeper", "Activé", .good),
+                    f("SIP", "Activé", .good),
+                    f("Pare-feu", "Désactivé", .warn),
+                    f("XProtect", "À jour", .good),
+                    f(L("Aucune menace connue détectée"), "", .good, L("Menaces")),
+                ]
+            },
+            .performance: FixtureScanner(module: .performance) {
+                ["Spotify", "Dropbox", "Zoom"].map {
+                    ScanItem(url: URL(fileURLWithPath: "/LoginItems/\($0)"), size: 0, kind: .loginItem,
+                             group: L("Éléments de connexion"), title: $0,
+                             detail: L("S'ouvre à chaque démarrage — clique pour désactiver"),
+                             severity: .info, command: "true")
+                }
+            },
+            .updates: FixtureScanner(module: .updates) {
+                var out: [ScanItem] = []
+                for n in ["BuhoLaunchpad", "Rectangle", "iTerm"] {
+                    out.append(ScanItem(url: URL(fileURLWithPath: "/Applications/\(n).app"), size: 0, kind: .updateAvailable,
+                                        group: "Apps · Direct (Sparkle)", title: "\(n) — v2.0.0 → v2.0.2",
+                                        detail: "Sparkle", severity: .warn, command: "true", sparkleRelease: release))
+                }
+                for n in ["Outlook", "Numbers"] {
+                    out.append(ScanItem(url: URL(fileURLWithPath: "/Applications/\(n).app"), size: 0, kind: .updateAvailable,
+                                        group: "Apps · App Store", title: "\(n) — v1 → v2", severity: .warn))
+                }
+                out.append(ScanItem(url: URL(fileURLWithPath: "/opt/homebrew/ada-url"), size: 0, kind: .updateAvailable,
+                                    group: "Homebrew · formulae", title: "ada-url", severity: .warn, command: "true"))
+                return out
+            },
+            .spaceLens: SpaceLensScanner(roots: [lensRoot]),
+        ]
+    }
+}
+
+extension UITestDriver {
+    fileprivate func makeFixture(lensRoot: URL) -> Fixture {
+        let fm = FileManager.default
+        let root = lensRoot.deletingLastPathComponent()
+        try? fm.removeItem(at: root)
+        func write(_ rel: String, kb: Int, byte: UInt8 = 0x41, age: Double? = nil) {
+            let url = root.appendingPathComponent(rel)
+            try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Data(repeating: byte, count: kb * 1024).write(to: url)
+            if let age { try? fm.setAttributes([.modificationDate: Date().addingTimeInterval(-age * 86_400)], ofItemAtPath: url.path) }
+        }
+        // App caches (bundle ids of apps that exist on a stock macOS runner, plus one that does not).
+        let apps: [(String, Int, Int)] = [
+            ("com.apple.Safari", 9, 220), ("com.google.Chrome", 7, 180), ("com.microsoft.VSCode", 5, 160),
+            ("com.apple.dt.Xcode", 6, 120), ("com.apple.Notes", 4, 90), ("org.mozilla.firefox", 8, 140),
+            ("com.spotify.client", 5, 100),
+        ]
+        for (id, n, kb) in apps { for i in 1...n { write("Caches/\(id)/data-\(i).cache", kb: kb) } }
+        for i in 1...6 { write("Temp/com.example.tmp/part-\(i).tmp", kb: 110) }
+        for i in 1...4 { write("Logs/DiagnosticReports/crash-\(i).ips", kb: 60) }
+        var trash: [URL] = []
+        for i in 1...2 {
+            write("Trash/old-download-\(i).dmg", kb: 300)
+            trash.append(root.appendingPathComponent("Trash/old-download-\(i).dmg"))
+        }
+        // Personal files (must never be touched unless chosen).
+        write("Downloads/Installer.dmg", kb: 900, byte: 0x51)
+        write("Downloads/Archive.zip", kb: 700, byte: 0x52)
+        write("Downloads/report.pdf", kb: 300, byte: 0x53)
+        write("Downloads/report copy.pdf", kb: 300, byte: 0x53)
+        write("Downloads/old-notes.txt", kb: 4, byte: 0x54, age: 400)
+        // Browser data, developer caches, Space Lens.
+        for (b, n) in [("Firefox", 6), ("Chrome", 4), ("Safari", 2)] { for i in 1...n { write("Browsers/\(b)/cache-\(i).bin", kb: 200) } }
+        for i in 1...5 { write("DevHome/Library/Developer/Xcode/DerivedData/MyApp-abc/Build/o-\(i).o", kb: 400) }
+        for i in 1...4 { write("DevHome/.npm/_cacache/c-\(i).bin", kb: 250) }
+        for (dir, kb) in [("Videos", 900), ("Photos", 600), ("Docs", 250), ("Archive", 120)] {
+            for i in 1...3 { write("Lens/\(dir)/file-\(i).dat", kb: kb) }
+        }
+        return Fixture(root: root, trashItems: trash)
     }
 }
