@@ -103,7 +103,7 @@ final class BackgroundAgent: ObservableObject {
         defer { isScanning = false }
 
         let bytes: Int64 = await Task.detached(priority: .utility) {
-            let result = try? await SmartScanner(useCache: true).scan(progress: { _, _ in })
+            let result = try? await SmartScanner(useCache: true).scanFiltered(progress: { _, _ in })
             return result?.totalSize ?? 0
         }.value
 

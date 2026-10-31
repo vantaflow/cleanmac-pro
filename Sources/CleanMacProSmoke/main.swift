@@ -78,6 +78,33 @@ func runSmoke() async {
         let report = Cleaner.clean(items: [ghost], dryRun: true)
         Smoke.check(report.removedCount == 1 && report.freedBytes == 1_000, "Cleaner dry-run accounts 1 item, 1000 bytes")
 
+        // Exclusions: prefix match on a path boundary
+        let ex = ExclusionList(paths: [cacheDir.appendingPathComponent("c1").path])
+        let exFiltered = ex.apply(to: smartResult)
+        Smoke.check(exFiltered.count == 1, "Exclusions drop the excluded path only (got \(exFiltered.count))")
+        Smoke.check(!ExclusionList.path("/a/bc", isUnder: "/a/b"), "Exclusion /a/b does not match /a/bc")
+
+        // History: simulated trash round-trip + restore
+        let fakeTrash = root.appendingPathComponent("FakeTrash/x.dat")
+        try Smoke.write(10, to: fakeTrash)
+        let origin = root.appendingPathComponent("Restored/x.dat")
+        let entry = HistoryEntry(module: "cleanup", itemCount: 1, freedBytes: 10,
+                                 records: [TrashRecord(originalPath: origin.path, trashPath: fakeTrash.path)])
+        var hist = CleanHistory()
+        hist.record(entry)
+        try hist.save(to: root)
+        Smoke.check(CleanHistory.load(from: root) == hist, "History persists and reloads identically")
+        let restored = CleanHistory.restore(entry)
+        Smoke.check(restored.restored == [origin.path] && FileManager.default.fileExists(atPath: origin.path),
+                    "History restore moves the file back")
+
+        // Scheduled-scan LaunchAgent plist
+        let planned = ScheduledScanAgent.plistData(bundleID: "ai.smoke", executablePath: "/x/CleanMacPro",
+                                                   schedule: ScanSchedule(frequency: .daily, hour: 8, minute: 15))
+        let parsed = planned.flatMap { try? PropertyListSerialization.propertyList(from: $0, format: nil) as? [String: Any] }
+        Smoke.check((parsed?["ProgramArguments"] as? [String])?.last == ScheduledScanAgent.argument,
+                    "LaunchAgent plist carries the --scheduled-scan argument")
+
     } catch {
         Smoke.failures.append("✗ Exception thrown: \(error)")
     }

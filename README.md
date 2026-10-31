@@ -39,6 +39,7 @@ freemium upsell engines, or opaque tools that delete things you can't see.
 | **Performance** | Login items, LaunchAgents, top RAM consumers — disable from the row        |
 | **Maintenance** | 6 real macOS maintenance commands with native admin prompts                |
 | **Result**      | Mega-number recap, breakdown, confetti                                     |
+| **Settings**     | Scheduled scans (LaunchAgent, daily/weekly + time) · exclusions (paths, apps; right-click "Ne plus proposer") · cleanup history with one-click restore from the Trash |
 
 Plus: floating **Quick Clean** FAB (⌘⇧K), **menu bar widget** with live
 CPU/RAM/Disk meters, **onboarding** with explicit "what we touch / what we
@@ -131,7 +132,7 @@ Some modules need extra macOS permissions to be fully useful:
 - [ ] Notarized signed distribution
 - [x] Sparkle feed checks for direct-download apps
 - [ ] Optional Claude API integration for the AI assistant overlay
-- [ ] Schedule scans via LaunchAgent
+- [x] Schedule scans via LaunchAgent
 - [ ] Locales: EN / ES / DE / DE
 
 ## Credits

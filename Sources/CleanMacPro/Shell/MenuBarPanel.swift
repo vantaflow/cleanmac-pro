@@ -125,6 +125,15 @@ struct MenuPanelContent: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
+                Button {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                } label: {
+                    Text("Réglages")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
                 Button { AppLifecycle.shared.quit() } label: {
                     Text("Quitter")
                         .font(.system(size: 11.5))
