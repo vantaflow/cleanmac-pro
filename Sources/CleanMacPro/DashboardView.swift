@@ -58,9 +58,11 @@ private struct ContentPane: View {
                            subtitle: "Nettoyez votre système pour profiter de performances optimales et récupérer de l'espace disque.")
             case .uninstaller:
                 ApplicationsScreen()
-            case .files:
-                ScanScreen(module: .files,
-                           subtitle: "Examinez votre espace de stockage pour supprimer les fichiers dont vous n'avez pas besoin et désencombrer votre disque.")
+            case .files, .similarPhotos:
+                FilesScreen()
+            case .developer:
+                ScanScreen(module: .developer,
+                           subtitle: "Libérez l'espace pris par Xcode, les caches de paquets, les node_modules oubliés, Homebrew et Docker. Les dossiers vont à la Corbeille ; les commandes (brew, docker, simctl) se lancent depuis leur ligne.")
             case .spaceLens:
                 SpaceLensScreen()
             case .security:

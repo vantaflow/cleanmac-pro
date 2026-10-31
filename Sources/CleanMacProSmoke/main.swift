@@ -1,5 +1,7 @@
 import Foundation
 import CleanCore
+import CoreGraphics
+import ImageIO
 
 // Standalone smoke-test runner. Runs every scanner against fixture trees
 // in $TMPDIR. Exits non-zero on failure. Useful when XCTest isn't available
@@ -28,6 +30,26 @@ struct Smoke {
         try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
         try Data(repeating: byte, count: bytes).write(to: url)
     }
+}
+
+func smokeImage(_ w: Int, _ h: Int, _ centerX: CGFloat) -> CGImage {
+    let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let g = CGGradient(colorsSpace: CGColorSpaceCreateDeviceGray(),
+                       colors: [CGColor(gray: 1, alpha: 1), CGColor(gray: 0, alpha: 1)] as CFArray,
+                       locations: nil)!
+    let c = CGPoint(x: CGFloat(w) * centerX, y: CGFloat(h) / 2)
+    let diag = CGFloat(w * w + h * h).squareRoot()
+    ctx.drawRadialGradient(g, startCenter: c, startRadius: 0, endCenter: c, endRadius: diag,
+                           options: [.drawsAfterEndLocation])
+    return ctx.makeImage()!
+}
+
+func smokeSaveImage(_ image: CGImage, _ url: URL, _ type: String) {
+    let dest = CGImageDestinationCreateWithURL(url as CFURL, type as CFString, 1, nil)!
+    CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.6] as CFDictionary)
+    CGImageDestinationFinalize(dest)
 }
 
 func runSmoke() async {
@@ -72,6 +94,35 @@ func runSmoke() async {
         let dup = DuplicatesScanner(roots: [docs], minSize: 1024 * 1024)
         let dupResult = try await dup.scan { _, _ in }
         Smoke.check(dupResult.count == 2, "DuplicatesScanner finds 2 dup members (got \(dupResult.count))")
+
+        // DeveloperScanner (fixtures only, no external tools)
+        let devHome = root.appendingPathComponent("devhome")
+        try Smoke.write(4_000, to: devHome.appendingPathComponent("Library/Developer/Xcode/DerivedData/App-x/o.bin"))
+        let staleNM = root.appendingPathComponent("devprojects/old/node_modules")
+        try Smoke.write(3_000, to: staleNM.appendingPathComponent("dep/i.js"))
+        try Smoke.write(5, to: root.appendingPathComponent("devprojects/old/package.json"))
+        let longAgo = Date().addingTimeInterval(-200 * 86_400)
+        try FileManager.default.setAttributes([.modificationDate: longAgo], ofItemAtPath: staleNM.path)
+        try FileManager.default.setAttributes([.modificationDate: longAgo],
+                                              ofItemAtPath: root.appendingPathComponent("devprojects/old/package.json").path)
+        let devResult = try await DeveloperScanner(home: devHome,
+                                                   projectRoots: [root.appendingPathComponent("devprojects")],
+                                                   includeTools: false).scan { _, _ in }
+        Smoke.check(devResult.items.contains { $0.group == "Xcode · DerivedData" }, "DeveloperScanner finds DerivedData")
+        Smoke.check(devResult.items.contains { $0.group == "node_modules" }, "DeveloperScanner finds stale node_modules")
+        Smoke.check(DeveloperScanner.parseSize("1.5GB", base: 1000) == 1_500_000_000, "DeveloperScanner.parseSize parses GB")
+
+        // SimilarPhotosScanner: original, resized JPEG, different image
+        let pics = root.appendingPathComponent("Pictures")
+        try FileManager.default.createDirectory(at: pics, withIntermediateDirectories: true)
+        smokeSaveImage(smokeImage(800, 600, 0.3), pics.appendingPathComponent("orig.png"), "public.png")
+        smokeSaveImage(smokeImage(400, 300, 0.3), pics.appendingPathComponent("small.jpg"), "public.jpeg")
+        smokeSaveImage(smokeImage(800, 600, 0.7), pics.appendingPathComponent("other.png"), "public.png")
+        let photoResult = try await SimilarPhotosScanner(roots: [pics], minFileSize: 0).scan { _, _ in }
+        let photoNames = Set(photoResult.items.map { $0.url.lastPathComponent })
+        Smoke.check(photoNames == ["orig.png", "small.jpg"], "SimilarPhotosScanner groups resized copy only (got \(photoNames))")
+        Smoke.check(photoResult.items.first { $0.kind == .keeper }?.url.lastPathComponent == "orig.png",
+                    "SimilarPhotosScanner keeps the highest resolution")
 
         // Cleaner dry-run
         let ghost = ScanItem(url: root.appendingPathComponent("ghost"), size: 1_000, kind: .cache)

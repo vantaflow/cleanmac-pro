@@ -32,6 +32,8 @@ freemium upsell engines, or opaque tools that delete things you can't see.
 | **Cleanup**     | Caches, logs, trash, temp dirs (`~/Library/Caches`, `~/Library/Logs`, …)  |
 | **Uninstaller** | Apps + residues across `~/Library/Application Support`, Caches, Containers|
 | **Files**       | Large files (≥ 50 MB) + old files (> 180 d) + SHA-256-verified duplicates |
+| **Similar photos** | Files tab: perceptual dHash (64-bit, BK-tree) groups near-identical photos, keeps the best, trashes the rest |
+| **Developer**   | Xcode DerivedData / old Archives / DeviceSupport / simulators, SwiftPM · Gradle · npm · Yarn · pnpm · CocoaPods caches, stale `node_modules`, `brew cleanup`, `docker system prune` |
 | **Space Lens**  | Squarified treemap of the home directory with drill-down                  |
 | **Security**    | FileVault, Gatekeeper, SIP, Firewall, XProtect, known-malware paths       |
 | **Privacy**     | Per-browser cookies / cache / history — Safari, Chrome, Firefox, Brave, Arc|

@@ -63,6 +63,7 @@ public struct SmartScanner: FileScanner {
         var scanners: [any FileScanner] = [
             CleanupScanner(),
             FilesScanner(),
+            DeveloperScanner(includeTools: false),
             PrivacyScanner(),
         ]
         if includePosture {
