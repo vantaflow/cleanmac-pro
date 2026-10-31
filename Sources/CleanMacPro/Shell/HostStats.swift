@@ -52,12 +52,12 @@ final class HostStats: ObservableObject {
             let active = Double(vmStats.active_count) * pageBytes
             let wired  = Double(vmStats.wire_count)   * pageBytes
             let comp   = Double(vmStats.compressor_page_count) * pageBytes
-            ramUsedGB = (active + wired + comp) / 1_000_000_000
+            ramUsedGB = (active + wired + comp) / 1_073_741_824
         }
         var total: UInt64 = 0
         var sz = MemoryLayout<UInt64>.size
         sysctlbyname("hw.memsize", &total, &sz, nil, 0)
-        ramTotalGB = Double(total) / 1_000_000_000
+        ramTotalGB = Double(total) / 1_073_741_824
 
         // CPU — load average normalised by core count (cheap, no per-core sampling)
         var load = [Double](repeating: 0, count: 3)

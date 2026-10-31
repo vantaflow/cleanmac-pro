@@ -92,7 +92,7 @@ struct SpaceLensScreen: View {
                     }
                 }
                 Spacer()
-                Text(L("\(items.count) éléments · \(ByteFormatter.string(total))"))
+                Text(items.count == 1 ? L("1 élément · \(ByteFormatter.string(total))") : L("\(items.count) éléments · \(ByteFormatter.string(total))"))
                     .font(.system(size: 12)).foregroundColor(.text3(theme.dark))
             }
             .padding(.horizontal, 28)

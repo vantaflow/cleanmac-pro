@@ -361,3 +361,6 @@
 "tâche" = "Aufgabe";
 "Cache profil" = "Profil-Cache";
 "Cache global" = "Globaler Cache";
+"Soit ~ %@ photos" = "Das sind ~ %@ Fotos";
+"1 élément · %@" = "1 Objekt · %@";
+"1 élément envoyé à la Corbeille" = "1 Objekt in den Papierkorb verschoben";

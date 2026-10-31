@@ -361,3 +361,6 @@
 "tâche" = "tarea";
 "Cache profil" = "Caché del perfil";
 "Cache global" = "Caché global";
+"Soit ~ %@ photos" = "Equivale a ~ %@ fotos";
+"1 élément · %@" = "1 elemento · %@";
+"1 élément envoyé à la Corbeille" = "1 elemento enviado a la Papelera";

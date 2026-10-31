@@ -200,7 +200,9 @@ final class AppState: ObservableObject {
                     self?.update(module) { s in
                         s.isScanning = false
                         s.result = result
-                        s.status = L("\(result.count) éléments · \(ByteFormatter.string(result.totalSize))")
+                        s.status = result.count == 1
+                            ? L("1 élément · \(ByteFormatter.string(result.totalSize))")
+                            : L("\(result.count) éléments · \(ByteFormatter.string(result.totalSize))")
                     }
                 }
             } catch {

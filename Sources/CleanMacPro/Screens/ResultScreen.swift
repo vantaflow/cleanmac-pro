@@ -32,13 +32,13 @@ struct ResultScreen: View {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(red: 15/255, green: 138/255, blue: 55/255))
+                            .foregroundColor(.white)
                         Text(freedBytes == 0 ? L("Aucun nettoyage récent") : L("Nettoyage terminé"))
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color(red: 15/255, green: 138/255, blue: 55/255))
+                            .foregroundColor(.white)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(Color.cmpGood.opacity(0.14))
+                    .background(Color.cmpGood)
                     .clipShape(Capsule())
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 16)
@@ -147,7 +147,7 @@ struct ResultScreen: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(pair.0.title).font(.system(size: 13.5, weight: .semibold))
                                 .foregroundColor(.text1(theme.dark))
-                            Text(L("\(pair.1.removedCount) éléments envoyés à la Corbeille"))
+                            Text(pair.1.removedCount == 1 ? L("1 élément envoyé à la Corbeille") : L("\(pair.1.removedCount) éléments envoyés à la Corbeille"))
                                 .font(.system(size: 11.5))
                                 .foregroundColor(.text3(theme.dark))
                         }
@@ -184,6 +184,7 @@ struct ResultScreen: View {
         let photos = Int(gb * 1000 / 4)        // ~4 MB / photo
         let films = Int(gb / 8)                // ~8 GB / 4K film
         let photosText = photos.formatted()
+        if films == 0 { return L("Soit ~ \(photosText) photos") }
         return films > 1 ? L("Soit ~ \(photosText) photos · \(films) films 4K")
                          : L("Soit ~ \(photosText) photos · \(films) film 4K")
     }

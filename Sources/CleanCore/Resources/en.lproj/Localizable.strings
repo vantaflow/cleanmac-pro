@@ -361,3 +361,6 @@
 "tâche" = "task";
 "Cache profil" = "Profile cache";
 "Cache global" = "Global cache";
+"Soit ~ %@ photos" = "That's ~ %@ photos";
+"1 élément · %@" = "1 item · %@";
+"1 élément envoyé à la Corbeille" = "1 item moved to the Trash";
