@@ -78,14 +78,14 @@ private struct SliceShape: Shape {
                 let aStart = Angle(radians: a0 + pad)
                 let aEnd = Angle(radians: a1 - pad)
                 path.move(to: CGPoint(
-                    x: center.x + cos(aStart.radians) * rOuter,
-                    y: center.y + sin(aStart.radians) * rOuter
+                    x: center.x + CGFloat(cos(aStart.radians)) * rOuter,
+                    y: center.y + CGFloat(sin(aStart.radians)) * rOuter
                 ))
                 path.addArc(center: center, radius: rOuter,
                             startAngle: aStart, endAngle: aEnd, clockwise: false)
                 path.addLine(to: CGPoint(
-                    x: center.x + cos(aEnd.radians) * rInner,
-                    y: center.y + sin(aEnd.radians) * rInner
+                    x: center.x + CGFloat(cos(aEnd.radians)) * rInner,
+                    y: center.y + CGFloat(sin(aEnd.radians)) * rInner
                 ))
                 path.addArc(center: center, radius: rInner,
                             startAngle: aEnd, endAngle: aStart, clockwise: true)
