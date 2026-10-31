@@ -27,17 +27,45 @@ public struct AppRemovalDetector: Sendable {
     public let trash: URL
     public private(set) var known: [String: InstalledAppRecord] = [:]   // path -> record
     private var trashSeen: Set<String> = []
+    /// Where the index is kept between launches, so an app deleted while
+    /// CleanMac Pro was not running is still noticed at the next start.
+    public let stateFile: URL?
+    /// Apps that disappeared since the index was last saved (filled by `baseline()`).
+    public private(set) var removedSinceLastRun: [InstalledAppRecord] = []
 
-    public init(roots: [URL], trash: URL) {
+    public init(roots: [URL], trash: URL, stateFile: URL? = nil) {
         self.roots = roots
         self.trash = trash
+        self.stateFile = stateFile
         baseline()
     }
 
-    /// Snapshot of the current state; nothing already there is ever reported.
+    /// Snapshot of the current state; nothing already there is ever reported,
+    /// except apps the saved index knew and that are gone since (`removedSinceLastRun`).
     public mutating func baseline() {
-        known = Dictionary(uniqueKeysWithValues: AppIndex.build(roots: roots).apps.map { ($0.path, $0) })
+        let current = AppIndex.build(roots: roots).apps
+        known = Dictionary(current.map { ($0.path, $0) }, uniquingKeysWith: { a, _ in a })
         trashSeen = Set(trashApps().map { $0.standardizedFileURL.path })
+        removedSinceLastRun = []
+        if let saved = loadState() {
+            let installedIDs = Set(current.map { $0.bundleID.lowercased() })
+            removedSinceLastRun = saved.filter {
+                known[$0.path] == nil && !FileManager.default.fileExists(atPath: $0.path)
+                    && !installedIDs.contains($0.bundleID.lowercased())
+            }
+        }
+        saveState()
+    }
+
+    private func loadState() -> [InstalledAppRecord]? {
+        guard let stateFile, let data = try? Data(contentsOf: stateFile) else { return nil }
+        return try? JSONDecoder().decode([InstalledAppRecord].self, from: data)
+    }
+
+    private func saveState() {
+        guard let stateFile else { return }
+        try? FileManager.default.createDirectory(at: stateFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let data = try? JSONEncoder().encode(Array(known.values)) { try? data.write(to: stateFile, options: .atomic) }
     }
 
     private func trashApps() -> [URL] {
@@ -68,6 +96,7 @@ public struct AppRemovalDetector: Sendable {
         }
         trashSeen = Set(trashNow.map { $0.standardizedFileURL.path })
         known = currentByPath
+        saveState()
         return removed
     }
 
@@ -104,10 +133,11 @@ public final class AppRemovalWatcher: @unchecked Sendable {
     public init(roots: [URL] = [URL(fileURLWithPath: "/Applications"), FS.home.appendingPathComponent("Applications")],
                 trash: URL = FS.home.appendingPathComponent(".Trash"),
                 library: URL = FS.home.appendingPathComponent("Library"),
+                stateFile: URL? = nil,
                 settleDelay: TimeInterval = 3,
                 exclusions: @escaping @Sendable () -> ExclusionList = { ExclusionList.load() },
                 onRemoval: @escaping @Sendable (AppRemovalEvent) -> Void) {
-        self.detector = AppRemovalDetector(roots: roots, trash: trash)
+        self.detector = AppRemovalDetector(roots: roots, trash: trash, stateFile: stateFile)
         self.leftovers = AppLeftovers(library: library)
         self.settleDelay = settleDelay
         self.exclusions = exclusions
@@ -120,6 +150,7 @@ public final class AppRemovalWatcher: @unchecked Sendable {
         queue.async { [self] in
             guard stream == nil else { return }
             detector.baseline()
+            report(detector.removedSinceLastRun)
             var ctx = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
                                            retain: nil, release: nil, copyDescription: nil)
             let callback: FSEventStreamCallback = { _, info, _, _, _, _ in
@@ -157,7 +188,10 @@ public final class AppRemovalWatcher: @unchecked Sendable {
 
     /// Synchronous check (also used by tests). Must run on `queue` or before `start()`.
     func process() {
-        let removed = detector.refresh()
+        report(detector.refresh())
+    }
+
+    private func report(_ removed: [InstalledAppRecord]) {
         guard !removed.isEmpty else { return }
         let installed = AppIndex.build(roots: detector.roots + AppIndex.defaultRoots, extraIDs: [])
         for ev in detector.events(for: removed, leftovers: leftovers, installed: installed, exclusions: exclusions()) {

@@ -150,6 +150,20 @@ final class AppLeftoversTests: XCTestCase {
         XCTAssertTrue(d.refresh().isEmpty, "reported once")
     }
 
+    func testAppRemovedWhileNotRunningIsReportedAtNextLaunch() throws {
+        let state = root.appendingPathComponent("state/app-index.json")
+        let app = try makeApp("Foo", id: "com.foo.app")
+        try makeApp("Bar", id: "com.bar.app")
+        let first = AppRemovalDetector(roots: [apps], trash: trash, stateFile: state)
+        XCTAssertTrue(first.removedSinceLastRun.isEmpty, "first launch has nothing to compare with")
+        // CleanMac Pro is closed; the user deletes Foo with rm.
+        try FileManager.default.removeItem(at: app)
+        let second = AppRemovalDetector(roots: [apps], trash: trash, stateFile: state)
+        XCTAssertEqual(second.removedSinceLastRun.map(\.bundleID), ["com.foo.app"])
+        let third = AppRemovalDetector(roots: [apps], trash: trash, stateFile: state)
+        XCTAssertTrue(third.removedSinceLastRun.isEmpty, "reported once")
+    }
+
     func testAppMovedToTrashIsDetectedViaIndex() throws {
         let app = try makeApp("Foo", id: "com.foo.app")
         try file("Caches/com.foo.app/x")

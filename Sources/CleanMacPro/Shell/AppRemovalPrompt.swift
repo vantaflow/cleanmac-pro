@@ -334,7 +334,11 @@ final class AppRemovalCoordinator: ObservableObject {
         if enabled {
             guard watcher == nil else { return }
             cacheIcons()
-            let w = AppRemovalWatcher(exclusions: { ExclusionList.load() }) { [weak self] event in
+            // The saved index lets an app deleted while CleanMac Pro was closed be noticed at
+            // the next launch. UI test runs never touch it.
+            let state = UITestDriver.isEnabled ? nil
+                : FS.home.appendingPathComponent("Library/Application Support/CleanMac Pro/app-index.json")
+            let w = AppRemovalWatcher(stateFile: state, exclusions: { ExclusionList.load() }) { [weak self] event in
                 Task { @MainActor in self?.handle(event) }
             }
             w.start()

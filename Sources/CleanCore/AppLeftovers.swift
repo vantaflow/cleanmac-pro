@@ -9,7 +9,7 @@ import Foundation
 // folders apps name after themselves. Never a substring match.
 
 /// One app found on disk.
-public struct InstalledAppRecord: Hashable, Sendable {
+public struct InstalledAppRecord: Hashable, Sendable, Codable {
     public let bundleID: String
     public let name: String
     public let path: String
