@@ -293,6 +293,12 @@ private struct ItemRow: View {
             }
         }
         .padding(.horizontal, 4)
+        .contextMenu {
+            Button("Ne plus proposer ce chemin") { appState.exclude(item) }
+            if item.kind == .app {
+                Button("Ne plus proposer cette app") { appState.exclude(item, asApp: true) }
+            }
+        }
     }
 
     private var rowContent: some View {

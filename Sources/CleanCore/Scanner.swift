@@ -9,6 +9,8 @@ public struct CleanReport: Hashable {
     public let removedCount: Int
     public let freedBytes: Int64
     public let failedItems: [URL]
+    /// Original path -> Trash path for each item moved to the Trash (history / restore).
+    public var trashed: [TrashRecord] = []
 }
 
 public enum Cleaner {
@@ -17,6 +19,7 @@ public enum Cleaner {
         var freed: Int64 = 0
         var removed = 0
         var failed: [URL] = []
+        var trashed: [TrashRecord] = []
         let fm = FileManager.default
 
         for item in items {
@@ -28,13 +31,16 @@ public enum Cleaner {
             do {
                 var resultingURL: NSURL? = nil
                 try fm.trashItem(at: item.url, resultingItemURL: &resultingURL)
+                if let t = resultingURL as URL? {
+                    trashed.append(TrashRecord(originalPath: item.url.path, trashPath: t.path))
+                }
                 freed += item.size
                 removed += 1
             } catch {
                 failed.append(item.url)
             }
         }
-        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed)
+        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed, trashed: trashed)
     }
 
     /// Permanent removal (no Trash). Used by the Uninstaller so a removed .app
@@ -92,15 +98,18 @@ public enum Cleaner {
         var freed: Int64 = 0
         var removed = 0
         var failed: [URL] = []
+        var trashed: [TrashRecord] = []
         for item in items {
             if fm.fileExists(atPath: item.url.path) {
                 failed.append(item.url)
             } else {
                 freed += item.size
                 removed += 1
+                trashed.append(TrashRecord(originalPath: item.url.path,
+                                           trashPath: trashDir + "/" + item.url.lastPathComponent))
             }
         }
-        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed)
+        return CleanReport(removedCount: removed, freedBytes: freed, failedItems: failed, trashed: trashed)
     }
 
     /// POSIX single-quote a path, escaping embedded single quotes.

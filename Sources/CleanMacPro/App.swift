@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Sparkle
+import CleanCore
 
 /// Bridges SwiftUI's `openWindow` action to AppKit (AppDelegate / status item),
 /// so the main window can be reopened after it has been closed.
@@ -110,7 +111,20 @@ final class AppUpdater {
     func checkForUpdates() { controller?.checkForUpdates(nil) }
 }
 
+/// Entry point: `--scheduled-scan` (LaunchAgent) runs a silent scan + notification
+/// and exits, without ever creating a window or the status item.
 @main
+@MainActor
+enum Launcher {
+    static func main() {
+        if CommandLine.arguments.contains(ScheduledScanAgent.argument) {
+            ScheduledScan.runAndExit()
+        } else {
+            CleanMacProApp.main()
+        }
+    }
+}
+
 struct CleanMacProApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState.shared
@@ -137,6 +151,12 @@ struct CleanMacProApp: App {
                 Button("Rechercher des mises à jour…") { AppUpdater.shared.checkForUpdates() }
                     .disabled(!AppUpdater.shared.isConfigured)
             }
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(appState)
+                .environment(\.theme, appState.theme)
         }
     }
 }

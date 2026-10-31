@@ -16,6 +16,12 @@ final class AppState: ObservableObject {
     @Published var moduleStates: [ModuleID: ModuleState] = [:]
     @Published var menubarOpen = false
     @Published var showOnboarding: Bool
+    /// Paths / app ids never proposed again (persisted JSON).
+    @Published private(set) var exclusions = ExclusionList.load()
+    /// Cleanup history with Trash paths, for "Restaurer".
+    @Published private(set) var history = CleanHistory.load()
+    /// Scheduled-scan LaunchAgent preference.
+    @Published private(set) var schedule = ScheduledScanAgent.loadSchedule()
     /// Live filter applied to the active module's results listing.
     @Published var searchText: String = ""
 
@@ -164,9 +170,10 @@ final class AppState: ObservableObject {
             s.result = nil
             s.selection.removeAll()
         }
+        let exclusions = self.exclusions
         let task = Task.detached(priority: .utility) { [weak self] in
             do {
-                let result = try await scanner.scan(progress: { p, msg in
+                let result = try await scanner.scanFiltered(exclusions: exclusions, progress: { p, msg in
                     Task { @MainActor [weak self] in
                         self?.update(module) { s in
                             s.progress = p
@@ -191,6 +198,67 @@ final class AppState: ObservableObject {
             }
         }
         update(module) { $0.currentTask = task }
+    }
+
+    // MARK: — Exclusions
+
+    func addExclusion(path: String) { mutateExclusions { $0.addPath(path) } }
+    func addExclusion(appID: String) { mutateExclusions { $0.addAppID(appID) } }
+    func removeExclusion(path: String) { mutateExclusions { $0.removePath(path) } }
+    func removeExclusion(appID: String) { mutateExclusions { $0.removeAppID(appID) } }
+
+    /// "Ne plus proposer": excludes an item (by app id for apps, else by path).
+    func exclude(_ item: ScanItem, asApp: Bool = false) {
+        if asApp, let id = ExclusionList.bundleID(ofAppAt: item.url) {
+            addExclusion(appID: id)
+        } else {
+            addExclusion(path: item.url.path)
+        }
+    }
+
+    private func mutateExclusions(_ change: (inout ExclusionList) -> Void) {
+        var e = exclusions
+        change(&e)
+        exclusions = e
+        try? e.save()
+        // Hide what is already on screen.
+        for m in ModuleID.allCases {
+            guard let r = moduleStates[m]?.result else { continue }
+            let kept = e.apply(to: r)
+            if kept.count != r.count {
+                update(m) { s in
+                    s.result = kept
+                    s.selection = s.selection.intersection(Set(kept.items.map(\.id)))
+                }
+            }
+        }
+    }
+
+    // MARK: — History
+
+    @discardableResult
+    func restore(_ entry: HistoryEntry) -> RestoreOutcome {
+        let outcome = CleanHistory.restore(entry)
+        if !outcome.restored.isEmpty { Task { await ScanCache.shared.invalidate() } }
+        return outcome
+    }
+
+    func removeHistoryEntry(_ entry: HistoryEntry) {
+        history.remove(id: entry.id)
+        try? history.save()
+    }
+
+    func clearHistory() {
+        history = CleanHistory()
+        try? history.save()
+    }
+
+    // MARK: — Schedule
+
+    func setSchedule(_ s: ScanSchedule) {
+        schedule = s
+        try? ScheduledScanAgent.saveSchedule(s)
+        ScheduleInstaller.apply(s)
     }
 
     func cancelScan(module: ModuleID) {
@@ -232,6 +300,9 @@ final class AppState: ObservableObject {
 
     /// Removes successfully-cleaned items from the module result and reports.
     private func applyClean(module: ModuleID, report: CleanReport, appendFreed: Int64 = 0) {
+        if history.record(module: module.rawValue, report: report) != nil {
+            try? history.save()
+        }
         update(module) { s in
             s.lastReport = report
             s.result?.items.removeAll { !report.failedItems.contains($0.url) && s.selection.contains($0.id) }
