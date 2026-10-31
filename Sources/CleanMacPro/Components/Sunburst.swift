@@ -1,4 +1,5 @@
 import SwiftUI
+import CleanCore
 
 struct SunburstSlice: Identifiable, Hashable {
     let id = UUID()
