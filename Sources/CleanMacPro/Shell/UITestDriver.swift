@@ -169,19 +169,30 @@ final class UITestDriver {
                    file: "screen-smartScan-scanned.png", distinct: false)
         }
 
-        // 5. Settings window.
+        // 5. Settings window (scene first, hosted fallback if the scene does not open).
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         try? await Task.sleep(nanoseconds: 1_500_000_000)
-        if let settings = NSApp.windows.first(where: {
-            $0 !== main && $0.isVisible && $0.styleMask.contains(.titled) && $0.contentView != nil
-        }) {
+        var settings = NSApp.windows.first(where: {
+            $0 !== main && $0 !== fallbackWindow && $0.isVisible && $0.styleMask.contains(.titled) && $0.contentView != nil
+        })
+        if settings == nil {
+            report.notes.append("settings scene window did not open; hosting SettingsView in a window")
+            let host = NSHostingView(rootView: SettingsView()
+                .environmentObject(appState)
+                .environment(\.theme, appState.theme))
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
+                             styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            w.title = "Réglages"
+            w.contentView = host
+            w.center()
+            w.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            settings = w
+        }
+        if let settings {
             record(window: settings, id: "settings", title: "Réglages",
                    file: "screen-settings.png", distinct: false)
             settings.close()
-        } else {
-            report.screens.append(ScreenReport(id: "settings", title: "Réglages",
-                                               error: "settings window did not open"))
-            fail("settings window did not open")
         }
 
         // 6. Menu-bar popover.

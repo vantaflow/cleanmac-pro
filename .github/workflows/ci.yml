@@ -78,6 +78,23 @@ jobs:
           fi
           screencapture -x "$OUT/desktop-after.png" || true
           echo "OUT=$OUT" >> "$GITHUB_ENV"
+      - name: Plain launch shows a window (diagnostic)
+        continue-on-error: true
+        run: |
+          pkill -x CleanMacPro || true
+          sleep 2
+          open -n "build/CleanMac Pro.app"
+          sleep 15
+          screencapture -x "$OUT/plain-launch.png" || true
+          cat > "$RUNNER_TEMP/wins.swift" <<'SW'
+          import CoreGraphics
+          let l = (CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]) ?? []
+          for w in l where (w[kCGWindowOwnerName as String] as? String) == "CleanMac Pro" {
+              print(w[kCGWindowName as String] ?? "-", w[kCGWindowBounds as String] ?? "")
+          }
+          SW
+          swift "$RUNNER_TEMP/wins.swift" | tee "$OUT/plain-launch-windows.txt"
+          pkill -x CleanMacPro || true
       - name: Verify report and crash logs
         run: |
           cat "$OUT/app.log" || true
