@@ -279,6 +279,8 @@ private struct CareCard<Trailing: View, Extra: View>: View {
     var onSecondLink: (() -> Void)? = nil
     var border: Color? = nil
     var dashed: Bool = false
+    /// Narrow cards: the trailing control sits on its own line under the title.
+    var compact: Bool = false
     let onReview: () -> Void
     @ViewBuilder var trailing: () -> Trailing
     @ViewBuilder var extra: () -> Extra
@@ -289,9 +291,11 @@ private struct CareCard<Trailing: View, Extra: View>: View {
             HStack(spacing: 12) {
                 IconChip(symbol: symbol, accent: accent, size: 34)
                 Text(category.title).font(.system(size: 17, weight: .semibold)).foregroundColor(.text1(dark))
+                    .lineLimit(1)
                 Spacer(minLength: 8)
-                trailing()
+                if !compact { trailing() }
             }
+            if compact { trailing() }
             Text(big).font(.figure(28, .bold)).tracking(-0.4).foregroundColor(.text1(dark))
                 .lineLimit(1).minimumScaleFactor(0.7)
             Text(text).font(.system(size: 13)).lineSpacing(2).foregroundColor(.text2(dark))
@@ -450,6 +454,7 @@ private struct PerformanceCard: View {
                  text: tasks.isEmpty
                      ? L("Aucun élément ne ralentit le démarrage de votre Mac.")
                      : L("S'ouvrent à chaque démarrage : \(names). Vous pouvez les désactiver depuis le module."),
+                 compact: true,
                  onReview: { appState.review(.performance) },
                  trailing: {
                      if tasks.isEmpty { StatusPill(status: .good, text: L("Rien à faire")) }
@@ -487,6 +492,7 @@ private struct ApplicationsCard: View {
                  big: n == 0 ? L("Tout est à jour") : L("\(Int(n)) mise(s) à jour"),
                  text: text,
                  border: appState.smartCare.includeUpdates && !plan.installableUpdates.isEmpty ? Accent.violet.color : nil,
+                 compact: true,
                  onReview: { appState.review(.updates) },
                  trailing: {
                      if !plan.installableUpdates.isEmpty {
@@ -518,6 +524,7 @@ private struct ClutterCard: View {
                  linkLabel: L("Choisir les fichiers →"),
                  border: sel.isEmpty ? Color(hex: 0x3A3F4C) : Accent.coral.color,
                  dashed: sel.isEmpty,
+                 compact: true,
                  onReview: { appState.review(.files) },
                  trailing: {
                      if sel.isEmpty { StatusPill(status: .neutral, text: L("À revoir vous-même"), dot: false) }
