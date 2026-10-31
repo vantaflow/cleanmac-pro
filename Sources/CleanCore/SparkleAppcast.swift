@@ -107,7 +107,8 @@ private final class AppcastDelegate: NSObject, XMLParserDelegate {
         switch elementName {
         case "item":
             current = Item()
-        case "enclosure" where current != nil:
+        case "enclosure" where current != nil && attributes["sparkle:deltaFrom"] == nil:
+            // Delta updates (sparkle:deltaFrom) are patches, not full archives: skipped.
             // Older appcasts carry the versions as enclosure attributes.
             if let v = attributes["sparkle:version"], current?.build == nil { current?.build = v }
             if let v = attributes["sparkle:shortVersionString"], current?.shortVersion == nil {

@@ -94,3 +94,20 @@ final class SparkleInstallerTests: XCTestCase {
         XCTAssertEqual(r?.length, 1234)
     }
 }
+
+extension SparkleInstallerTests {
+    func testAppcastIgnoresDeltaEnclosures() {
+        let xml = Data("""
+        <?xml version="1.0"?>
+        <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><sparkle:version>5</sparkle:version><sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+        <enclosure url="https://e.com/full.dmg" length="10" sparkle:edSignature="ZnVsbA=="/>
+        <sparkle:deltas><enclosure url="https://e.com/5-4.delta" sparkle:deltaFrom="4" length="2" sparkle:edSignature="ZGVsdGE="/></sparkle:deltas>
+        </item></channel></rss>
+        """.utf8)
+        let r = SparkleAppcast.latest(from: xml, osVersion: OperatingSystemVersion(majorVersion: 14, minorVersion: 0, patchVersion: 0))
+        XCTAssertEqual(r?.downloadURL?.absoluteString, "https://e.com/full.dmg")
+        XCTAssertEqual(r?.edSignature, "ZnVsbA==")
+        XCTAssertEqual(r?.length, 10)
+    }
+}
