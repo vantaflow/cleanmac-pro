@@ -20,7 +20,11 @@ final class AppState: ObservableObject {
         }
     }
 
-    func applyAppearance() { NSApp?.appearance = appearance.nsAppearance }
+    func applyAppearance() {
+        NSApp?.appearance = appearance.nsAppearance
+        // NSPopover keeps the appearance it was first shown with: refresh it explicitly.
+        if let pop = AppDelegate.current?.popover, let app = NSApp { pop.appearance = app.effectiveAppearance }
+    }
     @Published var active: ModuleID = .smartScan {
         didSet { if oldValue != active { searchText = "" } }
     }

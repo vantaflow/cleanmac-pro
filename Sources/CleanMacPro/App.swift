@@ -93,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             pop.performClose(sender)
         } else {
             AppState.shared.background.activate()
+            pop.appearance = NSApp.effectiveAppearance   // follows Système / Clair / Sombre
             pop.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             pop.contentViewController?.view.window?.makeKey()
         }

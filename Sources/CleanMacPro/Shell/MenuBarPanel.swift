@@ -47,7 +47,10 @@ struct MenuPanelContent: View {
             HStack(spacing: 10) {
                 CmpLogo(size: 32, accent: Accent.mint.color)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("CleanMac Pro").font(.system(size: 14, weight: .semibold))
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("CleanMac Pro").font(.system(size: 14, weight: .semibold))
+                        Text(verbatim: "v\(appVersion)").font(.system(size: 11)).foregroundColor(.text3(dark))
+                    }
                     Text(statusText).font(.system(size: 12)).foregroundColor(Accent.mint.soft)
                 }
                 Spacer()
@@ -116,6 +119,7 @@ struct MenuPanelContent: View {
             HStack(spacing: 14) {
                 Button(action: openMain) {
                     Text(L("Ouvrir CleanMac Pro")).font(.system(size: 13, weight: .semibold)).foregroundColor(Accent.mint.soft)
+                        .lineLimit(1).fixedSize()
                 }
                 .buttonStyle(.plain)
                 Spacer()
@@ -130,7 +134,6 @@ struct MenuPanelContent: View {
                     Text(L("Quitter")).font(.system(size: 13)).foregroundColor(.text2(dark))
                 }
                 .buttonStyle(.plain)
-                Text(verbatim: "v\(appVersion)").font(.system(size: 11)).foregroundColor(.text3(dark))
             }
         }
         .padding(16)
