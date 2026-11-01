@@ -67,7 +67,7 @@ private struct SegmentedTabs: View {
         }
         .padding(3)
         .background(Capsule().fill(Color.inset(dark)))
-        .overlay(Capsule().strokeBorder(Color.cardBorder(dark), lineWidth: 1))
+        .capsuleBorder(Color.cardBorder(dark), lineWidth: 1)
     }
 }
 

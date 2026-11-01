@@ -147,7 +147,7 @@ struct PermissionBanner: View {
             .foregroundColor(PermPalette.text)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Capsule().fill(PermPalette.card))
-            .overlay(Capsule().strokeBorder(Color.cmpWarn.opacity(0.5), lineWidth: 0.8))
+            .capsuleBorder(Color.cmpWarn.opacity(0.5), lineWidth: 0.8)
             .padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 6)
             .zIndex(1)
             .transition(.opacity)

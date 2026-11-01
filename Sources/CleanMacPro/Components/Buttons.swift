@@ -29,7 +29,7 @@ struct Btn: View {
             .frame(height: size.height)
             .background(Capsule().fill(background))
             .foregroundColor(foreground)
-            .overlay(Capsule().inset(by: 0.5).stroke(stroke, lineWidth: 1))
+            .capsuleBorder(stroke)
             .opacity(enabled ? 1 : 0.4)
             .contentShape(Capsule())
         }

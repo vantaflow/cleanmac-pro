@@ -348,6 +348,6 @@ struct SearchField: View {
         }
         .padding(.horizontal, 12).frame(height: 36)
         .background(Capsule().fill(Color.inset(theme.dark)))
-        .overlay(Capsule().inset(by: 0.5).stroke(Color.cardBorder(theme.dark), lineWidth: 1))
+        .capsuleBorder(Color.cardBorder(theme.dark), lineWidth: 1)
     }
 }

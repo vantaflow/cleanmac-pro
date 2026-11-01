@@ -206,6 +206,15 @@ extension View {
     }
 }
 
+extension View {
+    /// 1 pt pill outline. Rasterized (`drawingGroup`) because the CoreGraphics
+    /// path renderer draws stray vertical ticks at the ends of large-radius
+    /// stroked capsules on recent macOS.
+    func capsuleBorder(_ color: Color, lineWidth: CGFloat = 1) -> some View {
+        overlay(Capsule().strokeBorder(color, lineWidth: lineWidth).drawingGroup())
+    }
+}
+
 // MARK: — Environment-injected theme
 
 /// Injects `\.theme` with `dark` taken from the real color scheme of the view

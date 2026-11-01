@@ -197,7 +197,7 @@ struct RemovalPromptView: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 14, weight: .semibold)).foregroundColor(PromptColors.text)
                     .padding(.horizontal, 16).frame(height: 40)
-                    .overlay(Capsule().stroke(PromptColors.border))
+                    .capsuleBorder(PromptColors.border, lineWidth: 1)
                 Button(L("Supprimer \(model.sizeText)")) { model.deleteAll() }
                     .buttonStyle(.plain)
                     .font(.system(size: 14, weight: .bold)).foregroundColor(PromptColors.onAccent)
@@ -225,7 +225,7 @@ struct RemovalPromptView: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 14, weight: .semibold)).foregroundColor(PromptColors.text)
                     .padding(.horizontal, 16).frame(height: 40)
-                    .overlay(Capsule().stroke(PromptColors.border))
+                    .capsuleBorder(PromptColors.border, lineWidth: 1)
             }
         }
     }

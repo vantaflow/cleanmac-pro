@@ -73,7 +73,7 @@ private struct SmartCareHome: View {
             .font(.system(size: 13)).foregroundColor(.textSoft(theme.dark))
             .padding(.horizontal, 12).padding(.vertical, 7)
             .background(Capsule().fill(Color.inset(theme.dark)))
-            .overlay(Capsule().strokeBorder(Color.cardBorder(theme.dark), lineWidth: 1))
+            .capsuleBorder(Color.cardBorder(theme.dark), lineWidth: 1)
     }
 }
 
@@ -137,7 +137,7 @@ private struct FlowChips: View {
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(Capsule().fill(Color.inset(dark)))
-                .overlay(Capsule().strokeBorder(Color.cardBorder(dark), lineWidth: 1))
+                .capsuleBorder(Color.cardBorder(dark), lineWidth: 1)
             }
         }
         .animation(.easeOut(duration: 0.25), value: items.map(\.done))
