@@ -3,6 +3,15 @@ import Foundation
 /// Where CleanMac Pro keeps its small JSON files (exclusions, history, schedule).
 public enum AppSupport {
     public static var defaultDirectory: URL {
+        // UI test mode (`--ui-test`): keep history/exclusions inside the run's
+        // output folder so a local run never writes into the user's real data.
+        let args = CommandLine.arguments
+        if args.contains("--ui-test") {
+            let out = args.first(where: { $0.hasPrefix("--ui-test-out=") })
+                .map { URL(fileURLWithPath: String($0.dropFirst("--ui-test-out=".count))) }
+                ?? FileManager.default.temporaryDirectory.appendingPathComponent("cleanmac-ui")
+            return out.appendingPathComponent("support", isDirectory: true)
+        }
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FS.home.appendingPathComponent("Library/Application Support")
         return base.appendingPathComponent("CleanMac Pro", isDirectory: true)
