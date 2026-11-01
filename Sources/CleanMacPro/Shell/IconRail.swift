@@ -80,6 +80,7 @@ struct IconRail: View {
         .padding(.horizontal, 12).padding(.bottom, 16)
         .frame(width: 232)
         .frame(maxHeight: .infinity)
+        .background(LayoutProbe.reporter(\.railMinX, minX: true))
         .background(Color.sidebarBg(theme.dark))
         .overlay(alignment: .trailing) {
             Rectangle().fill(Color.cardBorder(theme.dark)).frame(width: 1)

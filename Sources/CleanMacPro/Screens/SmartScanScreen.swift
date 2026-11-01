@@ -125,7 +125,9 @@ private struct FlowChips: View {
 
     var body: some View {
         let dark = theme.dark
-        HStack(spacing: 8) {
+        // Wraps onto several centered lines: seven chips never fit one row in
+        // every language, and an over-wide row used to push the whole window.
+        WrapLayout(spacing: 8, lineSpacing: 8) {
             ForEach(items) { it in
                 HStack(spacing: 6) {
                     Image(systemName: it.done ? "checkmark.circle.fill" : "circle.dotted")
@@ -140,6 +142,7 @@ private struct FlowChips: View {
                 .capsuleBorder(Color.cardBorder(dark), lineWidth: 1)
             }
         }
+        .frame(maxWidth: 640)
         .animation(.easeOut(duration: 0.25), value: items.map(\.done))
     }
 }

@@ -155,6 +155,9 @@ final class UITestDriver {
                    file: "screen-spaceLens-scanned.png", distinct: true)
         }
 
+        // 4b. Transient Smart Care phases (too quick on fixtures to be seen otherwise).
+        await captureTransientPhases(main: main, prefix: "screen")
+
         // 5. Smart Care, end to end on the fixtures.
         await smartCareFlow(main: main, fx: fx)
 
@@ -253,6 +256,8 @@ final class UITestDriver {
             }
         }
 
+        await captureTransientPhases(main: main, prefix: "light")
+
         let size = NSSize(width: 560, height: 420)
         let w = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                          styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -280,6 +285,24 @@ final class UITestDriver {
         appState.appearance = .system
         try? await Task.sleep(nanoseconds: 500_000_000)
         appState.navigate(to: .smartScan)
+    }
+
+    /// Smart Care "scanning" and "running" screens, forced for a capture.
+    private func captureTransientPhases(main: NSWindow, prefix: String) async {
+        let saved = appState.smartCare
+        appState.navigate(to: .smartScan)
+        appState.smartCare.phase = .scanning
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        record(window: main, id: "\(prefix)-smartcare-scanning", title: "Smart Care (analyse en cours)",
+               file: "\(prefix)-smartcare-scanning.png", distinct: false)
+        appState.smartCare.phase = .running
+        appState.smartCare.runProgress = 0.4
+        appState.smartCare.runStatus = L("Nettoyage")
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        record(window: main, id: "\(prefix)-smartcare-running", title: "Smart Care (nettoyage en cours)",
+               file: "\(prefix)-smartcare-running.png", distinct: false)
+        appState.smartCare = saved
+        try? await Task.sleep(nanoseconds: 300_000_000)
     }
 
     private func fmt(_ v: Double) -> String { String(format: "%.2f", v) }
@@ -559,6 +582,13 @@ final class UITestDriver {
 
         var problems: [String] = []
         if s.views == 0 { problems.append("no views") }
+        if isMain {
+            let probe = LayoutProbe.shared
+            if abs(probe.railMinX) > 0.5 { problems.append("sidebar shifted by \(Int(probe.railMinX)) pt (content overflow)") }
+            if probe.contentWidth > probe.paneWidth + 0.5 {
+                problems.append("screen wider than its pane (\(Int(probe.contentWidth)) > \(Int(probe.paneWidth)) pt)")
+            }
+        }
         if s.edgePixels < 10 { problems.append("screen looks empty (edge pixels \(s.edgePixels))") }
         if distinct, let prev = previousDigest, prev == digest { problems.append("identical to previous screen") }
         if isMain { previousDigest = digest }

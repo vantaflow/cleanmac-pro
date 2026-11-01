@@ -81,6 +81,11 @@ private struct ContentPane: View {
                 ResultScreen()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(LayoutProbe.reporter(\.contentWidth))
+        // minWidth 0 + clip: a screen wider than the pane can never push the
+        // sidebar out of the window (it used to be centered and cropped left).
+        .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+        .background(LayoutProbe.reporter(\.paneWidth))
+        .clipped()
     }
 }
