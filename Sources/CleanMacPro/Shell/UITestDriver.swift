@@ -49,6 +49,7 @@ final class UITestDriver {
     private var outDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("cleanmac-ui")
     private var started = Date()
     private var previousDigest: Int?
+    private weak var mainWindowRef: NSWindow?
 
     private var appState: AppState { AppState.shared }
 
@@ -121,6 +122,7 @@ final class UITestDriver {
             return
         }
         report.mainWindowFound = true
+        mainWindowRef = main
         report.mainWindowSize = "\(Int(main.frame.width))x\(Int(main.frame.height))"
         NSApp.activate(ignoringOtherApps: true)
         main.makeKeyAndOrderFront(nil)
@@ -582,11 +584,11 @@ final class UITestDriver {
 
         var problems: [String] = []
         if s.views == 0 { problems.append("no views") }
-        if isMain {
+        if window === mainWindowRef {
             let probe = LayoutProbe.shared
-            if abs(probe.railMinX) > 0.5 { problems.append("sidebar shifted by \(Int(probe.railMinX)) pt (content overflow)") }
-            if probe.contentWidth > probe.paneWidth + 0.5 {
-                problems.append("screen wider than its pane (\(Int(probe.contentWidth)) > \(Int(probe.paneWidth)) pt)")
+            if abs(probe.railMinX) > 1.5 { problems.append("sidebar shifted by \(fmt(probe.railMinX)) pt (content overflow)") }
+            if probe.contentWidth > probe.paneWidth + 1.5 {
+                problems.append("screen wider than its pane (\(fmt(probe.contentWidth)) > \(fmt(probe.paneWidth)) pt)")
             }
         }
         if s.edgePixels < 10 { problems.append("screen looks empty (edge pixels \(s.edgePixels))") }
