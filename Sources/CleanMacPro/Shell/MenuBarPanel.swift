@@ -200,14 +200,15 @@ struct MenuAction: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.text1(dark))
-                    Text(sub).font(.system(size: 12)).foregroundColor(.text2(dark)).lineLimit(1)
+                    Text(sub).font(.system(size: 12)).foregroundColor(.text2(dark)).lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 6)
                 Text(trailing).font(.system(size: highlighted ? 13 : 16, weight: .bold))
                     .foregroundColor(highlighted ? Accent.mint.color : .text3(dark))
             }
-            .padding(.horizontal, 10)
-            .frame(height: highlighted ? 52 : 48)
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .frame(minHeight: highlighted ? 52 : 48)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(highlighted ? Color.raised(dark) : (hover ? Color.raised(dark).opacity(0.5) : .clear)))
             .contentShape(Rectangle())

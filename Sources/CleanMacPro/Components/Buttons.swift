@@ -22,7 +22,7 @@ struct Btn: View {
         Button(action: action) {
             HStack(spacing: 7) {
                 if let icon { CmpIcon(name: icon, size: size.font + 1) }
-                Text(label).lineLimit(1)
+                Text(label).lineLimit(1).fixedSize()   // a button label is never truncated
             }
             .font(.system(size: size.font, weight: size == .xl ? .bold : .semibold))
             .padding(.horizontal, size.hPad)

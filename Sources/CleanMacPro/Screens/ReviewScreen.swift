@@ -192,7 +192,8 @@ struct ReviewView: View {
             HStack(spacing: 12) {
                 (Text(ByteFormatter.string(selectedBytes)).fontWeight(.semibold).foregroundColor(.text1(dark))
                  + Text(L(" sélectionnés sur \(ByteFormatter.string(totalBytes))")).foregroundColor(.text2(dark)))
-                    .font(.system(size: 13.5)).lineLimit(2)
+                    .font(.system(size: 13.5)).lineLimit(3)
+                    .layoutPriority(-1)   // the buttons keep their full label, this text wraps
                 Spacer(minLength: 8)
                 Btn(kind: .secondary, size: .lg, label: L("Ne plus proposer")) {
                     selectedItems.forEach { appState.exclude($0) }
@@ -253,7 +254,8 @@ private struct CategoryButton: View {
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(category.title).font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.text1(dark)).lineLimit(1)
+                            .foregroundColor(.text1(dark)).lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(category.subtitle).font(.system(size: 12)).foregroundColor(.text2(dark))
                     }
                     Spacer(minLength: 4)
@@ -294,8 +296,11 @@ struct ReviewRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName).font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.text1(dark)).lineLimit(1)
+                // Paths shorten in the middle (both ends matter); a sentence wraps instead.
                 Text(secondLine).font(.system(size: 12)).foregroundColor(.text3(dark))
-                    .lineLimit(1).truncationMode(.middle)
+                    .lineLimit(secondLineIsPath ? 1 : 2)
+                    .truncationMode(secondLineIsPath ? .middle : .tail)
+                    .fixedSize(horizontal: false, vertical: !secondLineIsPath)
             }
             Spacer(minLength: 8)
             if let n = item.fileCount, n > 1 {
@@ -315,6 +320,8 @@ struct ReviewRow: View {
             if item.kind == .app { Button(L("Ne plus proposer cette app")) { appState.exclude(item, asApp: true) } }
         }
     }
+
+    private var secondLineIsPath: Bool { keeper == nil && secondLine == item.prettyPath }
 
     private var secondLine: String {
         if let keeper { return L("Même contenu que « \(keeper.name) » · \(item.prettyPath)") }
