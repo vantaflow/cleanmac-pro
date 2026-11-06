@@ -57,8 +57,10 @@ struct ScanScreen: View {
                             label: state.isCleaning ? L("Nettoyage…")
                                  : (selected == 0 ? L("Tout sélectionner") : "\(primaryActionLabel) (\(selected))")) {
                             if selected == 0 {
+                                // With a search, only what is shown gets selected.
+                                let visible = appState.filter(result.items)
                                 appState.update(module) { s in
-                                    s.selection = Set(result.items.filter { $0.kind.isCleanable }.map(\.id))
+                                    s.selection = Set(visible.filter { $0.kind.isCleanable }.map(\.id))
                                 }
                             } else {
                                 appState.clean(module: module, permanent: permanentDelete)
@@ -78,11 +80,22 @@ struct ScanScreen: View {
                     .padding(.horizontal, 28).padding(.bottom, 12)
             }
 
+            if let result = state.result, !result.items.isEmpty, appState.isSearchable(module) {
+                HStack {
+                    SearchField(placeholder: module == .uninstaller ? L("Rechercher une app") : L("Filtrer"),
+                                width: 240)
+                    Spacer()
+                }
+                .padding(.horizontal, 28).padding(.bottom, 12)
+            }
+
             if let result = state.result {
                 if result.items.isEmpty {
                     EmptyState(symbol: "checkmark.circle", title: L("Rien à signaler"),
                                message: L("Cette analyse n'a rien trouvé à proposer."),
                                actionLabel: L("Relancer l'analyse")) { appState.startScan(module: module) }
+                } else if appState.filter(result.items).isEmpty {
+                    EmptyState(symbol: "magnifyingglass", title: L("Aucun résultat pour « \(appState.searchText) »"))
                 } else {
                     ResultsListing(module: module, result: result)
                 }

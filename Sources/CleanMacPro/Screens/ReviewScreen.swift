@@ -339,14 +339,24 @@ struct ReviewRow: View {
 struct SearchField: View {
     @Environment(\.theme) private var theme
     @EnvironmentObject var appState: AppState
+    var placeholder: String = L("Filtrer")
+    var width: CGFloat = 110
+    @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundColor(.text3(theme.dark))
-            TextField(L("Filtrer"), text: $appState.searchText)
+            TextField(placeholder, text: $appState.searchText)
                 .textFieldStyle(.plain).font(.system(size: 13))
                 .foregroundColor(.text1(theme.dark))
-                .frame(width: 110)
+                .frame(width: width)
+                .focused($focused)
+                .onExitCommand { appState.searchText = "" }
+                .accessibilityIdentifier("search-field")
+            // ⌘F focuses the field (hidden button carrying the shortcut).
+            Button("") { focused = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
             if !appState.searchText.isEmpty {
                 Button { appState.searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundColor(.text3(theme.dark))
