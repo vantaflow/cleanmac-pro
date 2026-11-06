@@ -157,6 +157,29 @@ final class UITestDriver {
                    file: "screen-spaceLens-scanned.png", distinct: true)
         }
 
+        // 4a. Uninstaller search: field shown, filter by app name, empty state.
+        log("uninstaller search")
+        appState.active = .uninstaller
+        appState.startScan(module: .uninstaller)
+        if await waitForScan(.uninstaller) {
+            let all = appState.state(for: .uninstaller).result?.items ?? []
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            check(findAX(main.contentView, identifier: "search-field"), "uninstaller shows a search field")
+            appState.searchText = "beta"
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            let hits = appState.filter(all)
+            check(hits.count == 2 && hits.allSatisfy { $0.group == "Beta Player" },
+                  "search « beta » keeps Beta Player and its residue (\(hits.count))")
+            record(window: main, id: "uninstaller-search", title: "Désinstalleur (recherche)",
+                   file: "screen-uninstaller-search.png", distinct: true)
+            appState.searchText = "zzz-introuvable"
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            check(appState.filter(all).isEmpty, "search without match leaves nothing")
+            record(window: main, id: "uninstaller-search-empty", title: "Désinstalleur (aucun résultat)",
+                   file: "screen-uninstaller-search-empty.png", distinct: true)
+            appState.searchText = ""
+        }
+
         // 4b. Transient Smart Care phases (too quick on fixtures to be seen otherwise).
         await captureTransientPhases(main: main, prefix: "screen")
 
@@ -605,6 +628,17 @@ final class UITestDriver {
 
     private func countViews(_ v: NSView) -> Int { 1 + v.subviews.reduce(0) { $0 + countViews($1) } }
 
+    /// Depth-first search of the accessibility tree for an `accessibilityIdentifier`.
+    private func findAX(_ element: Any?, identifier: String, depth: Int = 0) -> Bool {
+        guard let element, depth < 20 else { return false }
+        var id: String?
+        var children: [Any] = []
+        if let v = element as? NSView { id = v.accessibilityIdentifier(); children = v.accessibilityChildren() ?? [] }
+        else if let e = element as? NSAccessibilityElement { id = e.accessibilityIdentifier(); children = e.accessibilityChildren() ?? [] }
+        if id == identifier { return true }
+        return children.prefix(400).contains { findAX($0, identifier: identifier, depth: depth + 1) }
+    }
+
     private func countAX(_ element: Any, depth: Int) -> Int {
         guard depth < 14 else { return 0 }
         var children: [Any] = []
@@ -765,6 +799,16 @@ struct Fixture {
                 return out
             },
             .spaceLens: SpaceLensScanner(roots: [lensRoot]),
+            // Display only (never cleaned in the visit): paths need not exist.
+            .uninstaller: FixtureScanner(module: .uninstaller) {
+                let apps = root.appendingPathComponent("Apps")
+                return [("Alpha Studio", "com.example.alpha"), ("Beta Player", "com.example.beta"),
+                        ("Gamma Notes", "com.example.gamma")].flatMap { name, id in [
+                    ScanItem(url: apps.appendingPathComponent("\(name).app"), size: 40_000_000, kind: .app, group: name),
+                    ScanItem(url: root.appendingPathComponent("Library/Caches/\(id)"), size: 3_000_000,
+                             kind: .appResidue, group: name),
+                ] }
+            },
         ]
     }
 }
