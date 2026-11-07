@@ -49,6 +49,10 @@ struct ScanScreen: View {
             ScreenHeader(title: module.title, subtitle: subtitle) {
                 HStack(spacing: 10) {
                     if let result = state.result, !result.items.isEmpty {
+                        if appState.isSearchable(module) {
+                            SearchField(placeholder: module == .uninstaller ? L("Rechercher une app") : L("Filtrer"),
+                                        width: 140)
+                        }
                         SortMenu(module: module)
                     }
                     if let result = state.result, !result.items.isEmpty, supportsClean {
@@ -78,15 +82,6 @@ struct ScanScreen: View {
             if state.lastMeasure != nil {
                 Banner(symbol: "checkmark.circle.fill", text: state.status, accent: Accent.mint.color)
                     .padding(.horizontal, 28).padding(.bottom, 12)
-            }
-
-            if let result = state.result, !result.items.isEmpty, appState.isSearchable(module) {
-                HStack {
-                    SearchField(placeholder: module == .uninstaller ? L("Rechercher une app") : L("Filtrer"),
-                                width: 240)
-                    Spacer()
-                }
-                .padding(.horizontal, 28).padding(.bottom, 12)
             }
 
             if let result = state.result {
