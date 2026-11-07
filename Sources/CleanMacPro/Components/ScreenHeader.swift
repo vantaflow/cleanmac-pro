@@ -8,7 +8,23 @@ struct ScreenHeader<Trailing: View>: View {
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 24) {
+        // Side by side when the actions leave the text a readable column (≥ 340 pt);
+        // otherwise the actions go on their own row below, right-aligned, so the
+        // title is never truncated (long languages, narrow windows).
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .bottom, spacing: 24) {
+                titleBlock.frame(minWidth: 340, idealWidth: 340, maxWidth: .infinity, alignment: .leading)
+                trailing().fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                titleBlock
+                HStack { Spacer(minLength: 0); trailing() }
+            }
+        }
+        .padding(.bottom, 20)
+    }
+
+    private var titleBlock: some View {
             VStack(alignment: .leading, spacing: 6) {
                 if let kicker {
                     Text(kicker)
@@ -28,10 +44,6 @@ struct ScreenHeader<Trailing: View>: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 12)
-            trailing()
-        }
-        .padding(.bottom, 20)
     }
 }
 
